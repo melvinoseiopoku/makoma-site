@@ -34,6 +34,7 @@
     var elPresBtn = section.querySelector("#car-presence");
     var elPresDot = section.querySelector("#car-presence-dot");
     var elPresLbl = section.querySelector("#car-presence-label");
+    var elAvatar  = section.querySelector("#car-avatar");
     var elSym     = section.querySelector("#car-symbolname");
     var elMeaning = section.querySelector("#car-meaningline");
     var elPhrase  = section.querySelector("#car-phrase");
@@ -119,7 +120,6 @@
         '<span class="car-bead-inner">' +
           '<img class="car-bead-glow" src="' + ASSET_BASE + 'beads/' + p.symbol + '_glow.png" alt="" aria-hidden="true">' +
           '<img class="car-bead-img" src="' + ASSET_BASE + 'beads/' + p.symbol + '.png" alt="">' +
-          '<img class="car-bead-avatar" src="' + ASSET_BASE + 'avatars/' + p.avatar + '.png" alt="" aria-hidden="true">' +
         '</span>';
       li.appendChild(btn);
       track.appendChild(li);
@@ -146,21 +146,31 @@
     });
     var dots = Array.prototype.slice.call(dotsWrap.children);
 
-    /* ---------- layout: position beads around the focused index ---------- */
+    /* ---------- spacing tied to bead size so they sit close, like the app ---------- */
+    function spacingPx() {
+      var bw = (beads[index] && beads[index].offsetWidth) || 108;
+      return bw * 0.84;
+    }
+
+    /* ---------- layout: position beads around the focused index (wraps around) ---------- */
     function layout() {
-      var spacing = Math.min(stage.clientWidth * 0.28, 150);
+      var n = beads.length;
+      var spacing = spacingPx();
       beads.forEach(function (b, i) {
         var off = i - index;
+        // shortest circular distance, so the ring loops instead of getting stuck
+        if (off >  n / 2) off -= n;
+        if (off < -n / 2) off += n;
         var abs = Math.abs(off);
         var x = off * spacing;
-        // gentle arc: neighbours sit slightly lower along the cord
-        var y = Math.min(abs, 3) * 14;
-        var scale = off === 0 ? 1 : Math.max(0.5, 0.78 - (abs - 1) * 0.12);
-        var op = off === 0 ? 1 : Math.max(0.12, 0.6 - (abs - 1) * 0.18);
-        b.style.setProperty("--car-x", x + "px");
-        b.style.setProperty("--car-y", y + "px");
+        var y = Math.min(abs, 3) * 9;                                   // very gentle arc
+        var scale = off === 0 ? 1 : Math.max(0.46, 0.74 - (abs - 1) * 0.13);
+        var op = off === 0 ? 1 : Math.max(0, 0.6 - (abs - 1) * 0.22);   // far beads fade out
+        b.style.setProperty("--car-x", x.toFixed(1) + "px");
+        b.style.setProperty("--car-y", y.toFixed(1) + "px");
         b.style.setProperty("--car-scale", scale);
         b.style.setProperty("--car-op", op);
+        b.style.zIndex = String(30 - abs);                             // focused on top, near neighbours above far ones
         b.classList.toggle("is-focused", off === 0);
         b.tabIndex = off === 0 ? 0 : -1;
         b.style.setProperty("--car-presence-color", glowOverride[i]);
@@ -174,6 +184,7 @@
       var presence = glowPresence[index];
 
       function paint() {
+        if (elAvatar) { elAvatar.src = ASSET_BASE + "avatars/" + p.avatar + ".png"; elAvatar.alt = p.name; }
         elName.textContent = p.name;
         elSym.textContent = p.sym;
         elMeaning.textContent = p.meaning;
@@ -318,11 +329,11 @@
     function ptDown(x) { dragging = true; dragX = x; startIndex = index; }
     function ptMove(x) {
       if (!dragging) return;
-      var spacing = Math.min(stage.clientWidth * 0.28, 150);
+      var spacing = spacingPx();
       var moved = (x - dragX);
       var steps = Math.round(-moved / spacing);
-      var target = startIndex + steps;
-      target = Math.max(0, Math.min(PEOPLE.length - 1, target));
+      var n = PEOPLE.length;
+      var target = ((startIndex + steps) % n + n) % n;   // wrap around
       if (target !== index) { index = target; layout(); render(); }
     }
     function ptUp() { dragging = false; }

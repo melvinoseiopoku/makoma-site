@@ -24,8 +24,8 @@
     // data-lift (0..100) into translateZ pixels (presence height).
     var STAGES = {
       1: { tilt: 0,  liftScale: 0.0,  axis: 0   },   // flat top-down map
-      2: { tilt: 62, liftScale: 1.7,  axis: 190 },   // tilt + presence axis
-      3: { tilt: 62, liftScale: 1.7,  axis: 190 }    // beads vs hub focus
+      2: { tilt: 64, liftScale: 3.4,  axis: 340 },   // tilt + presence axis (big gap)
+      3: { tilt: 64, liftScale: 3.4,  axis: 340 }    // beads vs hub focus
     };
 
     // place each node's x/y on the plane (percent), cache its lift
@@ -95,7 +95,7 @@
       autoTimer = window.setTimeout(function () {
         if (userTook) return;
         apply(3);
-      }, 1600);
+      }, 850);
     }
 
     // ---- scroll-driven tween: map the section's progress through the
@@ -112,8 +112,8 @@
         // progress 0..1 as the section travels from entering to centered/past
         var p = 1 - (r.top + r.height * 0.35) / vh;
         p = Math.max(0, Math.min(1, p));
-        if (p < 0.34)      apply(1);
-        else if (p < 0.68) apply(2);
+        if (p < 0.10)      apply(1);
+        else if (p < 0.30) apply(2);
         else               apply(3);
       });
     }
@@ -123,12 +123,12 @@
         entries.forEach(function (e) {
           if (e.isIntersecting && !seen) {
             seen = true;
-            // give the user a beat on the flat map, then auto-walk
-            autoTimer = window.setTimeout(autoplay, 900);
+            // brief beat on the flat map, then auto-walk into 3D quickly
+            autoTimer = window.setTimeout(autoplay, 280);
             window.addEventListener("scroll", onScroll, { passive: true });
           }
         });
-      }, { threshold: 0.35 });
+      }, { threshold: 0.18 });
       io.observe(section);
     } else {
       window.addEventListener("scroll", onScroll, { passive: true });
