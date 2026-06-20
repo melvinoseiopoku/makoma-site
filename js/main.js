@@ -423,19 +423,12 @@
 
   /* ------------------------------------------------------------------ */
   function init() {
-    buildBracelet();
-    buildSymbols();
-    setupHow();
-    buildMap();
-    buildHeroOrbsParallax();
+    // v2: the bead ring, how-it-works demos, symbol gallery and positioning map
+    // were merged into the carousel (carousel.js) and the 2D→3D viz (positioning.js).
     staggerRefusals();
     observeReveals();
     setupChrome();
     setupForm();
-    // auto-select the heart bead so the panel isn't empty
-    const heartIdx = BEADS.findIndex(b => b.key === "akoma");
-    const heartEl = $$(".bead", bracelet).find(x => +x.dataset.i === heartIdx);
-    if (heartEl) { setTimeout(() => { heartEl.classList.add("lit", "selected"); fillPanelOnly(heartIdx); }, 400); }
   }
 
   // fill panel without sound on initial load

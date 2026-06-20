@@ -78,11 +78,10 @@
   </a>
   <nav class="nav-links" id="navLinks">
     <a href="#manifesto">Manifesto</a>
-    <a href="#beads">The Beads</a>
-    <a href="#how">How it works</a>
-    <a href="#symbols">Adinkra</a>
-    <a href="#circle">The app</a>
-    <a href="#proof">Proof</a>
+    <a href="#circle">The Circle</a>
+    <a href="#adoption">How it begins</a>
+    <a href="#position">Where</a>
+    <a href="#launch">The Road</a>
     <a href="#platform">Vision</a>
     <a href="#join" class="nav-link-cta">Reserve</a>
   </nav>
@@ -96,28 +95,36 @@
 
 <main id="top">
 
-<!-- ============ HERO — scroll-driven 3D ============ -->
+<!-- ============ HERO — full still photo first ============ -->
+<section class="hero-still">
+  <img class="hero-still-img" src="assets/img/bracelet-hero.jpg"
+       alt="The M'AKOMA bracelet — black beads with glowing gold Adinkra symbols and a gold core hub on a braided cord." />
+  <div class="hero-still-veil" aria-hidden="true"></div>
+  <div class="hero-still-inner wrap">
+    <p class="eyebrow reveal">The first beaded technology</p>
+    <h1 class="hero-still-title reveal">The people<br/><span class="gold-ink">you carry.</span></h1>
+    <p class="hero-still-sub reveal">Worn on the wrist. Felt across the distance.</p>
+    <div class="hero-actions reveal">
+      <a href="#circle" class="btn btn-gold">See the circle</a>
+      <a href="#join" class="btn btn-line">Reserve a place</a>
+    </div>
+  </div>
+  <div class="scroll-cue" aria-hidden="true"><span></span></div>
+</section>
+
+<!-- ============ ANATOMY — scroll-driven 3D (the CAD, after the still) ============ -->
 <section class="hero3d" id="hero">
   <div class="hero3d-sticky">
     <canvas id="heroCanvas" aria-hidden="true"></canvas>
     <img src="assets/img/bracelet-makoma.jpg" class="hero3d-poster" id="heroPoster"
-         alt="The M'AKOMA bracelet — black Adinkra beads glowing gold around a core hub on a braided cord." />
+         alt="The M'AKOMA bracelet rendered in 3D — beads and core hub on a braided cord." />
     <div class="hero3d-veil" aria-hidden="true"></div>
-    <p class="sr-only">The M&rsquo;AKOMA bracelet, shown in 3D: eight matte-black beads engraved with gold Adinkra symbols, strung around a gold core hub at the center of a braided cord.</p>
+    <p class="sr-only">A 3D anatomy of the bracelet: each matte-black bead carries an engraved gold Adinkra symbol, a small circuit board and a haptic motor; the gold core hub holds the battery, microphone and speaker.</p>
 
     <div class="hero3d-overlay">
       <div class="hero-intro" id="heroIntro">
-        <p class="eyebrow">A beaded communication bracelet</p>
-        <h1 class="hero-title">The people<br/><span class="gold-ink">you carry.</span></h1>
-        <p class="hero-sub">
-          The people who matter most, turned from buried contacts into beads you wear —
-          a touch they feel, a voice they keep, only an Echo away.
-        </p>
-        <div class="hero-actions">
-          <a href="#beads" class="btn btn-gold">Meet the beads</a>
-          <a href="#manifesto" class="btn btn-line">Why I&rsquo;m building it</a>
-        </div>
-        <p class="hero-foot">&ldquo;Just the people you would answer at 3&nbsp;a.m., with you, all the time.&rdquo;</p>
+        <p class="eyebrow">Look inside</p>
+        <h2 class="hero-title">Real, to the<br/><span class="gold-ink">millimetre.</span></h2>
       </div>
 
       <div class="hero-caption" id="heroCaption" aria-live="polite">
@@ -129,8 +136,8 @@
       <div class="hero-outro" id="heroOutro">
         <h2>Eight people.<br/><span class="gold-ink">One quiet channel.</span></h2>
         <div class="hero-actions">
-          <a href="#join" class="btn btn-gold">Reserve your spot</a>
-          <a href="#beads" class="btn btn-line">Meet the beads</a>
+          <a href="#circle" class="btn btn-gold">See the circle</a>
+          <a href="#join" class="btn btn-line">Reserve a place</a>
         </div>
       </div>
     </div>
@@ -141,20 +148,12 @@
   </div>
 </section>
 
-<!-- ============ MANIFESTO / ANTI-FEED ============ -->
+<!-- ============ MANIFESTO / ANTI-FEED (trimmed) ============ -->
 <section class="manifesto" id="manifesto">
   <div class="wrap">
     <p class="section-tag reveal">Why M&rsquo;akoma</p>
-    <h2 class="big-statement reveal">
-      The people we carry.
-      <span class="muted">The family we&rsquo;re born into, <span class="strike">and the family we choose.</span></span>
-    </h2>
-    <p class="lede reveal">
-      The people you reach for first when life happens — the good, the hard, the little thought you need to
-      share — are what make life worth living. But school, work, travel, immigration, growing up: life pulls us
-      apart. And keeping those bonds alive through the same phone that holds spam, work email, group chats and
-      endless notifications starts to feel like <em>work</em>.
-    </p>
+    <h2 class="big-statement reveal">Only the few<span class="muted"> who matter, <span class="strike">kept close.</span></span></h2>
+    <p class="lede reveal">No feed. No noise. No one watching.</p>
 
     <ul class="refusals reveal" id="refusals">
       <li>No feed</li>
@@ -166,253 +165,318 @@
       <li>No comparison</li>
       <li>No performance</li>
     </ul>
-    <p class="refusals-note reveal">The guardrails aren&rsquo;t constraints. They&rsquo;re the whole point.</p>
+    <p class="refusals-note reveal">Presence, not posts.</p>
   </div>
 </section>
 
-<!-- ============ THE SHIFT ============ -->
-<section class="shift">
-  <div class="wrap shift-grid">
-    <div class="shift-line reveal">
-      <h2>M&rsquo;akoma —<br/><span class="gold-ink">&ldquo;my heart&rdquo;, literally.</span></h2>
-      <p>
-        A bracelet that turns the people who matter from buried contacts into physical beads you wear. Through
-        touch, light, haptics and short voice <strong>Echoes</strong>, it makes connection physical again.
-        Not another feed. Not another notification. Not another app fighting for your attention — just a
-        reminder that your people are still with you.
-      </p>
-    </div>
-    <div class="shift-cards reveal">
-      <div class="shift-card">
-        <span class="sc-label">Reachable</span>
-        <p>A contact buried in your phone, behind a thousand notifications.</p>
-      </div>
-      <div class="shift-arrow">→</div>
-      <div class="shift-card on">
-        <span class="sc-label">Present</span>
-        <p>A bead that lives on your wrist. A bead is not a slot — it&rsquo;s a commitment of attention.</p>
-      </div>
-    </div>
+<!-- ============ REACHABLE → PRESENT (infographic) ============ -->
+<section class="shift" id="shift">
+  <div class="wrap" style="text-align:center;">
+    <p class="eyebrow reveal" style="display:block; margin-bottom:22px;">M&rsquo;akoma — &ldquo;my heart&rdquo;, literally</p>
+    <figure class="ig-fig reveal" aria-label="From reachable to present" style="margin:0 auto;">
+      <svg viewBox="0 0 760 300" xmlns="http://www.w3.org/2000/svg" role="img">
+        <title>Reachable versus present</title>
+        <g transform="translate(70 40)" fill="none" stroke="#9a9285" stroke-width="1.4">
+          <rect x="0" y="0" width="150" height="220" rx="22" stroke="#b7b0a1"/>
+          <rect x="12" y="22" width="126" height="176" rx="8" stroke="#9a9285" stroke-opacity=".6"/>
+          <line x1="62" y1="11" x2="88" y2="11" stroke="#9a9285"/>
+          <g stroke="none" fill="#9a9285" fill-opacity=".55">
+            <rect x="24" y="34" width="80" height="9" rx="4.5"/>
+            <rect x="24" y="52" width="102" height="9" rx="4.5"/>
+            <rect x="24" y="70" width="66" height="9" rx="4.5"/>
+            <rect x="24" y="88" width="94" height="9" rx="4.5"/>
+            <rect x="24" y="124" width="88" height="9" rx="4.5"/>
+            <rect x="24" y="142" width="58" height="9" rx="4.5"/>
+            <rect x="24" y="160" width="100" height="9" rx="4.5"/>
+            <rect x="24" y="178" width="72" height="9" rx="4.5"/>
+          </g>
+          <g stroke="none" fill="#9a9285">
+            <circle cx="118" cy="38" r="6" fill-opacity=".8"/>
+            <circle cx="132" cy="58" r="5" fill-opacity=".6"/>
+            <circle cx="120" cy="78" r="4" fill-opacity=".5"/>
+            <circle cx="128" cy="132" r="6" fill-opacity=".7"/>
+            <circle cx="120" cy="150" r="4" fill-opacity=".5"/>
+          </g>
+          <path d="M58 112c-3-3.4-9-3-9 2.4 0 3.6 4.4 6.6 9 9.6 4.6-3 9-6 9-9.6 0-5.4-6-5.8-9-2.4z"
+                fill="#c9a04e" fill-opacity=".5" stroke="none"/>
+        </g>
+        <text x="145" y="290" text-anchor="middle" class="ig-label" font-size="22">Reachable</text>
+        <g stroke="#c9a04e" stroke-width="1.6" fill="none">
+          <line x1="300" y1="150" x2="448" y2="150"/>
+          <path d="M440 143 L452 150 L440 157" stroke-linecap="round" stroke-linejoin="round"/>
+        </g>
+        <g transform="translate(490 0)">
+          <circle cx="130" cy="150" r="62" fill="#c9a04e" fill-opacity=".05"/>
+          <circle cx="130" cy="150" r="40" fill="#e8c57a" fill-opacity=".07"/>
+          <path d="M30 110 Q130 70 230 110 Q250 150 230 196 Q130 236 30 196 Q12 150 30 110 Z"
+                fill="none" stroke="#9b7a36" stroke-width="1.2" stroke-opacity=".55"/>
+          <circle cx="78" cy="92" r="6" fill="none" stroke="#9b7a36" stroke-width="1.2"/>
+          <circle cx="186" cy="92" r="6" fill="none" stroke="#9b7a36" stroke-width="1.2"/>
+          <circle cx="130" cy="150" r="26" fill="#c9a04e" fill-opacity=".16" stroke="#e8c57a" stroke-width="1.6"/>
+          <circle cx="130" cy="150" r="26" fill="none" stroke="#c9a04e" stroke-width="0.6" stroke-opacity=".5"/>
+          <circle cx="121" cy="141" r="7" fill="#f1e6cb" fill-opacity=".55"/>
+        </g>
+        <text x="620" y="290" text-anchor="middle" class="ig-label" font-size="22">Present</text>
+      </svg>
+    </figure>
+    <p class="reveal" style="color:var(--gold-pale); opacity:.85; max-width:44ch; margin:26px auto 0; font-family:var(--serif); font-style:italic; font-size:1.25rem;">
+      Always within reach — rarely truly there. Now, a touch they feel in the moment.
+    </p>
   </div>
 </section>
 
-<!-- ============ INTERACTIVE BEAD RING ============ -->
-<section class="beads" id="beads">
-  <div class="wrap">
-    <p class="section-tag reveal">Circle Mode · the core experience</p>
-    <h2 class="beads-title reveal">Each bead is a person.<br/><span class="muted">Tap one to feel them.</span></h2>
-  </div>
+<!-- ============ THE CIRCLE — bead carousel (merges Circle Mode + Echo/Pulse/Glow + Adinkra) ============ -->
+<section id="circle" class="car-section" aria-labelledby="car-headline">
+  <div class="car-wrap">
+    <header class="car-head">
+      <p class="car-eyebrow">The circle</p>
+      <h2 id="car-headline" class="car-headline">The people you carry &mdash; one turn at a time.</h2>
+    </header>
 
-  <div class="bracelet-stage reveal">
-    <div class="bracelet" id="bracelet" role="group" aria-label="Interactive bracelet — select a bead">
-      <!-- core hub -->
-      <button class="hub" id="hub" aria-label="Core hub" title="The core hub — power, voice, the heart of the bracelet">
-        <span class="hub-disc"></span>
+    <div class="car-identity" aria-live="polite">
+      <h3 class="car-name" id="car-name">Maya</h3>
+      <button type="button" class="car-presence" id="car-presence" aria-label="Presence colour">
+        <span class="car-presence-dot" id="car-presence-dot"></span>
+        <span class="car-presence-label" id="car-presence-label">Quiet Violet</span>
       </button>
-      <!-- beads injected by JS -->
     </div>
-    <p class="bracelet-hint" id="braceletHint">Tap a bead &nbsp;·&nbsp; then send an Echo, Pulse or Glow</p>
-  </div>
 
-  <!-- selected bead detail -->
-  <div class="wrap">
-    <div class="bead-panel reveal" id="beadPanel" aria-live="polite">
-      <div class="bp-left">
-        <div class="bp-glyph" id="bpGlyph" aria-hidden="true"></div>
-      </div>
-      <div class="bp-body">
-        <p class="bp-person" id="bpPerson">Maya</p>
-        <h3 class="bp-symbol" id="bpSymbol">Sankofa</h3>
-        <p class="bp-meaning" id="bpMeaning">Return and retrieve — it is not wrong to go back for what you forgot.</p>
-        <p class="bp-proverb" id="bpProverb"></p>
-        <div class="bp-actions" id="bpActions">
-          <button class="act act-echo" data-act="echo" title="Hold to record a voice charm">
-            <svg viewBox="0 0 24 24" class="act-ico"><path d="M3 12h2l2-6 3 14 3-18 3 12 2-6h3"/></svg>
-            <span><b>Echo</b><small>hold to record</small></span>
-          </button>
-          <button class="act act-pulse" data-act="pulse" title="Tap to send a pulse">
-            <svg viewBox="0 0 24 24" class="act-ico"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="8" fill="none"/></svg>
-            <span><b>Pulse</b><small>tap to send</small></span>
-          </button>
-          <button class="act act-glow" data-act="glow" title="Light their bead">
-            <svg viewBox="0 0 24 24" class="act-ico"><circle cx="12" cy="12" r="4"/><g class="rays"><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"/></g></svg>
-            <span><b>Glow</b><small>light their bead</small></span>
-          </button>
+    <div class="car-stage" id="car-stage" role="group" aria-roledescription="carousel"
+         aria-label="Bead carousel. Use arrow keys to move between people.">
+      <svg class="car-cord" viewBox="0 0 1000 220" preserveAspectRatio="none" aria-hidden="true">
+        <path id="car-cord-path" d="M0 150 Q 500 70 1000 150" fill="none"
+              stroke="rgba(201,160,78,.22)" stroke-width="1.5" />
+      </svg>
+      <ul class="car-track" id="car-track"><!-- beads injected by JS --></ul>
+      <div class="car-focusglow" id="car-focusglow" aria-hidden="true"></div>
+    </div>
+
+    <div class="car-meaning" aria-live="polite">
+      <p class="car-symbolname" id="car-symbolname">Sankofa</p>
+      <p class="car-meaningline" id="car-meaningline">Return &amp; retrieve — it is not wrong to go back for what you forgot.</p>
+      <p class="car-phrase" id="car-phrase">Comes back around</p>
+    </div>
+
+    <div class="car-dots" id="car-dots" role="tablist" aria-label="Choose a person"></div>
+
+    <div class="car-actions" role="group" aria-label="Bead actions">
+      <button type="button" class="car-btn" id="car-echo" aria-label="Echo — hold to leave a voice">
+        <span class="car-btn-label">Echo</span>
+        <span class="car-btn-hint">hold to leave a voice</span>
+      </button>
+      <button type="button" class="car-btn" id="car-pulse" aria-label="Pulse — tap to send a pulse">
+        <span class="car-btn-label">Pulse</span>
+        <span class="car-btn-hint">tap to send a pulse</span>
+      </button>
+      <button type="button" class="car-btn" id="car-glow" aria-label="Glow — set their colour">
+        <span class="car-btn-label">Glow</span>
+        <span class="car-btn-hint">set their colour</span>
+      </button>
+    </div>
+  </div>
+</section>
+
+<!-- ============ HOW IT BEGINS — adoption (infographic + real app) ============ -->
+<section class="circle" id="adoption">
+  <div class="wrap" style="text-align:center;">
+    <p class="eyebrow reveal" style="display:block; margin-bottom:18px;">How it begins</p>
+    <h2 class="reveal" style="font-family:var(--serif); font-weight:500; font-size:clamp(2rem,4.6vw,3.4rem); line-height:1.04; margin:0 0 34px;">
+      Three beads,<br/><span class="gold-ink">then a lifetime.</span>
+    </h2>
+
+    <figure class="ig-fig reveal" aria-label="Adoption in three steps" style="margin:0 auto 44px;">
+      <svg viewBox="0 0 760 260" xmlns="http://www.w3.org/2000/svg" role="img">
+        <title>Three steps to adoption</title>
+        <g stroke="#c9a04e" stroke-width="1.4" stroke-opacity=".5" stroke-dasharray="2 7" stroke-linecap="round">
+          <line x1="200" y1="120" x2="300" y2="120"/>
+          <line x1="460" y1="120" x2="560" y2="120"/>
+        </g>
+        <g transform="translate(40 40)" fill="none" stroke="#c9a04e" stroke-width="1.5">
+          <circle cx="60" cy="0" r="13" stroke="#e8c57a"/>
+          <text x="60" y="6" text-anchor="middle" class="ig-num" font-size="17" stroke="none">1</text>
+          <path d="M22 120 q0 -28 18 -42 l24 -18 q14 -10 30 -6" stroke="#b7b0a1" stroke-width="1.4"/>
+          <path d="M118 60 q14 4 14 18 q0 12 -16 16" stroke="#b7b0a1" stroke-width="1.4"/>
+          <ellipse cx="78" cy="78" rx="20" ry="30" transform="rotate(-34 78 78)" stroke="#c9a04e"/>
+          <g stroke="none" fill="#e8c57a">
+            <circle cx="62" cy="62" r="4.2"/><circle cx="78" cy="55" r="4.2"/><circle cx="95" cy="60" r="4.2"/>
+          </g>
+        </g>
+        <text x="100" y="232" text-anchor="middle" class="ig-cap">You wear it</text>
+        <g transform="translate(300 40)" fill="none" stroke="#c9a04e" stroke-width="1.5">
+          <circle cx="80" cy="0" r="13" stroke="#e8c57a"/>
+          <text x="80" y="6" text-anchor="middle" class="ig-num" font-size="17" stroke="none">2</text>
+          <rect x="14" y="44" width="58" height="92" rx="11" stroke="#b7b0a1" stroke-width="1.4"/>
+          <line x1="36" y1="54" x2="50" y2="54" stroke="#9a9285"/>
+          <path d="M64 78 q24 -12 48 4" stroke="#c9a04e" stroke-dasharray="2 6" stroke-linecap="round"/>
+          <path d="M104 74 l10 8 l-12 5" stroke="#c9a04e" stroke-linejoin="round" stroke-linecap="round"/>
+          <circle cx="128" cy="104" r="16" fill="#c9a04e" fill-opacity=".15" stroke="#e8c57a"/>
+          <circle cx="122" cy="98" r="4" fill="#f1e6cb" fill-opacity=".6" stroke="none"/>
+        </g>
+        <text x="380" y="232" text-anchor="middle" class="ig-cap">Add your people</text>
+        <g transform="translate(560 40)" fill="none" stroke="#c9a04e" stroke-width="1.5">
+          <circle cx="80" cy="0" r="13" stroke="#e8c57a"/>
+          <text x="80" y="6" text-anchor="middle" class="ig-num" font-size="17" stroke="none">3</text>
+          <circle cx="56" cy="96" r="26" stroke="#c9a04e"/>
+          <circle cx="104" cy="96" r="26" stroke="#c9a04e"/>
+          <g stroke="none" fill="#e8c57a">
+            <circle cx="56" cy="70" r="4"/><circle cx="34" cy="104" r="4"/><circle cx="104" cy="70" r="4"/><circle cx="126" cy="104" r="4"/>
+          </g>
+          <circle cx="80" cy="96" r="6" fill="#c9a04e" fill-opacity=".25" stroke="#f1e6cb"/>
+        </g>
+        <text x="640" y="232" text-anchor="middle" class="ig-cap">The circle is real</text>
+      </svg>
+    </figure>
+
+    <div class="app-trio reveal" style="max-width:760px; margin:0 auto;">
+      <figure class="phone-frame side"><img src="assets/img/app-beads-light.jpg" alt="M'AKOMA app — a friend's bead, light theme" loading="lazy" /></figure>
+      <figure class="phone-frame lead"><img src="assets/img/app-beads-dark.jpg" alt="M'AKOMA app — a friend's glowing bead in the carousel" loading="lazy" /></figure>
+      <figure class="phone-frame side"><img src="assets/img/app-circle.jpg" alt="M'AKOMA app — your circle of chosen people" loading="lazy" /></figure>
+    </div>
+    <p class="phone-cap reveal">A friend can live in a bead before they own anything.</p>
+  </div>
+</section>
+
+<!-- ============ WHERE WE LIVE — interactive 2D→3D positioning ============ -->
+<section id="position" class="wl-section" aria-labelledby="wl-eyebrow">
+  <div class="wl-wrap">
+    <p class="wl-eyebrow" id="wl-eyebrow">Where we live</p>
+    <div class="wl-stage" data-stage="1" aria-hidden="false">
+      <div class="wl-scene">
+        <div class="wl-plane">
+          <div class="wl-grid" aria-hidden="true"></div>
+          <div class="wl-axis" aria-hidden="true">
+            <span class="wl-axis-tick"></span>
+            <span class="wl-axis-label">Presence</span>
+          </div>
+          <div class="wl-nodes">
+            <button class="wl-node" type="button" data-x="14" data-y="22" data-lift="6" data-kind="flat"
+                    aria-label="Social feeds — lives on a screen">
+              <span class="wl-dot"></span><span class="wl-stem" aria-hidden="true"></span><span class="wl-label">Social feeds</span>
+            </button>
+            <button class="wl-node" type="button" data-x="40" data-y="13" data-lift="10" data-kind="flat"
+                    aria-label="Group chats — lives on a screen">
+              <span class="wl-dot"></span><span class="wl-stem" aria-hidden="true"></span><span class="wl-label">Group chats</span>
+            </button>
+            <button class="wl-node" type="button" data-x="68" data-y="26" data-lift="14" data-kind="flat"
+                    aria-label="Texts — lives on a screen">
+              <span class="wl-dot"></span><span class="wl-stem" aria-hidden="true"></span><span class="wl-label">Texts</span>
+            </button>
+            <button class="wl-node" type="button" data-x="84" data-y="58" data-lift="34" data-kind="flat"
+                    aria-label="Calls — lives on a screen">
+              <span class="wl-dot"></span><span class="wl-stem" aria-hidden="true"></span><span class="wl-label">Calls</span>
+            </button>
+            <button class="wl-node wl-node--hub" type="button" data-x="30" data-y="72" data-lift="64" data-kind="hub"
+                    aria-label="Bond Touch — a single hub, one node for everyone">
+              <span class="wl-dot"></span><span class="wl-stem" aria-hidden="true"></span><span class="wl-label">Bond Touch</span>
+            </button>
+            <button class="wl-node wl-node--beads" type="button" data-x="58" data-y="80" data-lift="100" data-kind="beads"
+                    aria-label="M'AKOMA — a string of distinct beads, each a different person">
+              <span class="wl-string" aria-hidden="true">
+                <span class="wl-cord"></span>
+                <span class="wl-bead"></span><span class="wl-bead"></span><span class="wl-bead"></span><span class="wl-bead"></span><span class="wl-bead"></span>
+              </span>
+              <span class="wl-stem" aria-hidden="true"></span>
+              <span class="wl-label wl-label--apex">M&rsquo;AKOMA</span>
+            </button>
+          </div>
         </div>
       </div>
     </div>
-  </div>
-</section>
-
-<!-- ============ HOW IT WORKS ============ -->
-<section class="how" id="how">
-  <div class="wrap">
-    <p class="section-tag reveal">The loop</p>
-    <h2 class="how-title reveal">Touch. Light. Haptics. Voice.</h2>
-    <p class="how-lede reveal">No typing. No notifications. Three ways to say <em>I&rsquo;m thinking of you</em> — each one a small ritual, not a message in a noisy channel.</p>
-
-    <div class="how-grid">
-      <article class="how-card reveal" data-demo="echo">
-        <div class="hc-visual hc-echo">
-          <svg class="wave" viewBox="0 0 200 60" preserveAspectRatio="none" aria-hidden="true"></svg>
-          <span class="rec-dot"></span>
-        </div>
-        <h3>Echo</h3>
-        <p>Hold a friend&rsquo;s bead and speak. A short voice charm — their real voice, not a highlight reel — lands on your wrist, glows, and waits to be replayed.</p>
-        <button class="mini-btn" data-hold="echo">Hold to record</button>
-      </article>
-
-      <article class="how-card reveal" data-demo="pulse">
-        <div class="hc-visual hc-pulse">
-          <span class="ripple-core"></span>
-        </div>
-        <h3>Pulse</h3>
-        <p>Tap a bead and a pulse travels instantly to that one person. Their matching bead lights and vibrates. No reply needed. No pressure.</p>
-        <button class="mini-btn" data-tap="pulse">Send a pulse</button>
-      </article>
-
-      <article class="how-card reveal" data-demo="glow">
-        <div class="hc-visual hc-glow">
-          <span class="glow-bead"></span>
-        </div>
-        <h3>Glow</h3>
-        <p>Swipe to choose a presence color and quietly light their bead. A glance instead of a text — &ldquo;you&rsquo;re on my mind&rdquo; without a single word.</p>
-        <button class="mini-btn" data-cycle="glow">Cycle colors</button>
-      </article>
+    <div class="wl-steps" role="tablist" aria-label="Positioning view">
+      <button class="wl-step is-on" type="button" role="tab" aria-selected="true" data-go="1" aria-label="Flat map view"></button>
+      <button class="wl-step" type="button" role="tab" aria-selected="false" data-go="2" aria-label="Presence axis view"></button>
+      <button class="wl-step" type="button" role="tab" aria-selected="false" data-go="3" aria-label="Beads versus hub view"></button>
     </div>
-  </div>
-</section>
-
-<!-- ============ CIRCLE / TIERS + APP ============ -->
-<section class="circle" id="circle">
-  <div class="wrap circle-grid">
-    <div class="circle-copy reveal">
-      <p class="section-tag">Adoption · one person starts</p>
-      <h2>Buy one bracelet.<br/>Invite your people from the app.</h2>
-      <p class="circle-lede">A friend can live in a bead before they own anything. They send a pulse or a voice charm from the phone, and their bead glows on your wrist. When they get a bracelet, it becomes two-way and physical.</p>
-      <ol class="tiers">
-        <li><span class="tier-dot"></span><div><b>App friend</b><p>No bracelet yet — they send from the phone, their bead glows on you.</p></div></li>
-        <li><span class="tier-dot"></span><div><b>Bracelet friend</b><p>Both wear one — light, haptics and voice go both ways.</p></div></li>
-        <li><span class="tier-dot on"></span><div><b>Bead friend</b><p>The scarce inner layer. Promoting someone to a bead feels almost ceremonial.</p></div></li>
-      </ol>
-    </div>
-    <div class="circle-phone reveal">
-      <div class="app-trio">
-        <figure class="phone-frame side"><img src="assets/img/app-beads-light.jpg" alt="M'AKOMA app — Kwame's bead, light theme" loading="lazy" /></figure>
-        <figure class="phone-frame lead"><img src="assets/img/app-beads-dark.jpg" alt="M'AKOMA app — a friend's glowing bead in the carousel" loading="lazy" /></figure>
-        <figure class="phone-frame side"><img src="assets/img/app-circle.jpg" alt="M'AKOMA app — Your Circle of chosen people" loading="lazy" /></figure>
-      </div>
-      <p class="phone-cap">The real app — quiet plumbing. The bracelet is where presence lives.</p>
-    </div>
-  </div>
-</section>
-
-<!-- ============ ADINKRA SYMBOLS ============ -->
-<section class="symbols" id="symbols">
-  <div class="wrap">
-    <p class="section-tag reveal">The language on your wrist</p>
-    <h2 class="symbols-title reveal">Eight Adinkra symbols.<br/><span class="muted">Centuries of meaning, lit from within.</span></h2>
-    <p class="symbols-lede reveal">
-      M&rsquo;akoma means <em>my heart</em> in Twi. Each bead carries an Akan Adinkra symbol — engraved into the
-      stone, glowing in gold when someone reaches for you. Connection, return, unity, endurance: an ancient
-      language for a product about presence.
-    </p>
-    <div class="symbol-grid" id="symbolGrid"><!-- injected --></div>
-  </div>
-</section>
-
-<!-- ============ POSITIONING ============ -->
-<section class="position">
-  <div class="wrap">
-    <p class="section-tag reveal">Where we live</p>
-    <h2 class="position-title reveal">Most tools make people reachable.<br/><span class="gold-ink">We make them present.</span></h2>
-    <div class="map reveal" id="posMap">
-      <div class="map-axes">
-        <span class="ax ax-y-top">Chosen few can reach you</span>
-        <span class="ax ax-y-bot">Anyone can reach you</span>
-        <span class="ax ax-x-left">Takes effort</span>
-        <span class="ax ax-x-right">Lives with you</span>
-      </div>
-      <div class="map-plot" id="mapPlot"><!-- dots injected --></div>
-    </div>
-    <p class="position-foot reveal">Calls are intimate but effortful. Texts are ambient but noisy. Bond&nbsp;Touch proved people want a physical signal — but it&rsquo;s one note. M&rsquo;AKOMA is the only point that is <em>both</em> always-with-you and reserved for the few — with light, haptics <em>and</em> voice.</p>
-  </div>
-</section>
-
-<!-- ============ PROOF / TECHNOLOGY ============ -->
-<section class="tech" id="proof">
-  <div class="wrap">
-    <p class="section-tag reveal">Proof, not promises</p>
-    <h2 class="tech-title reveal">It already works<br/><span class="gold-ink">on the bench.</span></h2>
-    <p class="tech-lede reveal">
-      M&rsquo;AKOMA isn&rsquo;t a render. The full loop — record a voice charm, send it, feel it land in light
-      and haptics, replay it — runs today on real hardware. Here&rsquo;s what&rsquo;s proven, and what&rsquo;s next.
-    </p>
-
-    <div class="stats reveal" id="stats">
-      <div class="stat"><span class="stat-num" data-to="8">0</span><span class="stat-lab">Adinkra beads, each with meaning</span></div>
-      <div class="stat"><span class="stat-num" data-prefix="~" data-to="7" data-suffix="s">0</span><span class="stat-lab">voice charms, in your real voice</span></div>
-      <div class="stat"><span class="stat-num" data-to="6">0</span><span class="stat-lab">hardware milestones, bench-proven</span></div>
-      <div class="stat"><span class="stat-num" data-to="0">0</span><span class="stat-lab">feeds · algorithms · ads</span></div>
-    </div>
-
-    <div class="ladder reveal">
-      <p class="ladder-head">The hardware ladder — every rung climbed</p>
-      <ul class="ladder-list">
-        <li><b>H1</b>BLE link &amp; app contract running on real nRF52840 silicon — full audio round-trip, zero dropped packets.</li>
-        <li><b>H2</b>Five-wire bead bus: the hub drives the beads and reads their touches, every frame CRC-checked.</li>
-        <li><b>H3</b>On-board mic records a real ~7-second voice charm and streams it over Bluetooth.</li>
-        <li><b>H4</b>That charm plays back cleanly through the speaker amp — BLE, bus, mic &amp; audio all live at once.</li>
-        <li><b>H5</b>Battery sense over the air, plus deep-sleep power so it idles for weeks, not hours.</li>
-        <li><b>H6</b>The whole loop, end to end, on one bench: tap → glow → record → hear → reply.</li>
-      </ul>
-      <p class="ladder-note">
-        Proven on the core hub with emulated friend beads (June&nbsp;2026). The first friend-bead PCBs are in
-        fabrication now — putting them in the bracelet is the next rung.
-      </p>
-    </div>
-
-    <p class="tech-founder reveal">
-      Designed, coded and routed end-to-end by <strong>Melvin Osei Opoku</strong> — a neuroscience and
-      signal-processing background with prior medical-device PCB work — building at the University of Florida.
+    <p class="reveal" style="text-align:center; color:var(--gold-pale); opacity:.85; font-family:var(--serif); font-style:italic; font-size:1.2rem; margin:30px auto 0; max-width:40ch;">
+      Not on a screen. On the people you love.
     </p>
   </div>
 </section>
 
-<!-- ============ PLATFORM / BEADED TECHNOLOGY ============ -->
+<!-- ============ THE ROAD — road-to-launch meter (replaces Proof) ============ -->
+<section class="tech" id="launch">
+  <div class="wrap" style="text-align:center;">
+    <p class="eyebrow reveal" style="display:block; margin-bottom:18px;">The road</p>
+    <h2 class="tech-title reveal">Built slowly.<br/><span class="gold-ink">Built to last.</span></h2>
+    <p class="tech-lede reveal" style="margin:0 auto 38px;">A small circle first. Then yours.</p>
+    <figure class="ig-fig reveal" aria-label="Road to launch — progress meter" style="margin:0 auto;">
+      <svg viewBox="0 0 760 200" xmlns="http://www.w3.org/2000/svg" role="img">
+        <title>Road to launch</title>
+        <line x1="80" y1="90" x2="680" y2="90" stroke="#9a9285" stroke-width="2" stroke-opacity=".35" stroke-linecap="round"/>
+        <line x1="80" y1="90" x2="380" y2="90" stroke="#c9a04e" stroke-width="2.4" stroke-linecap="round"/>
+        <g transform="translate(80 90)">
+          <circle r="10" fill="#c9a04e" stroke="#e8c57a" stroke-width="1.4"/>
+          <path d="M-4 0 L-1 3 L4.5 -3.5" fill="none" stroke="#060607" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+        </g>
+        <text x="80" y="128" text-anchor="middle" class="ig-cap">Idea</text>
+        <g transform="translate(230 90)">
+          <circle r="10" fill="#c9a04e" stroke="#e8c57a" stroke-width="1.4"/>
+          <path d="M-4 0 L-1 3 L4.5 -3.5" fill="none" stroke="#060607" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+        </g>
+        <text x="230" y="128" text-anchor="middle" class="ig-cap">Hardware proven</text>
+        <g transform="translate(380 90)">
+          <circle class="ig-pulse-ring" r="7" fill="none" stroke="#e8c57a" stroke-width="1.4"/>
+          <circle class="ig-pulse-core" r="12" fill="#e8c57a" stroke="#f1e6cb" stroke-width="1.6"/>
+          <circle r="3.5" fill="#060607"/>
+        </g>
+        <text x="380" y="128" text-anchor="middle" class="ig-label" font-size="14">Beads in fab</text>
+        <text x="380" y="146" text-anchor="middle" class="ig-cap">we are here</text>
+        <g transform="translate(530 90)"><circle r="9" fill="none" stroke="#9a9285" stroke-width="1.4" stroke-opacity=".7"/></g>
+        <text x="530" y="128" text-anchor="middle" class="ig-cap">Pilot</text>
+        <g transform="translate(680 90)"><circle r="9" fill="none" stroke="#9a9285" stroke-width="1.4" stroke-opacity=".7"/></g>
+        <text x="680" y="128" text-anchor="middle" class="ig-cap">Ship</text>
+      </svg>
+    </figure>
+  </div>
+</section>
+
+<!-- ============ BEADED TECHNOLOGY — platform (infographic) ============ -->
 <section class="platform" id="platform">
-  <div class="wrap">
-    <p class="section-tag reveal">Beaded technology</p>
-    <h2 class="platform-title reveal">More than a bracelet.<br/><span class="gold-ink">A new kind of technology — beaded.</span></h2>
-    <p class="platform-lede reveal">
-      M&rsquo;AKOMA isn&rsquo;t only one bracelet — it&rsquo;s the first <em>beaded</em> technology. A cord of beads,
-      each one a small object with meaning and a mind of its own. No one else has made the bead itself the
-      machine. Today, every bead is a person you carry. The same cord can hold more of what matters over
-      time — but the heart of it never changes: <strong>people, first.</strong>
-    </p>
-
-    <div class="plat-grid">
-      <article class="plat-card reveal">
-        <span class="plat-no">01</span>
-        <h3>Every bead, a person</h3>
-        <p>The atomic unit: one bead, one human you&rsquo;ve chosen. Touch, light, haptics and their real voice — a relationship you can feel on your wrist.</p>
-        <span class="plat-tag">Today</span>
-      </article>
-      <article class="plat-card reveal">
-        <span class="plat-no">02</span>
-        <h3>One cord, a platform</h3>
-        <p>Every bead is a node on a bus we&rsquo;ve already built. New kinds of beads can join the same cord without reinventing the bracelet. That architecture is the moat.</p>
-        <span class="plat-tag">The foundation</span>
-      </article>
-      <article class="plat-card reveal">
-        <span class="plat-no">03</span>
-        <h3>Grows with you</h3>
-        <p>A silent alarm that wakes you by pulsing your people&rsquo;s beads — never your partner. A quiet signal to your trusted few. Added the way you&rsquo;d add a charm, never a feed.</p>
-        <span class="plat-tag">What&rsquo;s next</span>
-      </article>
-    </div>
-
-    <p class="platform-foot reveal">First, the people you carry. That&rsquo;s the beginning of a company, not the end of a product.</p>
+  <div class="wrap" style="text-align:center;">
+    <p class="eyebrow reveal" style="display:block; margin-bottom:18px;">Beaded technology</p>
+    <h2 class="platform-title reveal">A platform<br/><span class="gold-ink">you can wear.</span></h2>
+    <p class="platform-lede reveal" style="max-width:42ch; margin:0 auto;">Each bead, a connection. The thread, a circle.</p>
+    <figure class="ig-fig reveal" aria-label="Beaded technology — one cord, many functions" style="margin:24px auto 0;">
+      <svg viewBox="0 0 760 300" xmlns="http://www.w3.org/2000/svg" role="img">
+        <title>One cord, many functions</title>
+        <text x="380" y="34" text-anchor="middle" class="ig-cap">One cord · many functions</text>
+        <path d="M70 150 Q200 96 380 110 Q560 124 690 150" fill="none" stroke="#9b7a36" stroke-width="1.4"/>
+        <path d="M70 150 Q200 204 380 190 Q560 176 690 150" fill="none" stroke="#9b7a36" stroke-width="1.2" stroke-opacity=".4"/>
+        <g stroke="#c9a04e" stroke-width="1" stroke-opacity=".55">
+          <line x1="150" y1="120" x2="150" y2="132"/>
+          <line x1="270" y1="106" x2="270" y2="118"/>
+          <line x1="490" y1="106" x2="490" y2="118"/>
+          <line x1="610" y1="120" x2="610" y2="132"/>
+        </g>
+        <g transform="translate(150 118)">
+          <circle r="22" fill="#c9a04e" fill-opacity=".10" stroke="#c9a04e" stroke-width="1.5"/>
+          <circle r="6" fill="none" stroke="#e8c57a" stroke-width="1.2"/>
+        </g>
+        <g transform="translate(270 104)">
+          <circle r="22" fill="#c9a04e" fill-opacity=".10" stroke="#c9a04e" stroke-width="1.5"/>
+          <path d="M-7 0 h14 M0 -7 v14" stroke="#e8c57a" stroke-width="1.2"/>
+        </g>
+        <g transform="translate(380 110)">
+          <circle r="30" fill="#c9a04e" fill-opacity=".18" stroke="#e8c57a" stroke-width="1.7"/>
+          <circle r="30" fill="none" stroke="#c9a04e" stroke-width="0.6" stroke-opacity=".5"/>
+          <circle cx="-9" cy="-9" r="6" fill="#f1e6cb" fill-opacity=".5" stroke="none"/>
+        </g>
+        <g transform="translate(490 104)">
+          <circle r="22" fill="#c9a04e" fill-opacity=".10" stroke="#c9a04e" stroke-width="1.5"/>
+          <path d="M0 -8 L7 5 L-7 5 Z" fill="none" stroke="#e8c57a" stroke-width="1.2"/>
+        </g>
+        <g transform="translate(610 118)">
+          <circle r="22" fill="#c9a04e" fill-opacity=".10" stroke="#c9a04e" stroke-width="1.5"/>
+          <path d="M-6 -3 a6 6 0 1 1 0 8" fill="none" stroke="#e8c57a" stroke-width="1.2"/>
+        </g>
+        <text x="150" y="172" text-anchor="middle" class="ig-cap">node</text>
+        <text x="270" y="158" text-anchor="middle" class="ig-cap">node</text>
+        <text x="380" y="172" text-anchor="middle" class="ig-label" font-size="16">you</text>
+        <text x="490" y="158" text-anchor="middle" class="ig-cap">node</text>
+        <text x="610" y="172" text-anchor="middle" class="ig-cap">node</text>
+        <text x="380" y="262" text-anchor="middle" class="ig-label" font-size="19">Each bead, its own module — on one shared line.</text>
+      </svg>
+    </figure>
   </div>
 </section>
 
@@ -421,20 +485,14 @@
   <div class="vision-glow" aria-hidden="true"></div>
   <div class="wrap vision-wrap reveal">
     <img src="assets/logo/icon-gold.svg" alt="M'AKOMA" class="vision-logo" />
-    <h2 class="vision-title">We&rsquo;re building the next physical<br/>layer of human connection.</h2>
-    <p class="vision-sub">
-      In a world of digital noise and increasingly automated communication, M&rsquo;AKOMA is my attempt to build
-      technology that brings us back to real human connection. For the people you carry.
-    </p>
+    <h2 class="vision-title">Carry them<br/><span class="gold-ink">with you.</span></h2>
+    <p class="vision-sub">The first beads are being strung.</p>
 
     <div class="founding">
       <p class="founding-kicker">Founding circle · now forming</p>
       <p class="founding-copy">
-        We&rsquo;re hand-building the first M&rsquo;AKOMA bracelets. The founding circle gets in before anyone
-        else — founding pricing, a hand-engraved bead of your choosing, and a say in what we build next.
-        <strong>Ship dates and pricing go to the circle first.</strong>
+        A founding circle of a few hundred. No more. <strong>Founding pricing and ship dates go to the circle first.</strong>
       </p>
-      <!-- TIP: once you've set numbers, add concrete urgency here, e.g. "Only the first 100 bracelets · ships Q1 2027." -->
     </div>
 
     <form class="join-form" id="joinForm" novalidate>
@@ -450,7 +508,7 @@
         <label for="joinEmail" class="sr-only">Email address</label>
         <input type="email" id="joinEmail" name="email" placeholder="your@email.com"
                autocomplete="email" inputmode="email" aria-label="Email address" />
-        <button type="submit" class="btn btn-gold" id="joinSubmit">Reserve your spot</button>
+        <button type="submit" class="btn btn-gold" id="joinSubmit">Request your place</button>
       </div>
       <p class="join-note">No spam, ever — just one note when it&rsquo;s your turn to carry your people. <a href="#faq">Questions?</a></p>
     </form>
@@ -473,16 +531,12 @@
         <p>No. You buy one bracelet and invite people from the app — they can light and speak to your beads from their phone before they ever own hardware. When they get a bracelet, it becomes two-way.</p>
       </details>
       <details class="faq-item">
-        <summary>What actually works today?</summary>
-        <p>The full loop runs on our hardware bench right now: record a voice charm, send it, feel it land with light and haptics, replay it. The first friend beads are in fabrication. See <a href="#proof">the proof</a>.</p>
-      </details>
-      <details class="faq-item">
         <summary>Is it a smartwatch or fitness tracker?</summary>
         <p>No. M&rsquo;AKOMA is jewelry first — no screens, no feeds, no step counts, no notifications. Just the few people you choose, with you all the time.</p>
       </details>
       <details class="faq-item">
         <summary>How is it different from Bond&nbsp;Touch?</summary>
-        <p>Bond Touch proved people want a physical signal, but it&rsquo;s a single tap between two people. M&rsquo;AKOMA carries light, haptics <em>and</em> your real voice, for up to eight chosen people — each on a bead with its own Adinkra meaning.</p>
+        <p>Bond Touch is a single hub between two people. M&rsquo;AKOMA is a string of distinct beads — each one a different person, with light, haptics and their real voice.</p>
       </details>
       <details class="faq-item">
         <summary>Can I give one as a gift?</summary>
@@ -505,9 +559,11 @@
 <script src="js/glyphs.js"></script>
 <script src="js/main.js"></script>
 <script type="module" src="js/hero3d.js"></script>
+<script src="js/carousel.js"></script>
+<script src="js/positioning.js"></script>
 <script>
   /* Safety net: if the 3D module never runs (parse/load error), collapse the
-     pinned hero to the static render rather than show empty scroll. */
+     pinned anatomy hero to the static render rather than show empty scroll. */
   setTimeout(function () {
     if (!window.__hero) {
       var h = document.getElementById("hero"); if (h) h.classList.add("no3d");
