@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>M'AKOMA — The People You Carry</title>
+<meta name="description" content="M'AKOMA is beaded technology — a jewelry-first wearable where the few people you choose live as beads on your wrist: their light, their pulse, their voice. No feed. No algorithm. No filter." />
+
+<!-- ⚠️ Set this to your real domain once deployed (used by canonical + social previews). -->
+<link rel="canonical" href="https://makoma.app/" />
+<meta name="theme-color" content="#060607" />
+<meta name="author" content="Melvin Osei Opoku" />
+
+<!-- Open Graph (LinkedIn / Facebook / Slack / Discord / iMessage link previews) -->
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content="M'AKOMA" />
+<meta property="og:title" content="M'AKOMA — The People You Carry" />
+<meta property="og:description" content="Beaded technology. A jewelry-first wearable where the few people you choose live as beads on your wrist — their light, their pulse, their voice. No feed. No algorithm. No filter." />
+<meta property="og:url" content="https://makoma.app/" />
+<meta property="og:image" content="https://makoma.app/assets/img/og-image.jpg" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta property="og:image:alt" content="The M'AKOMA bracelet — black Adinkra beads glowing gold around a core hub." />
+<meta property="og:locale" content="en_US" />
+
+<!-- Twitter / X card -->
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="M'AKOMA — The People You Carry" />
+<meta name="twitter:description" content="Beaded technology. The people you choose, alive as beads on your wrist — light, pulse, voice. No feed. No algorithm." />
+<meta name="twitter:image" content="https://makoma.app/assets/img/og-image.jpg" />
+
+<link rel="icon" type="image/svg+xml" href="assets/logo/favicon.svg" />
+<link rel="icon" type="image/png" sizes="32x32" href="assets/logo/favicon-32.png" />
+<link rel="apple-touch-icon" href="assets/logo/favicon-180.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="css/style.css" />
+<script type="importmap">
+{
+  "imports": {
+    "three": "./assets/vendor/three/three.module.js",
+    "three/addons/": "./assets/vendor/three/addons/"
+  }
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Product",
+  "name": "M'AKOMA",
+  "alternateName": "Akoma",
+  "description": "M'AKOMA is beaded technology — a jewelry-first wearable where the few people you choose live as beads on your wrist: their light, their pulse, their voice. The first product in a new wearable form factor. No feed, no algorithm, no filter.",
+  "image": "https://makoma.app/assets/img/og-image.jpg",
+  "url": "https://makoma.app/",
+  "category": "Wearable technology",
+  "brand": { "@type": "Brand", "name": "M'AKOMA", "slogan": "The People You Carry" },
+  "manufacturer": { "@type": "Organization", "name": "M'AKOMA" },
+  "creator": {
+    "@type": "Person",
+    "name": "Melvin Osei Opoku",
+    "affiliation": { "@type": "CollegeOrUniversity", "name": "University of Florida" }
+  }
+}
+</script>
+</head>
+<body>
+
+<!-- ambient grain + glow layers -->
+<div class="grain" aria-hidden="true"></div>
+<div class="cursor-glow" id="cursorGlow" aria-hidden="true"></div>
+
+<!-- ============ NAV ============ -->
+<header class="nav" id="nav">
+  <a href="#top" class="brand" aria-label="M'AKOMA home">
+    <img src="assets/logo/icon-gold.svg" alt="" class="brand-ico" aria-hidden="true" />
+    <span class="brand-mark">M'AKOMA<span class="tm">™</span></span>
+  </a>
+  <nav class="nav-links" id="navLinks">
+    <a href="#manifesto">Manifesto</a>
+    <a href="#beads">The Beads</a>
+    <a href="#how">How it works</a>
+    <a href="#symbols">Adinkra</a>
+    <a href="#circle">The app</a>
+    <a href="#proof">Proof</a>
+    <a href="#platform">Vision</a>
+    <a href="#join" class="nav-link-cta">Reserve</a>
+  </nav>
+  <div class="nav-right">
+    <a href="#join" class="btn btn-ghost nav-cta">Join the circle</a>
+    <button class="nav-burger" id="navBurger" aria-label="Open menu" aria-expanded="false" aria-controls="navLinks">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</header>
+
+<main id="top">
+
+<!-- ============ HERO — scroll-driven 3D ============ -->
+<section class="hero3d" id="hero">
+  <div class="hero3d-sticky">
+    <canvas id="heroCanvas" aria-hidden="true"></canvas>
+    <img src="assets/img/bracelet-makoma.jpg" class="hero3d-poster" id="heroPoster"
+         alt="The M'AKOMA bracelet — black Adinkra beads glowing gold around a core hub on a braided cord." />
+    <div class="hero3d-veil" aria-hidden="true"></div>
+    <p class="sr-only">The M&rsquo;AKOMA bracelet, shown in 3D: eight matte-black beads engraved with gold Adinkra symbols, strung around a gold core hub at the center of a braided cord.</p>
+
+    <div class="hero3d-overlay">
+      <div class="hero-intro" id="heroIntro">
+        <p class="eyebrow">A beaded communication bracelet</p>
+        <h1 class="hero-title">The people<br/><span class="gold-ink">you carry.</span></h1>
+        <p class="hero-sub">
+          The people who matter most, turned from buried contacts into beads you wear —
+          a touch they feel, a voice they keep, only an Echo away.
+        </p>
+        <div class="hero-actions">
+          <a href="#beads" class="btn btn-gold">Meet the beads</a>
+          <a href="#manifesto" class="btn btn-line">Why I&rsquo;m building it</a>
+        </div>
+        <p class="hero-foot">&ldquo;Just the people you would answer at 3&nbsp;a.m., with you, all the time.&rdquo;</p>
+      </div>
+
+      <div class="hero-caption" id="heroCaption" aria-live="polite">
+        <span class="hc-kicker"></span>
+        <h2 class="hc-title"></h2>
+        <p class="hc-line"></p>
+      </div>
+
+      <div class="hero-outro" id="heroOutro">
+        <h2>Eight people.<br/><span class="gold-ink">One quiet channel.</span></h2>
+        <div class="hero-actions">
+          <a href="#join" class="btn btn-gold">Reserve your spot</a>
+          <a href="#beads" class="btn btn-line">Meet the beads</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="hero-progress" id="heroProgress" aria-hidden="true"><span></span></div>
+    <div class="scroll-cue" id="heroCue" aria-hidden="true"><span></span></div>
+    <div class="hero-loader" id="heroLoader" aria-hidden="true"><i></i><span>Rendering the bracelet…</span></div>
+  </div>
+</section>
+
+<!-- ============ MANIFESTO / ANTI-FEED ============ -->
+<section class="manifesto" id="manifesto">
+  <div class="wrap">
+    <p class="section-tag reveal">Why M&rsquo;akoma</p>
+    <h2 class="big-statement reveal">
+      The people we carry.
+      <span class="muted">The family we&rsquo;re born into, <span class="strike">and the family we choose.</span></span>
+    </h2>
+    <p class="lede reveal">
+      The people you reach for first when life happens — the good, the hard, the little thought you need to
+      share — are what make life worth living. But school, work, travel, immigration, growing up: life pulls us
+      apart. And keeping those bonds alive through the same phone that holds spam, work email, group chats and
+      endless notifications starts to feel like <em>work</em>.
+    </p>
+
+    <ul class="refusals reveal" id="refusals">
+      <li>No feed</li>
+      <li>No algorithm</li>
+      <li>No filters</li>
+      <li>No followers</li>
+      <li>No likes</li>
+      <li>No rankings</li>
+      <li>No comparison</li>
+      <li>No performance</li>
+    </ul>
+    <p class="refusals-note reveal">The guardrails aren&rsquo;t constraints. They&rsquo;re the whole point.</p>
+  </div>
+</section>
+
+<!-- ============ THE SHIFT ============ -->
+<section class="shift">
+  <div class="wrap shift-grid">
+    <div class="shift-line reveal">
+      <h2>M&rsquo;akoma —<br/><span class="gold-ink">&ldquo;my heart&rdquo;, literally.</span></h2>
+      <p>
+        A bracelet that turns the people who matter from buried contacts into physical beads you wear. Through
+        touch, light, haptics and short voice <strong>Echoes</strong>, it makes connection physical again.
+        Not another feed. Not another notification. Not another app fighting for your attention — just a
+        reminder that your people are still with you.
+      </p>
+    </div>
+    <div class="shift-cards reveal">
+      <div class="shift-card">
+        <span class="sc-label">Reachable</span>
+        <p>A contact buried in your phone, behind a thousand notifications.</p>
+      </div>
+      <div class="shift-arrow">→</div>
+      <div class="shift-card on">
+        <span class="sc-label">Present</span>
+        <p>A bead that lives on your wrist. A bead is not a slot — it&rsquo;s a commitment of attention.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ INTERACTIVE BEAD RING ============ -->
+<section class="beads" id="beads">
+  <div class="wrap">
+    <p class="section-tag reveal">Circle Mode · the core experience</p>
+    <h2 class="beads-title reveal">Each bead is a person.<br/><span class="muted">Tap one to feel them.</span></h2>
+  </div>
+
+  <div class="bracelet-stage reveal">
+    <div class="bracelet" id="bracelet" role="group" aria-label="Interactive bracelet — select a bead">
+      <!-- core hub -->
+      <button class="hub" id="hub" aria-label="Core hub" title="The core hub — power, voice, the heart of the bracelet">
+        <span class="hub-disc"></span>
+      </button>
+      <!-- beads injected by JS -->
+    </div>
+    <p class="bracelet-hint" id="braceletHint">Tap a bead &nbsp;·&nbsp; then send an Echo, Pulse or Glow</p>
+  </div>
+
+  <!-- selected bead detail -->
+  <div class="wrap">
+    <div class="bead-panel reveal" id="beadPanel" aria-live="polite">
+      <div class="bp-left">
+        <div class="bp-glyph" id="bpGlyph" aria-hidden="true"></div>
+      </div>
+      <div class="bp-body">
+        <p class="bp-person" id="bpPerson">Maya</p>
+        <h3 class="bp-symbol" id="bpSymbol">Sankofa</h3>
+        <p class="bp-meaning" id="bpMeaning">Return and retrieve — it is not wrong to go back for what you forgot.</p>
+        <p class="bp-proverb" id="bpProverb"></p>
+        <div class="bp-actions" id="bpActions">
+          <button class="act act-echo" data-act="echo" title="Hold to record a voice charm">
+            <svg viewBox="0 0 24 24" class="act-ico"><path d="M3 12h2l2-6 3 14 3-18 3 12 2-6h3"/></svg>
+            <span><b>Echo</b><small>hold to record</small></span>
+          </button>
+          <button class="act act-pulse" data-act="pulse" title="Tap to send a pulse">
+            <svg viewBox="0 0 24 24" class="act-ico"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="8" fill="none"/></svg>
+            <span><b>Pulse</b><small>tap to send</small></span>
+          </button>
+          <button class="act act-glow" data-act="glow" title="Light their bead">
+            <svg viewBox="0 0 24 24" class="act-ico"><circle cx="12" cy="12" r="4"/><g class="rays"><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"/></g></svg>
+            <span><b>Glow</b><small>light their bead</small></span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ HOW IT WORKS ============ -->
+<section class="how" id="how">
+  <div class="wrap">
+    <p class="section-tag reveal">The loop</p>
+    <h2 class="how-title reveal">Touch. Light. Haptics. Voice.</h2>
+    <p class="how-lede reveal">No typing. No notifications. Three ways to say <em>I&rsquo;m thinking of you</em> — each one a small ritual, not a message in a noisy channel.</p>
+
+    <div class="how-grid">
+      <article class="how-card reveal" data-demo="echo">
+        <div class="hc-visual hc-echo">
+          <svg class="wave" viewBox="0 0 200 60" preserveAspectRatio="none" aria-hidden="true"></svg>
+          <span class="rec-dot"></span>
+        </div>
+        <h3>Echo</h3>
+        <p>Hold a friend&rsquo;s bead and speak. A short voice charm — their real voice, not a highlight reel — lands on your wrist, glows, and waits to be replayed.</p>
+        <button class="mini-btn" data-hold="echo">Hold to record</button>
+      </article>
+
+      <article class="how-card reveal" data-demo="pulse">
+        <div class="hc-visual hc-pulse">
+          <span class="ripple-core"></span>
+        </div>
+        <h3>Pulse</h3>
+        <p>Tap a bead and a pulse travels instantly to that one person. Their matching bead lights and vibrates. No reply needed. No pressure.</p>
+        <button class="mini-btn" data-tap="pulse">Send a pulse</button>
+      </article>
+
+      <article class="how-card reveal" data-demo="glow">
+        <div class="hc-visual hc-glow">
+          <span class="glow-bead"></span>
+        </div>
+        <h3>Glow</h3>
+        <p>Swipe to choose a presence color and quietly light their bead. A glance instead of a text — &ldquo;you&rsquo;re on my mind&rdquo; without a single word.</p>
+        <button class="mini-btn" data-cycle="glow">Cycle colors</button>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- ============ CIRCLE / TIERS + APP ============ -->
+<section class="circle" id="circle">
+  <div class="wrap circle-grid">
+    <div class="circle-copy reveal">
+      <p class="section-tag">Adoption · one person starts</p>
+      <h2>Buy one bracelet.<br/>Invite your people from the app.</h2>
+      <p class="circle-lede">A friend can live in a bead before they own anything. They send a pulse or a voice charm from the phone, and their bead glows on your wrist. When they get a bracelet, it becomes two-way and physical.</p>
+      <ol class="tiers">
+        <li><span class="tier-dot"></span><div><b>App friend</b><p>No bracelet yet — they send from the phone, their bead glows on you.</p></div></li>
+        <li><span class="tier-dot"></span><div><b>Bracelet friend</b><p>Both wear one — light, haptics and voice go both ways.</p></div></li>
+        <li><span class="tier-dot on"></span><div><b>Bead friend</b><p>The scarce inner layer. Promoting someone to a bead feels almost ceremonial.</p></div></li>
+      </ol>
+    </div>
+    <div class="circle-phone reveal">
+      <div class="app-trio">
+        <figure class="phone-frame side"><img src="assets/img/app-beads-light.jpg" alt="M'AKOMA app — Kwame's bead, light theme" loading="lazy" /></figure>
+        <figure class="phone-frame lead"><img src="assets/img/app-beads-dark.jpg" alt="M'AKOMA app — a friend's glowing bead in the carousel" loading="lazy" /></figure>
+        <figure class="phone-frame side"><img src="assets/img/app-circle.jpg" alt="M'AKOMA app — Your Circle of chosen people" loading="lazy" /></figure>
+      </div>
+      <p class="phone-cap">The real app — quiet plumbing. The bracelet is where presence lives.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ ADINKRA SYMBOLS ============ -->
+<section class="symbols" id="symbols">
+  <div class="wrap">
+    <p class="section-tag reveal">The language on your wrist</p>
+    <h2 class="symbols-title reveal">Eight Adinkra symbols.<br/><span class="muted">Centuries of meaning, lit from within.</span></h2>
+    <p class="symbols-lede reveal">
+      M&rsquo;akoma means <em>my heart</em> in Twi. Each bead carries an Akan Adinkra symbol — engraved into the
+      stone, glowing in gold when someone reaches for you. Connection, return, unity, endurance: an ancient
+      language for a product about presence.
+    </p>
+    <div class="symbol-grid" id="symbolGrid"><!-- injected --></div>
+  </div>
+</section>
+
+<!-- ============ POSITIONING ============ -->
+<section class="position">
+  <div class="wrap">
+    <p class="section-tag reveal">Where we live</p>
+    <h2 class="position-title reveal">Most tools make people reachable.<br/><span class="gold-ink">We make them present.</span></h2>
+    <div class="map reveal" id="posMap">
+      <div class="map-axes">
+        <span class="ax ax-y-top">Chosen few can reach you</span>
+        <span class="ax ax-y-bot">Anyone can reach you</span>
+        <span class="ax ax-x-left">Takes effort</span>
+        <span class="ax ax-x-right">Lives with you</span>
+      </div>
+      <div class="map-plot" id="mapPlot"><!-- dots injected --></div>
+    </div>
+    <p class="position-foot reveal">Calls are intimate but effortful. Texts are ambient but noisy. Bond&nbsp;Touch proved people want a physical signal — but it&rsquo;s one note. M&rsquo;AKOMA is the only point that is <em>both</em> always-with-you and reserved for the few — with light, haptics <em>and</em> voice.</p>
+  </div>
+</section>
+
+<!-- ============ PROOF / TECHNOLOGY ============ -->
+<section class="tech" id="proof">
+  <div class="wrap">
+    <p class="section-tag reveal">Proof, not promises</p>
+    <h2 class="tech-title reveal">It already works<br/><span class="gold-ink">on the bench.</span></h2>
+    <p class="tech-lede reveal">
+      M&rsquo;AKOMA isn&rsquo;t a render. The full loop — record a voice charm, send it, feel it land in light
+      and haptics, replay it — runs today on real hardware. Here&rsquo;s what&rsquo;s proven, and what&rsquo;s next.
+    </p>
+
+    <div class="stats reveal" id="stats">
+      <div class="stat"><span class="stat-num" data-to="8">0</span><span class="stat-lab">Adinkra beads, each with meaning</span></div>
+      <div class="stat"><span class="stat-num" data-prefix="~" data-to="7" data-suffix="s">0</span><span class="stat-lab">voice charms, in your real voice</span></div>
+      <div class="stat"><span class="stat-num" data-to="6">0</span><span class="stat-lab">hardware milestones, bench-proven</span></div>
+      <div class="stat"><span class="stat-num" data-to="0">0</span><span class="stat-lab">feeds · algorithms · ads</span></div>
+    </div>
+
+    <div class="ladder reveal">
+      <p class="ladder-head">The hardware ladder — every rung climbed</p>
+      <ul class="ladder-list">
+        <li><b>H1</b>BLE link &amp; app contract running on real nRF52840 silicon — full audio round-trip, zero dropped packets.</li>
+        <li><b>H2</b>Five-wire bead bus: the hub drives the beads and reads their touches, every frame CRC-checked.</li>
+        <li><b>H3</b>On-board mic records a real ~7-second voice charm and streams it over Bluetooth.</li>
+        <li><b>H4</b>That charm plays back cleanly through the speaker amp — BLE, bus, mic &amp; audio all live at once.</li>
+        <li><b>H5</b>Battery sense over the air, plus deep-sleep power so it idles for weeks, not hours.</li>
+        <li><b>H6</b>The whole loop, end to end, on one bench: tap → glow → record → hear → reply.</li>
+      </ul>
+      <p class="ladder-note">
+        Proven on the core hub with emulated friend beads (June&nbsp;2026). The first friend-bead PCBs are in
+        fabrication now — putting them in the bracelet is the next rung.
+      </p>
+    </div>
+
+    <p class="tech-founder reveal">
+      Designed, coded and routed end-to-end by <strong>Melvin Osei Opoku</strong> — a neuroscience and
+      signal-processing background with prior medical-device PCB work — building at the University of Florida.
+    </p>
+  </div>
+</section>
+
+<!-- ============ PLATFORM / BEADED TECHNOLOGY ============ -->
+<section class="platform" id="platform">
+  <div class="wrap">
+    <p class="section-tag reveal">Beaded technology</p>
+    <h2 class="platform-title reveal">More than a bracelet.<br/><span class="gold-ink">A new kind of technology — beaded.</span></h2>
+    <p class="platform-lede reveal">
+      M&rsquo;AKOMA isn&rsquo;t only one bracelet — it&rsquo;s the first <em>beaded</em> technology. A cord of beads,
+      each one a small object with meaning and a mind of its own. No one else has made the bead itself the
+      machine. Today, every bead is a person you carry. The same cord can hold more of what matters over
+      time — but the heart of it never changes: <strong>people, first.</strong>
+    </p>
+
+    <div class="plat-grid">
+      <article class="plat-card reveal">
+        <span class="plat-no">01</span>
+        <h3>Every bead, a person</h3>
+        <p>The atomic unit: one bead, one human you&rsquo;ve chosen. Touch, light, haptics and their real voice — a relationship you can feel on your wrist.</p>
+        <span class="plat-tag">Today</span>
+      </article>
+      <article class="plat-card reveal">
+        <span class="plat-no">02</span>
+        <h3>One cord, a platform</h3>
+        <p>Every bead is a node on a bus we&rsquo;ve already built. New kinds of beads can join the same cord without reinventing the bracelet. That architecture is the moat.</p>
+        <span class="plat-tag">The foundation</span>
+      </article>
+      <article class="plat-card reveal">
+        <span class="plat-no">03</span>
+        <h3>Grows with you</h3>
+        <p>A silent alarm that wakes you by pulsing your people&rsquo;s beads — never your partner. A quiet signal to your trusted few. Added the way you&rsquo;d add a charm, never a feed.</p>
+        <span class="plat-tag">What&rsquo;s next</span>
+      </article>
+    </div>
+
+    <p class="platform-foot reveal">First, the people you carry. That&rsquo;s the beginning of a company, not the end of a product.</p>
+  </div>
+</section>
+
+<!-- ============ VISION / CTA ============ -->
+<section class="vision" id="join">
+  <div class="vision-glow" aria-hidden="true"></div>
+  <div class="wrap vision-wrap reveal">
+    <img src="assets/logo/icon-gold.svg" alt="M'AKOMA" class="vision-logo" />
+    <h2 class="vision-title">We&rsquo;re building the next physical<br/>layer of human connection.</h2>
+    <p class="vision-sub">
+      In a world of digital noise and increasingly automated communication, M&rsquo;AKOMA is my attempt to build
+      technology that brings us back to real human connection. For the people you carry.
+    </p>
+
+    <div class="founding">
+      <p class="founding-kicker">Founding circle · now forming</p>
+      <p class="founding-copy">
+        We&rsquo;re hand-building the first M&rsquo;AKOMA bracelets. The founding circle gets in before anyone
+        else — founding pricing, a hand-engraved bead of your choosing, and a say in what we build next.
+        <strong>Ship dates and pricing go to the circle first.</strong>
+      </p>
+      <!-- TIP: once you've set numbers, add concrete urgency here, e.g. "Only the first 100 bracelets · ships Q1 2027." -->
+    </div>
+
+    <form class="join-form" id="joinForm" novalidate>
+      <div class="join-intent" role="radiogroup" aria-label="Who is this bracelet for?">
+        <label class="intent-pill is-on">
+          <input type="radio" name="intent" value="self" checked /> <span>For me</span>
+        </label>
+        <label class="intent-pill">
+          <input type="radio" name="intent" value="gift" /> <span>As a gift</span>
+        </label>
+      </div>
+      <div class="join-row">
+        <label for="joinEmail" class="sr-only">Email address</label>
+        <input type="email" id="joinEmail" name="email" placeholder="your@email.com"
+               autocomplete="email" inputmode="email" aria-label="Email address" />
+        <button type="submit" class="btn btn-gold" id="joinSubmit">Reserve your spot</button>
+      </div>
+      <p class="join-note">No spam, ever — just one note when it&rsquo;s your turn to carry your people. <a href="#faq">Questions?</a></p>
+    </form>
+    <p class="join-status" id="joinStatus" role="status"></p>
+  </div>
+
+  <div class="wrap faq-wrap reveal" id="faq">
+    <h3 class="faq-title">Questions</h3>
+    <div class="faq-list">
+      <details class="faq-item">
+        <summary>When can I get one?</summary>
+        <p>We&rsquo;re hand-building the first units now. Join the circle and you&rsquo;ll be first to hear ship dates — before any public announcement.</p>
+      </details>
+      <details class="faq-item">
+        <summary>How much will it cost?</summary>
+        <p>Founding-circle pricing is being finalized. Circle members lock it in first, ahead of the public price.</p>
+      </details>
+      <details class="faq-item">
+        <summary>Do my friends need to buy one too?</summary>
+        <p>No. You buy one bracelet and invite people from the app — they can light and speak to your beads from their phone before they ever own hardware. When they get a bracelet, it becomes two-way.</p>
+      </details>
+      <details class="faq-item">
+        <summary>What actually works today?</summary>
+        <p>The full loop runs on our hardware bench right now: record a voice charm, send it, feel it land with light and haptics, replay it. The first friend beads are in fabrication. See <a href="#proof">the proof</a>.</p>
+      </details>
+      <details class="faq-item">
+        <summary>Is it a smartwatch or fitness tracker?</summary>
+        <p>No. M&rsquo;AKOMA is jewelry first — no screens, no feeds, no step counts, no notifications. Just the few people you choose, with you all the time.</p>
+      </details>
+      <details class="faq-item">
+        <summary>How is it different from Bond&nbsp;Touch?</summary>
+        <p>Bond Touch proved people want a physical signal, but it&rsquo;s a single tap between two people. M&rsquo;AKOMA carries light, haptics <em>and</em> your real voice, for up to eight chosen people — each on a bead with its own Adinkra meaning.</p>
+      </details>
+      <details class="faq-item">
+        <summary>Can I give one as a gift?</summary>
+        <p>Yes — it&rsquo;s one of our favorite ways to start a circle. Choose <em>As a gift</em> above and we&rsquo;ll help you make it special.</p>
+      </details>
+    </div>
+  </div>
+
+  <footer class="footer">
+    <div class="wrap footer-row">
+      <span class="brand-mark small">M'AKOMA<span class="tm">™</span></span>
+      <span class="footer-tag">The People You Carry</span>
+      <span class="footer-meta">An early-stage beaded-technology company · first product in prototype · built by Melvin Osei Opoku</span>
+    </div>
+  </footer>
+</section>
+
+</main>
+
+<script src="js/glyphs.js"></script>
+<script src="js/main.js"></script>
+<script type="module" src="js/hero3d.js"></script>
+<script>
+  /* Safety net: if the 3D module never runs (parse/load error), collapse the
+     pinned hero to the static render rather than show empty scroll. */
+  setTimeout(function () {
+    if (!window.__hero) {
+      var h = document.getElementById("hero"); if (h) h.classList.add("no3d");
+      var l = document.getElementById("heroLoader"); if (l) l.style.display = "none";
+      var p = document.getElementById("heroPoster"); if (p) p.classList.remove("hide");
+    }
+  }, 6000);
+</script>
+<script>
+  /* Vercel Web Analytics — privacy-friendly, cookieless. Activates automatically once
+     deployed to Vercel (enable Analytics in the project). Skipped on localhost. */
+  window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
+  if (!/^(localhost|127\.|0\.0\.0\.0|\[?::1)/.test(location.hostname)) {
+    var _va = document.createElement("script");
+    _va.defer = true; _va.src = "/_vercel/insights/script.js";
+    document.head.appendChild(_va);
+  }
+</script>
+</body>
+</html>

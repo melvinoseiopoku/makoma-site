@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+
+# ⚠️ Update the domain below once deployed.
+Sitemap: https://makoma.app/sitemap.xml
