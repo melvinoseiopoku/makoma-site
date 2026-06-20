@@ -13,9 +13,7 @@
     { name:"Ama",   avatar:"ama",   symbol:"akoma",          sym:"Akoma",          color:"#D6A84F", presence:"Warm Gold",    meaning:"The heart — patience, love, and the readiness to forgive.",            phrase:"Always close" },
     { name:"Kwame", avatar:"kwame", symbol:"aya",            sym:"Aya",            color:"#63CE88", presence:"Steady Green", meaning:"The fern — endurance; I have grown through hard ground.",               phrase:"Endures" },
     { name:"Nana",  avatar:"nana",  symbol:"gye_nyame",      sym:"Gye Nyame",      color:"#E7A94E", presence:"Soft Amber",   meaning:"Except God — awe at what is greater than us.",                          phrase:"Steady faith" },
-    { name:"Kofi",  avatar:"kofi",  symbol:"nkyinkyim",      sym:"Nkyinkyim",      color:"#5C9CEB", presence:"Calm Blue",    meaning:"The winding path — adaptability, devotion, resilience.",                phrase:"Bends, never breaks" },
-    { name:"Esi",   avatar:"esi",   symbol:"nsoroma",        sym:"Nsoroma",        color:"#68CFC2", presence:"Open Teal",    meaning:"Child of the heavens — a star to steer by in the dark.",                phrase:"A light to steer by" },
-    { name:"Jason", avatar:"jason", symbol:"nkonsonkonson",  sym:"Nkonsonkonson",  color:"#EA6B73", presence:"Ember Red",    meaning:"Linked together — we are chained together in life and in death.",       phrase:"Chained together" }
+    { name:"Kofi",  avatar:"kofi",  symbol:"nkyinkyim",      sym:"Nkyinkyim",      color:"#5C9CEB", presence:"Calm Blue",    meaning:"The winding path — adaptability, devotion, resilience.",                phrase:"Bends, never breaks" }
   ];
   // Presence palette for the GLOW cycle (the 7 presences, in order)
   var PRESENCES = PEOPLE.map(function (p) { return { color:p.color, presence:p.presence }; });

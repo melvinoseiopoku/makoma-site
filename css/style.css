@@ -1288,3 +1288,14 @@ section{ position:relative; z-index:2; }
 /* headroom so the lifted M'AKOMA apex clears the eyebrow */
 .wl-stage{ min-height:600px; margin-top:72px; }
 @media(max-width:680px){ .wl-stage{ min-height:460px; margin-top:48px; } }
+
+/* ----- v2: logo trace-out (draws itself on scroll) ----- */
+.lt-draw{ stroke-dasharray:2000; stroke-dashoffset:2000; }   /* hidden until JS measures real length */
+.lt-fill{ opacity:0; }
+#logoTrace.vision-logo{ width:clamp(124px,14vw,170px); height:auto; overflow:visible; }
+@media (prefers-reduced-motion: reduce){ .lt-draw{ stroke-dashoffset:0 !important; } .lt-fill{ opacity:1 !important; } }
+
+/* ----- v2: real app-logo tiles on the positioning plane ----- */
+.wl-logo{ display:flex; align-items:center; justify-content:center; width:38px; height:38px;
+  border-radius:10px; box-shadow:0 7px 18px -6px rgba(0,0,0,.75); margin:0 auto; }
+.wl-logo img{ width:22px; height:22px; display:block; }

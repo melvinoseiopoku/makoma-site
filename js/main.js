@@ -422,6 +422,40 @@
   }
 
   /* ------------------------------------------------------------------ */
+  /* ------------------------------------------------------------------
+     Logo trace — the M'AKOMA mark draws itself as you scroll into the
+     closing section (stroke-dashoffset tied to scroll progress).
+  ------------------------------------------------------------------ */
+  function setupLogoTrace() {
+    const svg = $("#logoTrace"); if (!svg) return;
+    const section = $("#join"); if (!section) return;
+    const draws = $$(".lt-draw", svg);
+    const fills = $$(".lt-fill", svg);
+    const lens = draws.map(p => {
+      let L = 1000; try { L = p.getTotalLength(); } catch (e) {}
+      p.style.strokeDasharray = L;
+      p.style.strokeDashoffset = L;
+      return L;
+    });
+    if (reduce) {
+      draws.forEach(p => { p.style.strokeDashoffset = 0; });
+      fills.forEach(f => { f.style.opacity = 1; });
+      return;
+    }
+    const upd = () => {
+      const r = section.getBoundingClientRect();
+      const vh = window.innerHeight || 800;
+      let p = (vh * 0.95 - r.top) / (vh * 0.6);   // 0 as it enters, 1 once well in view
+      p = Math.max(0, Math.min(1, p));
+      draws.forEach((path, i) => { path.style.strokeDashoffset = (lens[i] * (1 - p)).toFixed(1); });
+      const fo = Math.max(0, Math.min(1, (p - 0.62) / 0.3));   // beads/knot fade in near the end
+      fills.forEach(f => { f.style.opacity = fo.toFixed(2); });
+    };
+    window.addEventListener("scroll", upd, { passive: true });
+    window.addEventListener("resize", upd);
+    upd();
+  }
+
   function init() {
     // v2: the bead ring, how-it-works demos, symbol gallery and positioning map
     // were merged into the carousel (carousel.js) and the 2D→3D viz (positioning.js).
@@ -429,6 +463,7 @@
     observeReveals();
     setupChrome();
     setupForm();
+    setupLogoTrace();
   }
 
   // fill panel without sound on initial load
