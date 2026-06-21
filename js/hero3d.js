@@ -59,26 +59,26 @@ function init() {
   const pmrem = new THREE.PMREMGenerator(renderer);
   scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
 
-  const key = new THREE.DirectionalLight(0xfff4e6, 3.0); key.position.set(8, 16, 14);
+  // camera views from the -Z (front) side, so the key lights from front-top
+  const key = new THREE.DirectionalLight(0xfff4e6, 3.4); key.position.set(7, 20, -15);
   key.castShadow = true; key.shadow.mapSize.set(2048, 2048);
   key.shadow.camera.near = 1; key.shadow.camera.far = 120;
   key.shadow.camera.left = -24; key.shadow.camera.right = 24; key.shadow.camera.top = 24; key.shadow.camera.bottom = -24;
   key.shadow.bias = -0.0004;
-  const rim = new THREE.DirectionalLight(0xbcd2ff, 1.6); rim.position.set(-14, 8, -10);
-  const rim2 = new THREE.DirectionalLight(0xffd9a6, 1.0); rim2.position.set(12, 4, -8);
-  const fill = new THREE.DirectionalLight(0xfff1dd, 0.5); fill.position.set(0, 4, 14);
-  scene.add(key, rim, rim2, fill, new THREE.AmbientLight(0xffffff, 0.12));
+  const rim = new THREE.DirectionalLight(0xbcd2ff, 1.5); rim.position.set(-13, 7, 12);   // back rim peels black off black
+  const rim2 = new THREE.DirectionalLight(0xffd9a6, 0.9); rim2.position.set(12, 3, 10);
+  const fill = new THREE.DirectionalLight(0xfff1dd, 0.9); fill.position.set(-3, 6, -18);  // soft front fill
+  scene.add(key, rim, rim2, fill, new THREE.AmbientLight(0xffffff, 0.16));
 
   const bracelet = new THREE.Group();
   scene.add(bracelet);
   let modelR = 10;          // bracelet radius (set after load)
 
-  // ---- camera: top-down (the arrangement) → front (the hub) ----
+  // ---- camera: front + top of the beads (az 270 = the symbol side, hub at top) ----
   const KEYS = [
-    { p: 0.00, az: 90, el: 86, dz: 2.9 },   // straight down on the oval
-    { p: 0.30, az: 90, el: 64, dz: 2.8 },
-    { p: 0.60, az: 90, el: 40, dz: 2.8 },
-    { p: 1.00, az: 90, el: 18, dz: 2.9 },   // front: hub button + beads
+    { p: 0.00, az: 270, el: 60, dz: 3.05 },  // front-top, overhead — the arrangement + gold read
+    { p: 0.50, az: 270, el: 56, dz: 3.0 },
+    { p: 1.00, az: 270, el: 53, dz: 2.95 },   // gentle tilt, staying in the front-top gold zone
   ];
   const _t = new THREE.Vector3(0, 0, 0);
   function placeCamera(p) {
@@ -180,13 +180,17 @@ function init() {
   const draco = new DRACOLoader(); draco.setDecoderPath("assets/vendor/three/draco/");
   const loader = new GLTFLoader(); loader.setDRACOLoader(draco);
   const fail = (err) => { console.warn("[hero3d] CAD load failed:", err); section.classList.add("no3d"); if (loaderEl) loaderEl.style.display = "none"; poster.classList.remove("hide"); };
+  // matte Akoma_4E look: deep matte-black resin + warm engraved gold (no glossy clearcoat)
+  const matBlack = new THREE.MeshPhysicalMaterial({ color: 0x0c0c0d, roughness: 0.82, metalness: 0.0, clearcoat: 0.0, envMapIntensity: 0.2 });
+  const matGold = new THREE.MeshStandardMaterial({ color: 0xc6a24c, roughness: 0.36, metalness: 1.0, envMapIntensity: 0.6 });
+  const matMetal = new THREE.MeshStandardMaterial({ color: 0x16161a, roughness: 0.46, metalness: 0.55, envMapIntensity: 0.35 });
+  const remap = (m) => { const mm = (m && m.metalness !== undefined) ? m.metalness : 0; return mm > 0.8 ? matGold : (mm > 0.3 ? matMetal : matBlack); };
   loader.load("assets/models/bracelet_assembled.glb", (g) => {
     model = g.scene;
     model.traverse((o) => {
       if (o.isMesh) {
         o.castShadow = true; o.receiveShadow = true;
-        const mats = Array.isArray(o.material) ? o.material : [o.material];
-        mats.forEach((m) => { if (m) { m.envMapIntensity = 0.55; if (m.metalness !== undefined && m.metalness < 0.5) m.envMapIntensity = 0.3; } });
+        o.material = Array.isArray(o.material) ? o.material.map(remap) : remap(o.material);
       }
     });
     build();
