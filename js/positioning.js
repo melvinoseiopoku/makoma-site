@@ -24,8 +24,8 @@
     // data-lift (0..100) into translateZ pixels (presence height).
     var STAGES = {
       1: { tilt: 0,  liftScale: 0.0,  axis: 0   },   // flat top-down map
-      2: { tilt: 56, liftScale: 3.4,  axis: 340 },   // tilt + presence axis (big gap)
-      3: { tilt: 56, liftScale: 3.4,  axis: 340 }    // beads vs hub focus
+      2: { tilt: 56, liftScale: 2.4,  axis: 300 },   // tilt + presence axis (lift is now SCREEN px, no perspective blow-up)
+      3: { tilt: 56, liftScale: 2.4,  axis: 300 }    // beads vs hub focus
     };
 
     // place each node's x/y on the plane (percent), cache its lift
@@ -112,8 +112,8 @@
         // progress 0..1 as the section travels from entering to centered/past
         var p = 1 - (r.top + r.height * 0.35) / vh;
         p = Math.max(0, Math.min(1, p));
-        if (p < 0.46)      apply(1);
-        else if (p < 0.74) apply(2);
+        if (p < 0.58)      apply(1);
+        else if (p < 0.82) apply(2);
         else               apply(3);
       });
     }
@@ -123,9 +123,9 @@
         entries.forEach(function (e) {
           if (e.isIntersecting && !seen) {
             seen = true;
-            // hold on the flat 2D map a good while so it's clearly seen first,
-            // then auto-walk into 3D (scroll can take over sooner)
-            autoTimer = window.setTimeout(autoplay, 2400);
+            // hold on the flat 2D map a long beat so it's unmistakably seen first;
+            // scrolling can project sooner if the user chooses to
+            autoTimer = window.setTimeout(autoplay, 4500);
             window.addEventListener("scroll", onScroll, { passive: true });
           }
         });

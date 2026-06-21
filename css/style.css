@@ -1343,3 +1343,18 @@ section{ position:relative; z-index:2; }
 :root[data-theme="light"] .btn-gold{ color:#fff; }
 :root[data-theme="light"] .hero-shot img{ -webkit-mask-image:none; mask-image:none; box-shadow:0 30px 80px -40px rgba(40,30,10,.4); }
 :root[data-theme="light"] .car-bead-img, :root[data-theme="light"] .wl-beadimg, :root[data-theme="light"] .rp-bead{ filter:drop-shadow(0 8px 18px rgba(60,45,15,.3)); }
+
+/* ============================================================
+   v2 fix: positioning lift in SCREEN space (no perspective magnification)
+   ============================================================ */
+/* flat app logos lie ON the plane (no lift, no billboard) */
+.wl-node--logo{ transform: translate(-50%,-50%) !important; }
+/* risen nodes: face the camera (cancel tilt) then lift straight UP the screen by --lift px,
+   so they grow a gap WITHOUT getting closer/bigger */
+.wl-node--hub,
+.wl-node--beads{ transform: translate(-50%,-50%) rotateX(calc(-1 * var(--tilt))) translateY(calc(-1 * var(--lift))) !important; }
+/* the stem now hangs straight down (screen-vertical) from the risen node to its plane spot */
+.wl-stem{ transform: translateX(-50%) !important; }
+/* keep the bead string compact + a sane size */
+.wl-node--beads .wl-string{ gap:0; }
+.wl-beadimg{ width:26px !important; margin:0 -3px; }

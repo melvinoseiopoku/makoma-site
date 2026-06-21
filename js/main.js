@@ -445,8 +445,8 @@
     const upd = () => {
       const r = section.getBoundingClientRect();
       const vh = window.innerHeight || 800;
-      // only begin drawing once the section is well up into the viewport, then draw across the scroll
-      let p = (vh * 0.55 - r.top) / (vh * 0.5);
+      // begin drawing only once the logo has risen into the upper part of the viewport
+      let p = (vh * 0.38 - r.top) / (vh * 0.40);
       p = Math.max(0, Math.min(1, p));
       draws.forEach((path, i) => { path.style.strokeDashoffset = (lens[i] * (1 - p)).toFixed(1); });
       const fo = Math.max(0, Math.min(1, (p - 0.62) / 0.3));   // beads/knot fade in near the end
