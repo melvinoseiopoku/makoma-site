@@ -1,10 +1,10 @@
 /* ============================================================
-   M'AKOMA — scroll-driven 3D hero
-   Loads the real assembled-bracelet CAD export exactly as arranged in Fusion
-   (Makoma_bracelet_arranged.obj → bracelet_assembled.glb): the 8 Adinkra beads
-   and the core hub in their designed wrist arc, matte-black with engraved gold
-   symbols and the gold hub button. Scroll tilts the camera from a top-down view
-   of the arrangement to a front view of the hub.
+   M'AKOMA — scroll-driven 3D hero (turntable)
+   Loads the real assembled-bracelet CAD export (Makoma_bracelet_arranged.obj →
+   bracelet_assembled.glb) exactly as arranged in Fusion. The camera faces the
+   radially-engraved Adinkra symbols; scrolling spins the whole bracelet about its
+   axis so every bead's gold symbol — and the hub's gold button — turns to face you
+   in turn. Matte-black resin + warm gold, like the Akoma_4E renders.
    Falls back to the static render on mobile / no-WebGL / reduced-motion.
    ============================================================ */
 import * as THREE from "three";
@@ -20,7 +20,13 @@ const $ = (s) => document.querySelector(s);
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const smooth = (a, b, x) => { if (a === b) return x < a ? 0 : 1; const t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
 const lerp = (a, b, t) => a + (b - a) * t;
-const DEG = Math.PI / 180;
+const DEG = Math.PI / 180, TAU = Math.PI * 2;
+
+// orientation of the loaded export: flip so the USB-port face is up (not the speaker grille)
+const FLIP_X = Math.PI;   // set to 0 if the USB/speaker ends up the wrong way round
+const CAM_AZ = 0, CAM_EL = 15;      // low camera that faces the radial symbols
+const SPIN_TURNS = 1;               // full revolutions across the scroll (8 beads → 1 is plenty)
+const SPIN_PHASE = -40 * DEG;       // starting rotation so a symbol faces front at p=0
 
 const section = $("#hero");
 const canvas = $("#heroCanvas");
@@ -48,63 +54,52 @@ function init() {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, powerPreference: "high-performance" });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.1;
+  renderer.toneMappingExposure = 1.12;
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
   const scene = new THREE.Scene();
-  const camera = new THREE.PerspectiveCamera(34, 1, 0.01, 1000);
+  const camera = new THREE.PerspectiveCamera(32, 1, 0.01, 1000);
 
   const pmrem = new THREE.PMREMGenerator(renderer);
   scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
 
-  // camera views from the -Z (front) side, so the key lights from front-top
-  const key = new THREE.DirectionalLight(0xfff4e6, 3.4); key.position.set(7, 20, -15);
+  // camera looks from +X (az 0) low; key lights the front so the near symbols catch gold
+  const key = new THREE.DirectionalLight(0xfff4e6, 3.6); key.position.set(20, 16, 7);
   key.castShadow = true; key.shadow.mapSize.set(2048, 2048);
   key.shadow.camera.near = 1; key.shadow.camera.far = 120;
-  key.shadow.camera.left = -24; key.shadow.camera.right = 24; key.shadow.camera.top = 24; key.shadow.camera.bottom = -24;
+  key.shadow.camera.left = -22; key.shadow.camera.right = 22; key.shadow.camera.top = 22; key.shadow.camera.bottom = -22;
   key.shadow.bias = -0.0004;
-  const rim = new THREE.DirectionalLight(0xbcd2ff, 1.5); rim.position.set(-13, 7, 12);   // back rim peels black off black
-  const rim2 = new THREE.DirectionalLight(0xffd9a6, 0.9); rim2.position.set(12, 3, 10);
-  const fill = new THREE.DirectionalLight(0xfff1dd, 0.9); fill.position.set(-3, 6, -18);  // soft front fill
-  scene.add(key, rim, rim2, fill, new THREE.AmbientLight(0xffffff, 0.16));
+  const fill = new THREE.DirectionalLight(0xfff1dd, 0.8); fill.position.set(13, -3, -6);
+  const rim = new THREE.DirectionalLight(0xbcd2ff, 1.4); rim.position.set(-17, 9, -5);
+  const rim2 = new THREE.DirectionalLight(0xffd9a6, 0.8); rim2.position.set(-6, 5, 16);
+  scene.add(key, fill, rim, rim2, new THREE.AmbientLight(0xffffff, 0.18));
 
-  const bracelet = new THREE.Group();
-  scene.add(bracelet);
-  let modelR = 10;          // bracelet radius (set after load)
+  const spin = new THREE.Group();        // rotates with scroll (about the bracelet's vertical axis)
+  const orient = new THREE.Group();      // fixed flip so USB faces up
+  orient.rotation.x = FLIP_X;
+  spin.add(orient);
+  scene.add(spin);
+  let modelR = 10;
 
-  // ---- camera: front + top of the beads (az 270 = the symbol side, hub at top) ----
-  const KEYS = [
-    { p: 0.00, az: 270, el: 60, dz: 3.05 },  // front-top, overhead — the arrangement + gold read
-    { p: 0.50, az: 270, el: 56, dz: 3.0 },
-    { p: 1.00, az: 270, el: 53, dz: 2.95 },   // gentle tilt, staying in the front-top gold zone
-  ];
-  const _t = new THREE.Vector3(0, 0, 0);
-  function placeCamera(p) {
-    let a = KEYS[0], b = KEYS[KEYS.length - 1];
-    for (let i = 0; i < KEYS.length - 1; i++) { if (p >= KEYS[i].p && p <= KEYS[i + 1].p) { a = KEYS[i]; b = KEYS[i + 1]; break; } }
-    const t = smooth(a.p, b.p, p);
-    const az = (lerp(a.az, b.az, t) + Math.sin(idle * 0.2) * 0.6) * DEG;
-    const el = lerp(a.el, b.el, t) * DEG;
-    const d = lerp(a.dz, b.dz, t) * modelR;
-    const ce = Math.cos(el);
+  function placeCamera() {
+    const az = (CAM_AZ + Math.sin(idle * 0.18) * 0.7) * DEG, el = CAM_EL * DEG;
+    const d = 3.15 * modelR, ce = Math.cos(el);
     camera.position.set(Math.cos(az) * ce * d, Math.sin(el) * d, Math.sin(az) * ce * d);
-    camera.lookAt(_t);
+    camera.lookAt(0, 0, 0);
   }
 
   function build() {
-    bracelet.add(model);
-    // recentre to origin
+    orient.add(model);
     const box = new THREE.Box3().setFromObject(model);
     const c = box.getCenter(new THREE.Vector3());
     model.position.sub(c);
     const size = box.getSize(new THREE.Vector3());
     modelR = Math.max(size.x, size.y, size.z) * 0.5;
 
-    // contact shadow
-    const ground = new THREE.Mesh(new THREE.PlaneGeometry(modelR * 40, modelR * 40), new THREE.ShadowMaterial({ opacity: 0.22 }));
-    ground.rotation.x = -Math.PI / 2; ground.position.y = -modelR * 1.1; ground.receiveShadow = true; scene.add(ground);
+    const ground = new THREE.Mesh(new THREE.PlaneGeometry(modelR * 40, modelR * 40), new THREE.ShadowMaterial({ opacity: 0.2 }));
+    ground.rotation.x = -Math.PI / 2; ground.position.y = -modelR * 1.15; ground.receiveShadow = true; scene.add(ground);
 
     ready = true;
     if (loaderEl) loaderEl.classList.add("hide");
@@ -122,11 +117,11 @@ function init() {
     const outOp = smooth(0.9, 0.99, p);
     if (outro) { outro.style.opacity = outOp; outro.style.pointerEvents = outOp > 0.5 ? "auto" : "none"; }
     if (bar) bar.style.transform = `scaleX(${p})`;
-    const op = Math.min(smooth(0.18, 0.3, p), 1 - smooth(0.82, 0.92, p));
+    const op = Math.min(smooth(0.16, 0.28, p), 1 - smooth(0.82, 0.92, p));
     if (capWrap) {
-      if (capK) capK.textContent = "The bracelet";
-      if (capT) capT.textContent = "Eight beads, one hub.";
-      if (capL) capL.textContent = "The real assembly — eight Adinkra friend-beads and the core hub on one cord, exactly as it's built.";
+      if (capK) capK.textContent = "Eight beads";
+      if (capT) capT.textContent = "Turn to meet them.";
+      if (capL) capL.textContent = "Each bead carries an engraved Adinkra symbol; the core hub holds the gold button. The real assembly, exactly as it's built.";
       capWrap.style.opacity = op;
     }
   }
@@ -145,12 +140,13 @@ function init() {
 
   const composer = new EffectComposer(renderer);
   composer.addPass(new RenderPass(scene, camera));
-  const bloom = new UnrealBloomPass(new THREE.Vector2(1, 1), 0.18, 0.7, 0.9); // soft glints on the gold
+  const bloom = new UnrealBloomPass(new THREE.Vector2(1, 1), 0.22, 0.7, 0.86); // soft gold glints
   composer.addPass(bloom);
   composer.addPass(new OutputPass());
 
   function update(p) {
-    placeCamera(p);
+    spin.rotation.y = SPIN_PHASE + p * TAU * SPIN_TURNS;
+    placeCamera();
     overlay(p);
   }
 
@@ -175,16 +171,17 @@ function init() {
   new IntersectionObserver((es) => { inView = es[0].isIntersecting; }, { threshold: 0 }).observe(section);
   resize();
 
+  // matte Akoma_4E look: deep matte-black resin + warm gold (no glossy clearcoat)
+  const matBlack = new THREE.MeshPhysicalMaterial({ color: 0x0c0c0d, roughness: 0.82, metalness: 0.0, clearcoat: 0.0, envMapIntensity: 0.2 });
+  const matGold = new THREE.MeshStandardMaterial({ color: 0xc6a24c, roughness: 0.36, metalness: 1.0, envMapIntensity: 0.6 });
+  const matMetal = new THREE.MeshStandardMaterial({ color: 0x16161a, roughness: 0.46, metalness: 0.55, envMapIntensity: 0.35 });
+  const remap = (m) => { const mm = (m && m.metalness !== undefined) ? m.metalness : 0; return mm > 0.8 ? matGold : (mm > 0.3 ? matMetal : matBlack); };
+
   let model = null;
   if (loaderEl) loaderEl.classList.remove("hide");
   const draco = new DRACOLoader(); draco.setDecoderPath("assets/vendor/three/draco/");
   const loader = new GLTFLoader(); loader.setDRACOLoader(draco);
   const fail = (err) => { console.warn("[hero3d] CAD load failed:", err); section.classList.add("no3d"); if (loaderEl) loaderEl.style.display = "none"; poster.classList.remove("hide"); };
-  // matte Akoma_4E look: deep matte-black resin + warm engraved gold (no glossy clearcoat)
-  const matBlack = new THREE.MeshPhysicalMaterial({ color: 0x0c0c0d, roughness: 0.82, metalness: 0.0, clearcoat: 0.0, envMapIntensity: 0.2 });
-  const matGold = new THREE.MeshStandardMaterial({ color: 0xc6a24c, roughness: 0.36, metalness: 1.0, envMapIntensity: 0.6 });
-  const matMetal = new THREE.MeshStandardMaterial({ color: 0x16161a, roughness: 0.46, metalness: 0.55, envMapIntensity: 0.35 });
-  const remap = (m) => { const mm = (m && m.metalness !== undefined) ? m.metalness : 0; return mm > 0.8 ? matGold : (mm > 0.3 ? matMetal : matBlack); };
   loader.load("assets/models/bracelet_assembled.glb", (g) => {
     model = g.scene;
     model.traverse((o) => {
