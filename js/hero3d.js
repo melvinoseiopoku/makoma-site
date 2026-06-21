@@ -146,7 +146,7 @@ function init() {
 
   function update(p) {
     spin.rotation.y = SPIN_PHASE + p * TAU * SPIN_TURNS;
-    if (cordMesh) cordMesh.geometry.setDrawRange(0, Math.floor(cordTotal * smooth(0.03, 0.97, p))); // trace the cord as it turns
+    if (cordMesh) cordMesh.geometry.setDrawRange(0, Math.floor(cordTotal * smooth(0.0, 0.6, p))); // trace keeps ahead of the spin (no lag)
     placeCamera();
     overlay(p);
   }
@@ -205,9 +205,19 @@ function init() {
   const matCord = new THREE.MeshStandardMaterial({ color: 0x0b0b0b, roughness: 0.95, metalness: 0.0, envMapIntensity: 0.2, normalMap: cordNormal, normalScale: new THREE.Vector2(1, 1), roughnessMap: cordRough });
   let cordMesh = null, cordTotal = 0;
   function buildCord() {
-    const pts = CORD_PATH.map((p) => new THREE.Vector3(p[0], p[1], p[2]));
-    const curve = new THREE.CatmullRomCurve3(pts, false, "catmullrom", 0.3);
-    const geo = new THREE.TubeGeometry(curve, 700, 0.135, 12, false);
+    const raw = CORD_PATH.map((p) => new THREE.Vector3(p[0], p[1], p[2]));
+    // for each bead (indices 2..9) add straight entry/exit along the local hole axis so the
+    // cord goes STRAIGHT THROUGH the bus-hole channel instead of curving through the body
+    const pts = [];
+    const R = 0.82;
+    for (let i = 0; i < raw.length; i++) {
+      if (i >= 2 && i <= 9) {
+        const T = new THREE.Vector3().subVectors(raw[i + 1], raw[i - 1]); T.y = 0; T.normalize();
+        pts.push(raw[i].clone().addScaledVector(T, -R), raw[i], raw[i].clone().addScaledVector(T, R));
+      } else pts.push(raw[i]);
+    }
+    const curve = new THREE.CatmullRomCurve3(pts, false, "catmullrom", 0.12);
+    const geo = new THREE.TubeGeometry(curve, 820, 0.13, 12, false);
     cordMesh = new THREE.Mesh(geo, matCord); cordMesh.castShadow = true; cordMesh.receiveShadow = true;
     cordTotal = geo.index ? geo.index.count : geo.attributes.position.count;
     geo.setDrawRange(0, 0);
