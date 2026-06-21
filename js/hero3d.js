@@ -146,6 +146,7 @@ function init() {
 
   function update(p) {
     spin.rotation.y = SPIN_PHASE + p * TAU * SPIN_TURNS;
+    if (cordMesh) cordMesh.geometry.setDrawRange(0, Math.floor(cordTotal * smooth(0.03, 0.97, p))); // trace the cord as it turns
     placeCamera();
     overlay(p);
   }
@@ -177,6 +178,33 @@ function init() {
   const matMetal = new THREE.MeshStandardMaterial({ color: 0x16161a, roughness: 0.46, metalness: 0.55, envMapIntensity: 0.35 });
   const remap = (m) => { const mm = (m && m.metalness !== undefined) ? m.metalness : 0; return mm > 0.8 ? matGold : (mm > 0.3 ? matMetal : matBlack); };
 
+  // ---- black macramé cord threaded through the bead bus-holes (positions from the CAD) ----
+  // bead centres in the GLB's centred frame (extracted positions minus the export's
+  // arrangement-centre [0.188,0.194,-3.618]); hub sits at the +Z end
+  const Y = -0.05;
+  const CORD_PATH = [
+    [-1.5, Y, 2.6],                                                  // out of the hub, left
+    [-4.598, Y, 1.638], [-4.594, Y, -0.427], [-3.413, Y, -2.293], [-1.397, Y, -3.252],
+    [0.998, Y, -3.217], [3.108, Y, -2.324], [4.634, Y, -0.414], [4.218, Y, 1.630],
+    [1.5, Y, 2.6],                                                   // back into the hub, right
+  ];
+  const tl = new THREE.TextureLoader();
+  const cordNormal = tl.load("assets/textures/cord_normal.png");
+  const cordRough = tl.load("assets/textures/cord_rough.png");
+  [cordNormal, cordRough].forEach((t) => { t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(70, 2); });
+  cordNormal.colorSpace = THREE.NoColorSpace;
+  const matCord = new THREE.MeshStandardMaterial({ color: 0x0b0b0b, roughness: 0.95, metalness: 0.0, envMapIntensity: 0.2, normalMap: cordNormal, normalScale: new THREE.Vector2(1, 1), roughnessMap: cordRough });
+  let cordMesh = null, cordTotal = 0;
+  function buildCord() {
+    const pts = CORD_PATH.map((p) => new THREE.Vector3(p[0], p[1], p[2]));
+    const curve = new THREE.CatmullRomCurve3(pts, false, "catmullrom", 0.3);
+    const geo = new THREE.TubeGeometry(curve, 700, 0.135, 12, false);
+    cordMesh = new THREE.Mesh(geo, matCord); cordMesh.castShadow = true; cordMesh.receiveShadow = true;
+    cordTotal = geo.index ? geo.index.count : geo.attributes.position.count;
+    geo.setDrawRange(0, 0);
+    model.add(cordMesh);   // child of the model → inherits recenter + flip + spin
+  }
+
   let model = null;
   if (loaderEl) loaderEl.classList.remove("hide");
   const draco = new DRACOLoader(); draco.setDecoderPath("assets/vendor/three/draco/");
@@ -190,6 +218,7 @@ function init() {
         o.material = Array.isArray(o.material) ? o.material.map(remap) : remap(o.material);
       }
     });
+    buildCord();
     build();
   }, undefined, fail);
 }
