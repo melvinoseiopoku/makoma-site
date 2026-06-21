@@ -179,14 +179,23 @@ function init() {
   const remap = (m) => { const mm = (m && m.metalness !== undefined) ? m.metalness : 0; return mm > 0.8 ? matGold : (mm > 0.3 ? matMetal : matBlack); };
 
   // ---- black macramé cord threaded through the bead bus-holes (positions from the CAD) ----
-  // bead centres in the GLB's centred frame (extracted positions minus the export's
-  // arrangement-centre [0.188,0.194,-3.618]); hub sits at the +Z end
-  const Y = -0.05;
+  // Cord through the real bus-holes (positions ray-cast from the CAD, then offset into the
+  // GLB's centred frame by −[0.188,0.194,-3.618]). Bead holes sit at Y≈0.016; the hub holes
+  // are lower (Y≈-0.66) — two on the +Z/right side, one on the −Z/left side. Ordered so the
+  // trace runs the SAME rotational way as the turntable spin.
+  const H = 0.016;       // bus-hole height through the beads
   const CORD_PATH = [
-    [-1.5, Y, 2.6],                                                  // out of the hub, left
-    [-4.598, Y, 1.638], [-4.594, Y, -0.427], [-3.413, Y, -2.293], [-1.397, Y, -3.252],
-    [0.998, Y, -3.217], [3.108, Y, -2.324], [4.634, Y, -0.414], [4.218, Y, 1.630],
-    [1.5, Y, 2.6],                                                   // back into the hub, right
+    [1.312, -0.664, 3.918],   // hub, +X hole (b)
+    [1.312, -0.664, 2.618],   // hub, +X hole (a)
+    [4.218, H, 1.630],        // G
+    [4.634, H, -0.414],       // F
+    [3.108, H, -2.324],       // E
+    [0.998, H, -3.217],       // D
+    [-1.397, H, -3.252],      // C
+    [-3.413, H, -2.293],      // B
+    [-4.594, H, -0.427],      // A
+    [-4.598, H, 1.638],       // H
+    [-1.688, -0.664, 1.938],  // hub, −X hole (single)
   ];
   const tl = new THREE.TextureLoader();
   const cordNormal = tl.load("assets/textures/cord_normal.png");
