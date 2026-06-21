@@ -445,7 +445,8 @@
     const upd = () => {
       const r = section.getBoundingClientRect();
       const vh = window.innerHeight || 800;
-      let p = (vh * 0.95 - r.top) / (vh * 0.6);   // 0 as it enters, 1 once well in view
+      // only begin drawing once the section is well up into the viewport, then draw across the scroll
+      let p = (vh * 0.55 - r.top) / (vh * 0.5);
       p = Math.max(0, Math.min(1, p));
       draws.forEach((path, i) => { path.style.strokeDashoffset = (lens[i] * (1 - p)).toFixed(1); });
       const fo = Math.max(0, Math.min(1, (p - 0.62) / 0.3));   // beads/knot fade in near the end
@@ -456,6 +457,17 @@
     upd();
   }
 
+  /* light / dark toggle (initial theme is set by an inline <head> script) */
+  function setupTheme() {
+    const btn = $("#themeToggle"); if (!btn) return;
+    btn.addEventListener("click", () => {
+      const root = document.documentElement;
+      const toLight = root.getAttribute("data-theme") !== "light";
+      root.setAttribute("data-theme", toLight ? "light" : "dark");
+      try { localStorage.setItem("makoma-theme", toLight ? "light" : "dark"); } catch (e) {}
+    });
+  }
+
   function init() {
     // v2: the bead ring, how-it-works demos, symbol gallery and positioning map
     // were merged into the carousel (carousel.js) and the 2D→3D viz (positioning.js).
@@ -464,6 +476,7 @@
     setupChrome();
     setupForm();
     setupLogoTrace();
+    setupTheme();
   }
 
   // fill panel without sound on initial load
