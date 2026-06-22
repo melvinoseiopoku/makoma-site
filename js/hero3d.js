@@ -184,9 +184,11 @@ function init() {
   // are lower (Y≈-0.66) — two on the +Z/right side, one on the −Z/left side. Ordered so the
   // trace runs the SAME rotational way as the turntable spin.
   const H = 0.016;       // bus-hole height through the beads
+  // NOTE: interim hand-placed cord. The exact bus-hole/hub-hole routing comes from the
+  // Fusion-modelled cord (export the assembly WITH the cord and it renders precisely).
   const CORD_PATH = [
-    [1.312, -0.664, 3.918],   // hub, +X hole (b)
-    [1.312, -0.664, 2.618],   // hub, +X hole (a)
+    [1.20, -0.95, 3.30],      // hub, +X hole (b)
+    [1.20, -0.95, 2.65],      // hub, +X hole (a)
     [4.218, H, 1.630],        // G
     [4.634, H, -0.414],       // F
     [3.108, H, -2.324],       // E
@@ -195,34 +197,44 @@ function init() {
     [-3.413, H, -2.293],      // B
     [-4.594, H, -0.427],      // A
     [-4.598, H, 1.638],       // H
-    [-1.688, -0.664, 1.938],  // hub, −X hole (single)
+    [-1.60, -0.95, 2.45],     // hub, −X hole (single)
   ];
   const tl = new THREE.TextureLoader();
   const cordNormal = tl.load("assets/textures/cord_normal.png");
   const cordRough = tl.load("assets/textures/cord_rough.png");
   [cordNormal, cordRough].forEach((t) => { t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(70, 2); });
   cordNormal.colorSpace = THREE.NoColorSpace;
-  const matCord = new THREE.MeshStandardMaterial({ color: 0x0b0b0b, roughness: 0.95, metalness: 0.0, envMapIntensity: 0.2, normalMap: cordNormal, normalScale: new THREE.Vector2(1, 1), roughnessMap: cordRough });
-  let cordMesh = null, cordTotal = 0;
-  function buildCord() {
+  const matCord = new THREE.MeshStandardMaterial({ color: 0x0a0a0a, roughness: 0.95, metalness: 0.0, envMapIntensity: 0.2, normalMap: cordNormal, normalScale: new THREE.Vector2(0.8, 0.8), roughnessMap: cordRough });
+  let cordMesh = null, cordTotal = 0, cordExtras = [];
+  let CORD_R = 0.82, CORD_RAD = 0.105;
+  function buildCord(showMarks) {
+    if (cordMesh) { model.remove(cordMesh); cordMesh.geometry.dispose(); cordMesh = null; }
+    cordExtras.forEach((m) => model.remove(m)); cordExtras = [];
     const raw = CORD_PATH.map((p) => new THREE.Vector3(p[0], p[1], p[2]));
-    // for each bead (indices 2..9) add straight entry/exit along the local hole axis so the
-    // cord goes STRAIGHT THROUGH the bus-hole channel instead of curving through the body
     const pts = [];
-    const R = 0.82;
     for (let i = 0; i < raw.length; i++) {
       if (i >= 2 && i <= 9) {
         const T = new THREE.Vector3().subVectors(raw[i + 1], raw[i - 1]); T.y = 0; T.normalize();
-        pts.push(raw[i].clone().addScaledVector(T, -R), raw[i], raw[i].clone().addScaledVector(T, R));
-      } else pts.push(raw[i]);
+        const entry = raw[i].clone().addScaledVector(T, -CORD_R), exit = raw[i].clone().addScaledVector(T, CORD_R);
+        pts.push(entry, raw[i], exit);
+        if (showMarks) [entry, exit].forEach((pp) => { const mk = new THREE.Mesh(new THREE.SphereGeometry(0.12, 10, 8), new THREE.MeshBasicMaterial({ color: 0x00ff66 })); mk.position.copy(pp); model.add(mk); cordExtras.push(mk); });
+      } else {
+        pts.push(raw[i]);
+        if (showMarks) { const mk = new THREE.Mesh(new THREE.SphereGeometry(0.16, 10, 8), new THREE.MeshBasicMaterial({ color: 0x33aaff })); mk.position.copy(raw[i]); model.add(mk); cordExtras.push(mk); }
+      }
     }
     const curve = new THREE.CatmullRomCurve3(pts, false, "catmullrom", 0.12);
-    const geo = new THREE.TubeGeometry(curve, 820, 0.13, 12, false);
+    const geo = new THREE.TubeGeometry(curve, 820, CORD_RAD, 12, false);
     cordMesh = new THREE.Mesh(geo, matCord); cordMesh.castShadow = true; cordMesh.receiveShadow = true;
     cordTotal = geo.index ? geo.index.count : geo.attributes.position.count;
-    geo.setDrawRange(0, 0);
-    model.add(cordMesh);   // child of the model → inherits recenter + flip + spin
+    geo.setDrawRange(0, Math.floor(cordTotal * smooth(0.0, 0.6, progress)));
+    model.add(cordMesh);
   }
+  window.__rebuild = (path, showMarks, R) => {
+    if (path) { CORD_PATH.length = 0; path.forEach((p) => CORD_PATH.push(p)); }
+    if (R !== undefined) CORD_R = R;
+    buildCord(showMarks);
+  };
 
   let model = null;
   if (loaderEl) loaderEl.classList.remove("hide");
