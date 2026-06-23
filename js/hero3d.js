@@ -251,7 +251,7 @@ function init() {
   // ---- second cord: the Shamballa macramé braid (two working cords B & C) wrapping the main cord,
   //      weaving over the top / under the bottom belt grooves of the beads. Traced in sync with the main cord. ----
   let braidB = null, braidC = null, braidTotal = 0;
-  let BRAID_R = 0.34, BRAID_FREQ = 9, BRAID_RAD = 0.06, BRAID_OVER = 0.18, BRAID_K = 3.0;  // R=run offset, OVER=over/under at crossing, K=crossing sharpness
+  let BRAID_R = 0.19, BRAID_FREQ = 69, BRAID_RAD = 0.06, BRAID_OVER = 0.18, BRAID_K = 3.0;  // founder-tuned: tight dense sennit (R=run offset, OVER=over/under at crossing, K=crossing sharpness)
   function buildBraid() {
     for (const m of [braidB, braidC]) if (m) { model.remove(m); m.geometry.dispose(); }
     braidB = braidC = null;
