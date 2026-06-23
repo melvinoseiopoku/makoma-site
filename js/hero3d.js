@@ -26,7 +26,7 @@ const DEG = Math.PI / 180, TAU = Math.PI * 2;
 const FLIP_X = Math.PI;   // set to 0 if the USB/speaker ends up the wrong way round
 const CAM_AZ = 0, CAM_EL = 15;      // low camera that faces the radial symbols
 const SPIN_TURNS = 1;               // full revolutions across the scroll (8 beads → 1 is plenty)
-const SPIN_PHASE = -40 * DEG;       // starting rotation so a symbol faces front at p=0
+const SPIN_PHASE = 169.6 * DEG;    // start rotation: the Akoma (heart) bead faces front at p=0
 
 const section = $("#hero");
 const canvas = $("#heroCanvas");
@@ -146,7 +146,17 @@ function init() {
 
   function update(p) {
     spin.rotation.y = SPIN_PHASE + p * TAU * SPIN_TURNS;
-    if (cordMesh) cordMesh.geometry.setDrawRange(0, Math.floor(cordTotal * smooth(0.0, 0.6, p))); // trace keeps ahead of the spin (no lag)
+    const f = Math.min(1, p * 1.8);                // trace draws faster than the spin so it keeps pace (no lag)
+    if (cordMesh) {
+      cordMesh.geometry.setDrawRange(0, Math.floor(cordTotal * f));
+      if (cordTip && cordCurve) {                    // rounded tip caps the growing end so the cord reads solid, not hollow
+        const vis = f > 0.004 && f < 0.996;
+        cordTip.visible = vis;
+        if (vis) cordTip.position.copy(cordCurve.getPointAt(Math.min(f, 0.999)));
+        if (cordStart) cordStart.visible = f > 0.004;
+      }
+    }
+    if (braidB) { const n = Math.floor(braidTotal * f); braidB.geometry.setDrawRange(0, n); braidC.geometry.setDrawRange(0, n); }
     placeCamera();
     overlay(p);
   }
@@ -178,70 +188,124 @@ function init() {
   const matMetal = new THREE.MeshStandardMaterial({ color: 0x16161a, roughness: 0.46, metalness: 0.55, envMapIntensity: 0.35 });
   const remap = (m) => { const mm = (m && m.metalness !== undefined) ? m.metalness : 0; return mm > 0.8 ? matGold : (mm > 0.3 ? matMetal : matBlack); };
 
-  // ---- black macramé cord threaded through the bead bus-holes (positions from the CAD) ----
-  // Cord through the real bus-holes (positions ray-cast from the CAD, then offset into the
-  // GLB's centred frame by −[0.188,0.194,-3.618]). Bead holes sit at Y≈0.016; the hub holes
-  // are lower (Y≈-0.66) — two on the +Z/right side, one on the −Z/left side. Ordered so the
-  // trace runs the SAME rotational way as the turntable spin.
-  const H = 0.016;       // bus-hole height through the beads
-  // NOTE: interim hand-placed cord. The exact bus-hole/hub-hole routing comes from the
-  // Fusion-modelled cord (export the assembly WITH the cord and it renders precisely).
+  // ---- black macramé cord — REAL path traced from the Fusion-threaded cord ("Body13" in
+  // makoma_threaded). Centerline extracted in Blender; closed loop through all 8 bead
+  // bus-holes and the hub, in the same gltf frame as bracelet_threaded.glb so it threads
+  // exactly. Radius matched to the Ø2.6 mm bus-holes (≈0.13 model units, ~0.0966 u/mm). ----
   const CORD_PATH = [
-    [1.20, -0.95, 3.30],      // hub, +X hole (b)
-    [1.20, -0.95, 2.65],      // hub, +X hole (a)
-    [4.218, H, 1.630],        // G
-    [4.634, H, -0.414],       // F
-    [3.108, H, -2.324],       // E
-    [0.998, H, -3.217],       // D
-    [-1.397, H, -3.252],      // C
-    [-3.413, H, -2.293],      // B
-    [-4.594, H, -0.427],      // A
-    [-4.598, H, 1.638],       // H
-    [-1.60, -0.95, 2.45],     // hub, −X hole (single)
+    [-1.7119,0.0008,0.7003], [-1.8506,0.0008,0.7424], [-2.1044,0.0012,0.6781], [-2.3372,0.0012,0.6510],
+    [-2.6085,0.0015,0.5994], [-2.7991,0.0011,0.6523], [-3.0102,0.0010,0.7046], [-3.2010,0.0010,0.7889],
+    [-3.3715,0.0010,0.8970], [-3.5664,0.0011,1.0803], [-3.7252,0.0010,1.2955], [-3.8493,0.0010,1.5199],
+    [-3.8916,0.0010,1.7126], [-3.9518,0.0016,1.8646], [-3.9752,0.0016,2.1147], [-4.0022,0.0016,2.3738],
+    [-3.9935,0.0011,2.6689], [-4.0045,0.0011,2.8668], [-4.0096,0.0011,3.0347], [-3.9980,0.0011,3.2275],
+    [-3.9695,0.0011,3.4154], [-3.9281,0.0011,3.5957], [-3.8784,0.0011,3.7559], [-3.8317,0.0012,3.9302],
+    [-3.7848,0.0011,4.1126], [-3.7429,0.0011,4.2946], [-3.6921,0.0011,4.4776], [-3.6271,0.0011,4.6523],
+    [-3.5445,0.0011,4.8020], [-3.4385,0.0011,4.9321], [-3.2908,0.0008,5.0453], [-3.1627,0.0009,5.1581],
+    [-3.0520,0.0010,5.2678], [-2.9713,0.0014,5.3795], [-2.8451,0.0013,5.4899], [-2.6678,0.0012,5.6351],
+    [-2.4474,0.0011,5.8093], [-2.1852,0.0008,5.9802], [-1.9883,0.0009,6.1086], [-1.8311,0.0009,6.1963],
+    [-1.7300,0.0013,6.2659], [-1.5960,0.0013,6.3207], [-1.4296,0.0010,6.3218], [-1.2796,0.0012,6.3307],
+    [-1.1311,0.0012,6.3322], [-0.9903,0.0012,6.3314], [-0.8740,0.0015,6.3644], [-0.7128,0.0011,6.3189],
+    [-0.6164,0.0018,6.3731], [-0.4287,0.0012,6.3321], [-0.2197,0.0015,6.3592], [0.1012,0.0012,6.3231],
+    [0.3952,0.0012,6.3169], [0.6390,0.0015,6.3406], [0.7720,0.0011,6.3031], [0.9038,0.0011,6.3022],
+    [1.0484,0.0012,6.3094], [1.1919,0.0012,6.3112], [1.3959,0.0013,6.3270], [1.5736,0.0010,6.2973],
+    [1.8094,0.0013,6.3252], [1.9733,0.0012,6.2974], [2.1445,0.0012,6.2679], [2.3150,0.0011,6.2223],
+    [2.4626,0.0010,6.1568], [2.5953,0.0010,6.0800], [2.7198,0.0011,5.9753], [2.8925,0.0018,5.8693],
+    [2.9815,0.0015,5.7453], [3.1378,0.0015,5.5805], [3.2864,0.0011,5.4145], [3.4791,0.0015,5.2431],
+    [3.5657,0.0012,5.1246], [3.6271,0.0009,4.9932], [3.7065,0.0008,4.8418], [3.7886,0.0012,4.6456],
+    [3.8358,0.0012,4.4043], [3.8821,0.0012,4.1357], [3.9332,0.0012,3.8603], [3.9773,0.0011,3.5738],
+    [4.0026,0.0011,3.3162], [4.0085,0.0011,3.0832], [4.0333,0.0015,2.8628], [4.0112,0.0014,2.6810],
+    [3.9953,0.0014,2.4908], [3.9442,0.0010,2.2894], [3.9372,0.0014,2.0114], [3.9061,0.0012,1.7652],
+    [3.8675,0.0012,1.5483], [3.7644,0.0007,1.3764], [3.6701,0.0009,1.2083], [3.5353,0.0009,1.0736],
+    [3.3907,0.0012,0.9705], [3.1797,0.0011,0.8910], [2.9453,0.0011,0.8466], [2.7233,0.0012,0.8153],
+    [2.5062,0.0013,0.7958], [2.3093,0.0013,0.7715], [2.1000,0.0009,0.7834], [1.9191,0.0008,0.7831],
+    [1.7583,0.0009,0.7640], [0.6052,0.0009,0.7123], [-0.5427,0.0009,0.6946],
   ];
   const tl = new THREE.TextureLoader();
   const cordNormal = tl.load("assets/textures/cord_normal.png");
   const cordRough = tl.load("assets/textures/cord_rough.png");
-  [cordNormal, cordRough].forEach((t) => { t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(70, 2); });
+  [cordNormal, cordRough].forEach((t) => { t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(120, 2); });
   cordNormal.colorSpace = THREE.NoColorSpace;
-  const matCord = new THREE.MeshStandardMaterial({ color: 0x0a0a0a, roughness: 0.95, metalness: 0.0, envMapIntensity: 0.2, normalMap: cordNormal, normalScale: new THREE.Vector2(0.8, 0.8), roughnessMap: cordRough });
-  let cordMesh = null, cordTotal = 0, cordExtras = [];
-  let CORD_R = 0.82, CORD_RAD = 0.105;
-  function buildCord(showMarks) {
+  const matCord = new THREE.MeshStandardMaterial({ color: 0x0a0a0a, roughness: 0.95, metalness: 0.0, envMapIntensity: 0.2, normalMap: cordNormal, normalScale: new THREE.Vector2(0.8, 0.8), roughnessMap: cordRough, side: THREE.DoubleSide });
+  let cordMesh = null, cordTotal = 0, cordCurve = null, cordTip = null, cordStart = null;
+  let CORD_RAD = 0.135;  // Ø2.8 mm cord (1.4 mm radius × 0.0966 units/mm)
+  function buildCord() {
     if (cordMesh) { model.remove(cordMesh); cordMesh.geometry.dispose(); cordMesh = null; }
-    cordExtras.forEach((m) => model.remove(m)); cordExtras = [];
-    const raw = CORD_PATH.map((p) => new THREE.Vector3(p[0], p[1], p[2]));
-    const pts = [];
-    for (let i = 0; i < raw.length; i++) {
-      if (i >= 2 && i <= 9) {
-        const T = new THREE.Vector3().subVectors(raw[i + 1], raw[i - 1]); T.y = 0; T.normalize();
-        const entry = raw[i].clone().addScaledVector(T, -CORD_R), exit = raw[i].clone().addScaledVector(T, CORD_R);
-        pts.push(entry, raw[i], exit);
-        if (showMarks) [entry, exit].forEach((pp) => { const mk = new THREE.Mesh(new THREE.SphereGeometry(0.12, 10, 8), new THREE.MeshBasicMaterial({ color: 0x00ff66 })); mk.position.copy(pp); model.add(mk); cordExtras.push(mk); });
-      } else {
-        pts.push(raw[i]);
-        if (showMarks) { const mk = new THREE.Mesh(new THREE.SphereGeometry(0.16, 10, 8), new THREE.MeshBasicMaterial({ color: 0x33aaff })); mk.position.copy(raw[i]); model.add(mk); cordExtras.push(mk); }
-      }
-    }
-    const curve = new THREE.CatmullRomCurve3(pts, false, "catmullrom", 0.12);
-    const geo = new THREE.TubeGeometry(curve, 820, CORD_RAD, 12, false);
+    const pts = CORD_PATH.map((p) => new THREE.Vector3(p[0], p[1], p[2]));
+    const curve = new THREE.CatmullRomCurve3(pts, true, "centripetal");
+    const geo = new THREE.TubeGeometry(curve, 760, CORD_RAD, 12, true);
     cordMesh = new THREE.Mesh(geo, matCord); cordMesh.castShadow = true; cordMesh.receiveShadow = true;
     cordTotal = geo.index ? geo.index.count : geo.attributes.position.count;
-    geo.setDrawRange(0, Math.floor(cordTotal * smooth(0.0, 0.6, progress)));
+    geo.setDrawRange(0, Math.floor(cordTotal * Math.min(1, progress * 1.8)));
     model.add(cordMesh);
+    cordCurve = curve;
+    if (cordTip) { model.remove(cordTip); cordTip.geometry.dispose(); }
+    if (cordStart) { model.remove(cordStart); cordStart.geometry.dispose(); }
+    cordTip = new THREE.Mesh(new THREE.SphereGeometry(CORD_RAD, 16, 12), matCord);
+    cordTip.castShadow = true; cordTip.receiveShadow = true; model.add(cordTip);
+    cordStart = new THREE.Mesh(new THREE.SphereGeometry(CORD_RAD, 16, 12), matCord);
+    cordStart.castShadow = true; cordStart.receiveShadow = true;
+    cordStart.position.copy(curve.getPointAt(0)); model.add(cordStart);   // cap the hub end too
   }
-  window.__rebuild = (path, showMarks, R) => {
-    if (path) { CORD_PATH.length = 0; path.forEach((p) => CORD_PATH.push(p)); }
-    if (R !== undefined) CORD_R = R;
-    buildCord(showMarks);
-  };
+  window.__rebuild = (R) => { if (R !== undefined) CORD_RAD = R; buildCord(); };
+
+  // ---- second cord: the Shamballa macramé braid (two working cords B & C) wrapping the main cord,
+  //      weaving over the top / under the bottom belt grooves of the beads. Traced in sync with the main cord. ----
+  let braidB = null, braidC = null, braidTotal = 0;
+  let BRAID_R = 0.34, BRAID_FREQ = 9, BRAID_RAD = 0.06, BRAID_OVER = 0.18, BRAID_K = 3.0;  // R=run offset, OVER=over/under at crossing, K=crossing sharpness
+  function buildBraid() {
+    for (const m of [braidB, braidC]) if (m) { model.remove(m); m.geometry.dispose(); }
+    braidB = braidC = null;
+    if (!cordCurve) return;
+    const N = 480, up = new THREE.Vector3(0, 1, 0);
+    const ptsA = [], ptsC = [], tan = new THREE.Vector3(), u = new THREE.Vector3(), w = new THREE.Vector3();
+    for (let i = 0; i < N; i++) {
+      const t = i / N, base = cordCurve.getPointAt(t);
+      cordCurve.getTangentAt(t, tan);
+      u.copy(up).addScaledVector(tan, -up.dot(tan)); if (u.lengthSq() < 1e-6) u.set(0, 1, 0); u.normalize();
+      w.crossVectors(tan, u).normalize();
+      // OSCILLATING wrap-phase: each knot winds then UNWINDS (square knot alternates), so the two
+      // cords cross/lock around the core instead of spiralling past it. The reversal points read as knots.
+      // FLAT braid: side bow = sin (oscillates), over/under = smoothed SQUARE wave of the same sine.
+      // Because side & over/under share one sine they never form a circle -> no spiral; the two cords
+      // sit in a flat band and cross in alternating over/under X's (a square-knot sennit look).
+      const ph = t * BRAID_FREQ * TAU, sn = Math.sin(ph);
+      // SQUARE wave, not a sine: each cord RUNS at +R (top) or -R (bottom), flat & parallel, then SWAPS
+      // sides at each crossing. The over/under "pulse" fires only at the crossing (where 1-sq^2 peaks),
+      // alternating sign -> the two cords genuinely cross over/under instead of coiling.
+      const sq = Math.tanh(BRAID_K * sn), pulse = (1 - sq * sq) * Math.cos(ph);
+      ptsA.push(base.clone().addScaledVector(u, BRAID_R * sq).addScaledVector(w, BRAID_OVER * pulse));
+      ptsC.push(base.clone().addScaledVector(u, -BRAID_R * sq).addScaledVector(w, -BRAID_OVER * pulse));
+    }
+    const mk = (pp) => {
+      const cu = new THREE.CatmullRomCurve3(pp, true, "centripetal");
+      const g = new THREE.TubeGeometry(cu, 900, BRAID_RAD, 8, true);
+      const m = new THREE.Mesh(g, matCord); m.castShadow = true; m.receiveShadow = true; model.add(m); return m;
+    };
+    braidB = mk(ptsA); braidC = mk(ptsC);
+    braidTotal = braidB.geometry.index ? braidB.geometry.index.count : braidB.geometry.attributes.position.count;
+  }
+  window.addEventListener("keydown", (e) => {            // braid tuning: 1/2 sweep, 3/4 freq, 5/6 thickness, 7/8 over-under(core gap)
+    const k = e.key; let h = true;
+    if (k === "1") BRAID_R = Math.max(0.1, BRAID_R - 0.03);
+    else if (k === "2") BRAID_R += 0.03;
+    else if (k === "3") BRAID_FREQ = Math.max(2, BRAID_FREQ - 1);
+    else if (k === "4") BRAID_FREQ += 1;
+    else if (k === "5") BRAID_RAD = Math.max(0.02, BRAID_RAD - 0.008);
+    else if (k === "6") BRAID_RAD += 0.008;
+    else if (k === "7") BRAID_OVER = Math.max(0.14, BRAID_OVER - 0.02);
+    else if (k === "8") BRAID_OVER += 0.02;
+    else h = false;
+    if (!h) return; e.preventDefault(); buildBraid();
+    if (ready) { update(progress); composer.render(); }
+    console.log(`[braid] sweep ${BRAID_R.toFixed(2)} freq ${BRAID_FREQ} rad ${BRAID_RAD.toFixed(3)} over ${BRAID_OVER.toFixed(2)}`);
+  });
 
   let model = null;
   if (loaderEl) loaderEl.classList.remove("hide");
   const draco = new DRACOLoader(); draco.setDecoderPath("assets/vendor/three/draco/");
   const loader = new GLTFLoader(); loader.setDRACOLoader(draco);
   const fail = (err) => { console.warn("[hero3d] CAD load failed:", err); section.classList.add("no3d"); if (loaderEl) loaderEl.style.display = "none"; poster.classList.remove("hide"); };
-  loader.load("assets/models/bracelet_assembled.glb", (g) => {
+  loader.load("assets/models/bracelet_threaded.glb", (g) => {
     model = g.scene;
     model.traverse((o) => {
       if (o.isMesh) {
@@ -250,6 +314,7 @@ function init() {
       }
     });
     buildCord();
+    buildBraid();
     build();
   }, undefined, fail);
 }
