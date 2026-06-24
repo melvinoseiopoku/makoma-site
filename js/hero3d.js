@@ -251,40 +251,104 @@ function init() {
   // ---- second cord: the Shamballa macramé braid (two working cords B & C) wrapping the main cord,
   //      weaving over the top / under the bottom belt grooves of the beads. Traced in sync with the main cord. ----
   let braidB = null, braidC = null, braidTotal = 0;
-  let BRAID_R = 0.19, BRAID_FREQ = 69, BRAID_RAD = 0.06, BRAID_OVER = 0.18, BRAID_K = 3.0;  // founder-tuned: tight dense sennit (R=run offset, OVER=over/under at crossing, K=crossing sharpness)
+  // founder-tuned tight dense sennit (the run BETWEEN beads):
+  let BRAID_R = 0.19, BRAID_FREQ = 69, BRAID_RAD = 0.065, BRAID_OVER = 0.18, BRAID_K = 3.0;
+  // bead-wrap: at each bead the two working cords leave the sennit and ride the bead's REAL top/bottom belt
+  // grooves (extracted from the founder's Fusion groove pipes), then resume the sennit.
+  let BEAD_GLEN = 1.5, BEAD_WRAP = 0.4, BEAD_ON = 1;   // groove length (>=1 extends past the short pipe) · groove<->sennit blend · on/off
+  // the 8 Adinkra bead centres in the cord/glTF frame (vertex-density-along-cord over bracelet_threaded.glb;
+  // each sits ON the cord — the hub/closure region is correctly excluded).
+  const BEAD_CENTERS = [   // full-bead geometric centres (base+cap+platform) = the belt-groove centres
+    [-3.9372, 0.0, 2.2015], [3.9402, 0.0, 2.2948], [3.8848, 0.0, 4.0827], [3.0354, -0.0007, 5.6426],
+    [1.25, 0.0, 6.3], [-0.7849, 0.0, 6.317], [-2.6822, 0.0, 5.5997], [-3.8073, 0.0, 4.0195],
+  ];
+  // the REAL top/bottom belt-groove centrelines per bead, from the founder's Fusion groove pipes
+  // (makoma_threaded), in the cord/glTF frame. Each runs PARALLEL to the cord through the bead, arcing up to
+  // the bead's top (~0.70) and down to ~0.52 at the bus-hole ends.
+  const BEAD_PIPES = [
+    { top: [[-3.895,0.520,1.723],[-3.901,0.564,1.790],[-3.911,0.627,1.905],[-3.924,0.678,2.051],[-3.937,0.696,2.202],[-3.950,0.678,2.353],[-3.963,0.627,2.499],[-3.973,0.564,2.613],[-3.979,0.520,2.681]],
+      bot: [[-3.979,-0.517,2.685],[-3.973,-0.561,2.617],[-3.963,-0.626,2.501],[-3.950,-0.678,2.353],[-3.937,-0.696,2.202],[-3.924,-0.678,2.051],[-3.911,-0.626,1.903],[-3.901,-0.561,1.786],[-3.895,-0.517,1.719]] },
+    { top: [[3.898,0.517,1.812],[3.904,0.561,1.879],[3.914,0.626,1.996],[3.927,0.678,2.143],[3.940,0.696,2.295],[3.953,0.678,2.446],[3.966,0.626,2.593],[3.977,0.561,2.710],[3.982,0.517,2.777]],
+      bot: [[3.982,-0.520,2.774],[3.976,-0.564,2.706],[3.966,-0.627,2.591],[3.953,-0.678,2.445],[3.940,-0.696,2.295],[3.927,-0.678,2.144],[3.914,-0.627,1.998],[3.904,-0.564,1.883],[3.898,-0.520,1.815]] },
+    { top: [[3.969,0.517,3.606],[3.957,0.561,3.672],[3.937,0.626,3.788],[3.911,0.678,3.934],[3.885,0.696,4.083],[3.858,0.678,4.232],[3.833,0.626,4.378],[3.812,0.561,4.494],[3.801,0.517,4.560]],
+      bot: [[3.801,-0.520,4.557],[3.813,-0.564,4.490],[3.833,-0.627,4.376],[3.859,-0.678,4.232],[3.885,-0.696,4.083],[3.911,-0.678,3.934],[3.937,-0.627,3.790],[3.957,-0.564,3.676],[3.968,-0.520,3.609]] },
+    { top: [[3.380,0.516,5.298],[3.332,0.559,5.346],[3.248,0.625,5.430],[3.143,0.679,5.535],[3.035,0.696,5.643],[2.928,0.679,5.750],[2.822,0.625,5.856],[2.738,0.559,5.940],[2.691,0.516,5.987]],
+      bot: [[2.695,-0.520,5.983],[2.743,-0.564,5.935],[2.825,-0.627,5.853],[2.928,-0.678,5.750],[3.035,-0.695,5.643],[3.142,-0.678,5.536],[3.246,-0.627,5.432],[3.327,-0.564,5.351],[3.375,-0.520,5.303]] },
+    { top: [[1.731,0.520,6.300],[1.663,0.564,6.300],[1.548,0.627,6.300],[1.401,0.678,6.300],[1.250,0.696,6.300],[1.099,0.678,6.300],[0.952,0.627,6.300],[0.837,0.564,6.300],[0.769,0.520,6.300]],
+      bot: [[0.766,-0.517,6.300],[0.833,-0.561,6.300],[0.950,-0.626,6.300],[1.098,-0.678,6.300],[1.250,-0.696,6.300],[1.402,-0.678,6.300],[1.550,-0.626,6.300],[1.667,-0.561,6.300],[1.734,-0.517,6.300]] },
+    { top: [[-0.304,0.520,6.317],[-0.372,0.564,6.317],[-0.487,0.627,6.317],[-0.633,0.678,6.317],[-0.785,0.696,6.317],[-0.936,0.678,6.317],[-1.083,0.627,6.317],[-1.198,0.564,6.317],[-1.266,0.520,6.317]],
+      bot: [[-1.269,-0.517,6.317],[-1.202,-0.561,6.317],[-1.085,-0.626,6.317],[-0.937,-0.678,6.317],[-0.785,-0.696,6.317],[-0.633,-0.678,6.317],[-0.485,-0.626,6.317],[-0.368,-0.561,6.317],[-0.300,-0.517,6.317]] },
+    { top: [[-2.313,0.520,5.909],[-2.365,0.564,5.865],[-2.454,0.627,5.791],[-2.566,0.678,5.697],[-2.682,0.696,5.600],[-2.798,0.678,5.502],[-2.910,0.627,5.408],[-2.998,0.564,5.334],[-3.050,0.520,5.291]],
+      bot: [[-3.055,-0.515,5.287],[-3.004,-0.558,5.330],[-2.912,-0.625,5.406],[-2.798,-0.678,5.502],[-2.682,-0.696,5.600],[-2.565,-0.678,5.697],[-2.451,-0.625,5.793],[-2.360,-0.558,5.870],[-2.309,-0.515,5.913]] },
+    { top: [[-3.683,0.520,4.485],[-3.700,0.564,4.419],[-3.730,0.627,4.307],[-3.768,0.678,4.166],[-3.807,0.696,4.020],[-3.846,0.678,3.874],[-3.884,0.627,3.732],[-3.914,0.564,3.621],[-3.932,0.520,3.555]],
+      bot: [[-3.933,-0.515,3.549],[-3.916,-0.558,3.614],[-3.885,-0.625,3.729],[-3.847,-0.678,3.873],[-3.807,-0.696,4.020],[-3.768,-0.678,4.167],[-3.729,-0.625,4.311],[-3.699,-0.558,4.426],[-3.681,-0.515,4.490]] },
+  ];
   function buildBraid() {
     for (const m of [braidB, braidC]) if (m) { model.remove(m); m.geometry.dispose(); }
     braidB = braidC = null;
     if (!cordCurve) return;
-    const N = 480, up = new THREE.Vector3(0, 1, 0);
+    const N = 1100, up = new THREE.Vector3(0, 1, 0);
+    const total = cordCurve.getLength() || 1;
+    // per bead: its t on the cord + the two REAL groove curves (oriented along +tangent), from the Fusion pipes.
+    const beadG = BEAD_CENTERS.map((bc, k) => {
+      const p = new THREE.Vector3(bc[0], bc[1], bc[2]);
+      let bt = 0, bd = Infinity;
+      for (let j = 0; j < 800; j++) { const tt = j / 800; const d = cordCurve.getPointAt(tt).distanceToSquared(p); if (d < bd) { bd = d; bt = tt; } }
+      const tn = cordCurve.getTangentAt(bt).clone().normalize();
+      const mkPipe = (raw) => {
+        let pts = raw.map((a) => new THREE.Vector3(a[0], a[1], a[2]));
+        if (pts[pts.length - 1].clone().sub(pts[0]).dot(tn) < 0) pts.reverse();   // run along +tangent
+        const cu = new THREE.CatmullRomCurve3(pts, false, "centripetal");
+        const a0 = pts[0], b0 = pts[pts.length - 1];
+        const halfT = Math.max(1e-4, Math.abs(b0.clone().sub(a0).dot(tn)) * 0.5 / total);   // pipe half-extent in cord-t
+        return { cu, len: cu.getLength(), a: a0, b: b0, ta: cu.getTangentAt(0).clone(), tb: cu.getTangentAt(1).clone(), halfT };
+      };
+      return { t: bt, tn, top: mkPipe(BEAD_PIPES[k].top), bot: mkPipe(BEAD_PIPES[k].bot) };
+    });
+    // sample a groove curve at a signed cord-offset dt: on the pipe within +/-halfT, extrapolated straight
+    // beyond it (so the short pipe can be made LONGER, reaching toward the sennit).
+    const sampleG = (pipe, dt) => {
+      const uu = dt / (2 * pipe.halfT) + 0.5;
+      if (uu < 0) return pipe.a.clone().addScaledVector(pipe.ta, uu * pipe.len);
+      if (uu > 1) return pipe.b.clone().addScaledVector(pipe.tb, (uu - 1) * pipe.len);
+      return pipe.cu.getPointAt(uu);
+    };
     const ptsA = [], ptsC = [], tan = new THREE.Vector3(), u = new THREE.Vector3(), w = new THREE.Vector3();
     for (let i = 0; i < N; i++) {
       const t = i / N, base = cordCurve.getPointAt(t);
       cordCurve.getTangentAt(t, tan);
       u.copy(up).addScaledVector(tan, -up.dot(tan)); if (u.lengthSq() < 1e-6) u.set(0, 1, 0); u.normalize();
       w.crossVectors(tan, u).normalize();
-      // OSCILLATING wrap-phase: each knot winds then UNWINDS (square knot alternates), so the two
-      // cords cross/lock around the core instead of spiralling past it. The reversal points read as knots.
-      // FLAT braid: side bow = sin (oscillates), over/under = smoothed SQUARE wave of the same sine.
-      // Because side & over/under share one sine they never form a circle -> no spiral; the two cords
-      // sit in a flat band and cross in alternating over/under X's (a square-knot sennit look).
+      // SENNIT (between beads): cords run +/-R and swap sides at each crossing with an over/under pulse.
       const ph = t * BRAID_FREQ * TAU, sn = Math.sin(ph);
-      // SQUARE wave, not a sine: each cord RUNS at +R (top) or -R (bottom), flat & parallel, then SWAPS
-      // sides at each crossing. The over/under "pulse" fires only at the crossing (where 1-sq^2 peaks),
-      // alternating sign -> the two cords genuinely cross over/under instead of coiling.
       const sq = Math.tanh(BRAID_K * sn), pulse = (1 - sq * sq) * Math.cos(ph);
-      ptsA.push(base.clone().addScaledVector(u, BRAID_R * sq).addScaledVector(w, BRAID_OVER * pulse));
-      ptsC.push(base.clone().addScaledVector(u, -BRAID_R * sq).addScaledVector(w, -BRAID_OVER * pulse));
+      const sB = base.clone().addScaledVector(u, BRAID_R * sq).addScaledVector(w, BRAID_OVER * pulse);
+      const sC = base.clone().addScaledVector(u, -BRAID_R * sq).addScaledVector(w, -BRAID_OVER * pulse);
+      let pB = sB, pC = sC;
+      if (BEAD_ON) {
+        let bi = -1, dt = 0, ad = 1;   // nearest bead by cord-t
+        for (let k = 0; k < beadG.length; k++) { let d = t - beadG[k].t; d -= Math.round(d); if (Math.abs(d) < ad) { ad = Math.abs(d); dt = d; bi = k; } }
+        const half = beadG[bi].top.halfT * BEAD_GLEN;
+        if (ad < half) {
+          // B rides the bead's TOP groove pipe, C the BOTTOM groove pipe; blend to the sennit at the window edge.
+          const gB = sampleG(beadG[bi].top, dt), gC = sampleG(beadG[bi].bot, dt);
+          const rel = ad / half, a = (1 - BEAD_WRAP) * 0.85, b = 0.98;
+          const tt = Math.min(1, Math.max(0, (rel - a) / (b - a)));
+          const oscW = tt * tt * (3 - 2 * tt);   // 0 in the groove core -> 1 (sennit) at the edge
+          pB = gB.lerp(sB, oscW); pC = gC.lerp(sC, oscW);
+        }
+      }
+      ptsA.push(pB); ptsC.push(pC);
     }
     const mk = (pp) => {
       const cu = new THREE.CatmullRomCurve3(pp, true, "centripetal");
-      const g = new THREE.TubeGeometry(cu, 900, BRAID_RAD, 8, true);
+      const g = new THREE.TubeGeometry(cu, 1500, BRAID_RAD, 10, true);
       const m = new THREE.Mesh(g, matCord); m.castShadow = true; m.receiveShadow = true; model.add(m); return m;
     };
     braidB = mk(ptsA); braidC = mk(ptsC);
     braidTotal = braidB.geometry.index ? braidB.geometry.index.count : braidB.geometry.attributes.position.count;
   }
-  window.addEventListener("keydown", (e) => {            // braid tuning: 1/2 sweep, 3/4 freq, 5/6 thickness, 7/8 over-under(core gap)
+  window.addEventListener("keydown", (e) => {            // q/a belt · w/s window · e/d smooth-core · r/f sennit-gap · b=toggle bead-wrap
     const k = e.key; let h = true;
     if (k === "1") BRAID_R = Math.max(0.1, BRAID_R - 0.03);
     else if (k === "2") BRAID_R += 0.03;
@@ -294,10 +358,15 @@ function init() {
     else if (k === "6") BRAID_RAD += 0.008;
     else if (k === "7") BRAID_OVER = Math.max(0.14, BRAID_OVER - 0.02);
     else if (k === "8") BRAID_OVER += 0.02;
+    else if (k === "g") BEAD_GLEN += 0.1;            // groove length (how far the wrap rides out of the bead)
+    else if (k === "f") BEAD_GLEN = Math.max(1, BEAD_GLEN - 0.1);
+    else if (k === "e") BEAD_WRAP += 0.1;            // edge blend into the sennit (wider window)
+    else if (k === "d") BEAD_WRAP = Math.max(0, BEAD_WRAP - 0.1);
+    else if (k === "b") BEAD_ON = BEAD_ON ? 0 : 1;   // toggle the groove wrap
     else h = false;
     if (!h) return; e.preventDefault(); buildBraid();
     if (ready) { update(progress); composer.render(); }
-    console.log(`[braid] sweep ${BRAID_R.toFixed(2)} freq ${BRAID_FREQ} rad ${BRAID_RAD.toFixed(3)} over ${BRAID_OVER.toFixed(2)}`);
+    console.log(`[braid] R ${BRAID_R.toFixed(2)} freq ${BRAID_FREQ} rad ${BRAID_RAD.toFixed(3)} over ${BRAID_OVER.toFixed(2)} glen ${BEAD_GLEN.toFixed(1)} wrap ${BEAD_WRAP.toFixed(1)} on ${BEAD_ON}`);
   });
 
   let model = null;
