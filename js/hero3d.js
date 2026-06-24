@@ -227,7 +227,8 @@ function init() {
   cordNormal.colorSpace = THREE.NoColorSpace;
   const matCord = new THREE.MeshStandardMaterial({ color: 0x0a0a0a, roughness: 0.95, metalness: 0.0, envMapIntensity: 0.2, normalMap: cordNormal, normalScale: new THREE.Vector2(0.8, 0.8), roughnessMap: cordRough, side: THREE.DoubleSide });
   let cordMesh = null, cordTotal = 0, cordCurve = null, cordTip = null, cordStart = null;
-  let CORD_RAD = 0.135;  // Ø2.8 mm cord (1.4 mm radius × 0.0966 units/mm)
+  let CORD_RAD = 0.2;  // core cord — fattened from the Ø2.8 mm path so it fully backs the sennit (no see-through
+                       // gaps between the braid coils): the sennit/wraps read as a SOLID rope, not a hollow coil.
   function buildCord() {
     if (cordMesh) { model.remove(cordMesh); cordMesh.geometry.dispose(); cordMesh = null; }
     const pts = CORD_PATH.map((p) => new THREE.Vector3(p[0], p[1], p[2]));
@@ -255,7 +256,7 @@ function init() {
   let BRAID_R = 0.19, BRAID_FREQ = 69, BRAID_RAD = 0.065, BRAID_OVER = 0.18, BRAID_K = 3.0;
   // bead-wrap: at each bead the two working cords leave the sennit and ride the bead's REAL top/bottom belt
   // grooves (extracted from the founder's Fusion groove pipes), then resume the sennit.
-  let BEAD_GLEN = 1.5, BEAD_WRAP = 0.4, BEAD_ON = 1;   // groove length (>=1 extends past the short pipe) · groove<->sennit blend · on/off
+  let BEAD_RGROW = 0.03, BEAD_BLEND = 0.22, BEAD_ON = 1;   // wrap radius grown past the groove floor · arc->sennit blend width near the bead's side · on/off
   // the 8 Adinkra bead centres in the cord/glTF frame (vertex-density-along-cord over bracelet_threaded.glb;
   // each sits ON the cord — the hub/closure region is correctly excluded).
   const BEAD_CENTERS = [   // full-bead geometric centres (base+cap+platform) = the belt-groove centres
@@ -287,32 +288,30 @@ function init() {
     for (const m of [braidB, braidC]) if (m) { model.remove(m); m.geometry.dispose(); }
     braidB = braidC = null;
     if (!cordCurve) return;
-    const N = 1100, up = new THREE.Vector3(0, 1, 0);
+    const N = 2000, up = new THREE.Vector3(0, 1, 0);
     const total = cordCurve.getLength() || 1;
-    // per bead: its t on the cord + the two REAL groove curves (oriented along +tangent), from the Fusion pipes.
+    const THETA_END = Math.PI / 2;   // sweep each groove from its crown (0) down to the bead's side (±90°)
+    // per bead: cord-t at its centre + a frame FITTED TO THE USER'S PIPE POINTS for each groove — centre O (the
+    // bead centre, verified to be the groove circle's centre), in-plane crown dir (eUp) and axis (eAxis), and the
+    // pipe's own radius R. So the wrap rides the actual pipe through its real extent, and the SAME circle is
+    // continued past the pipe ends, down the bead's side to the sennit (lift->0 at ±90°, y≈0). eAxis is sign-
+    // aligned to the cord so the top and bottom grooves sweep to the SAME side and converge at the bead's edge.
     const beadG = BEAD_CENTERS.map((bc, k) => {
-      const p = new THREE.Vector3(bc[0], bc[1], bc[2]);
+      const O = new THREE.Vector3(bc[0], bc[1], bc[2]);
       let bt = 0, bd = Infinity;
-      for (let j = 0; j < 800; j++) { const tt = j / 800; const d = cordCurve.getPointAt(tt).distanceToSquared(p); if (d < bd) { bd = d; bt = tt; } }
-      const tn = cordCurve.getTangentAt(bt).clone().normalize();
-      const mkPipe = (raw) => {
-        let pts = raw.map((a) => new THREE.Vector3(a[0], a[1], a[2]));
-        if (pts[pts.length - 1].clone().sub(pts[0]).dot(tn) < 0) pts.reverse();   // run along +tangent
-        const cu = new THREE.CatmullRomCurve3(pts, false, "centripetal");
-        const a0 = pts[0], b0 = pts[pts.length - 1];
-        const halfT = Math.max(1e-4, Math.abs(b0.clone().sub(a0).dot(tn)) * 0.5 / total);   // pipe half-extent in cord-t
-        return { cu, len: cu.getLength(), a: a0, b: b0, ta: cu.getTangentAt(0).clone(), tb: cu.getTangentAt(1).clone(), halfT };
+      for (let j = 0; j < 1600; j++) { const tt = j / 1600; const d = cordCurve.getPointAt(tt).distanceToSquared(O); if (d < bd) { bd = d; bt = tt; } }
+      const cordDir = cordCurve.getTangentAt(bt).clone().normalize();   // used ONLY to pick the +sweep direction
+      const fit = (raw) => {
+        const P = raw.map((a) => new THREE.Vector3(a[0], a[1], a[2]));
+        const eUp = P[4].clone().sub(O).normalize();                    // centre -> groove crown (a pipe point)
+        const eAxis = P[P.length - 1].clone().sub(O);
+        eAxis.addScaledVector(eUp, -eAxis.dot(eUp)).normalize();         // in-plane, perp to eUp (the pipe's axis)
+        if (eAxis.dot(cordDir) < 0) eAxis.multiplyScalar(-1);            // +sweep = +cord (top & bottom agree)
+        let R = 0; for (const p of P) R += p.distanceTo(O); R /= P.length;
+        return { eUp, eAxis, R };
       };
-      return { t: bt, tn, top: mkPipe(BEAD_PIPES[k].top), bot: mkPipe(BEAD_PIPES[k].bot) };
+      return { t: bt, O, top: fit(BEAD_PIPES[k].top), bot: fit(BEAD_PIPES[k].bot) };
     });
-    // sample a groove curve at a signed cord-offset dt: on the pipe within +/-halfT, extrapolated straight
-    // beyond it (so the short pipe can be made LONGER, reaching toward the sennit).
-    const sampleG = (pipe, dt) => {
-      const uu = dt / (2 * pipe.halfT) + 0.5;
-      if (uu < 0) return pipe.a.clone().addScaledVector(pipe.ta, uu * pipe.len);
-      if (uu > 1) return pipe.b.clone().addScaledVector(pipe.tb, (uu - 1) * pipe.len);
-      return pipe.cu.getPointAt(uu);
-    };
     const ptsA = [], ptsC = [], tan = new THREE.Vector3(), u = new THREE.Vector3(), w = new THREE.Vector3();
     for (let i = 0; i < N; i++) {
       const t = i / N, base = cordCurve.getPointAt(t);
@@ -326,23 +325,27 @@ function init() {
       const sC = base.clone().addScaledVector(u, -BRAID_R * sq).addScaledVector(w, -BRAID_OVER * pulse);
       let pB = sB, pC = sC;
       if (BEAD_ON) {
-        let bi = -1, dt = 0, ad = 1;   // nearest bead by cord-t
+        let bi = -1, dt = 0, ad = 1;
         for (let k = 0; k < beadG.length; k++) { let d = t - beadG[k].t; d -= Math.round(d); if (Math.abs(d) < ad) { ad = Math.abs(d); dt = d; bi = k; } }
-        const half = beadG[bi].top.halfT * BEAD_GLEN;
-        if (ad < half) {
-          // B rides the bead's TOP groove pipe, C the BOTTOM groove pipe; blend to the sennit at the window edge.
-          const gB = sampleG(beadG[bi].top, dt), gC = sampleG(beadG[bi].bot, dt);
-          const rel = ad / half, a = (1 - BEAD_WRAP) * 0.85, b = 0.98;
-          const tt = Math.min(1, Math.max(0, (rel - a) / (b - a)));
-          const oscW = tt * tt * (3 - 2 * tt);   // 0 in the groove core -> 1 (sennit) at the edge
-          pB = gB.lerp(sB, oscW); pC = gC.lerp(sC, oscW);
+        const g = beadG[bi], halfWin = (g.top.R + BEAD_RGROW) / total;   // cord-t half-window: edge lands at the side
+        if (ad < halfWin) {
+          // sweep the groove's own circle from crown (frac 0) to side (frac ±1 -> θ ±90°): rides the user's pipe
+          // through its real ±43°, then CONTINUES THE SAME CIRCLE down the bead's side to the sennit — external,
+          // never through the body.
+          const frac = dt / halfWin, th = frac * THETA_END, ct = Math.cos(th), st = Math.sin(th);
+          const RwT = g.top.R + BEAD_RGROW, RwB = g.bot.R + BEAD_RGROW;
+          const wB = g.O.clone().addScaledVector(g.top.eUp, RwT * ct).addScaledVector(g.top.eAxis, RwT * st);
+          const wC = g.O.clone().addScaledVector(g.bot.eUp, RwB * ct).addScaledVector(g.bot.eAxis, RwB * st);
+          const rel = Math.abs(frac), a = 1 - BEAD_BLEND;               // blend to sennit only near the side
+          const tt = Math.min(1, Math.max(0, (rel - a) / (1 - a))), oscW = tt * tt * (3 - 2 * tt);
+          pB = wB.lerp(sB, oscW); pC = wC.lerp(sC, oscW);
         }
       }
       ptsA.push(pB); ptsC.push(pC);
     }
     const mk = (pp) => {
       const cu = new THREE.CatmullRomCurve3(pp, true, "centripetal");
-      const g = new THREE.TubeGeometry(cu, 1500, BRAID_RAD, 10, true);
+      const g = new THREE.TubeGeometry(cu, 2600, BRAID_RAD, 10, true);
       const m = new THREE.Mesh(g, matCord); m.castShadow = true; m.receiveShadow = true; model.add(m); return m;
     };
     braidB = mk(ptsA); braidC = mk(ptsC);
@@ -358,15 +361,15 @@ function init() {
     else if (k === "6") BRAID_RAD += 0.008;
     else if (k === "7") BRAID_OVER = Math.max(0.14, BRAID_OVER - 0.02);
     else if (k === "8") BRAID_OVER += 0.02;
-    else if (k === "g") BEAD_GLEN += 0.1;            // groove length (how far the wrap rides out of the bead)
-    else if (k === "f") BEAD_GLEN = Math.max(1, BEAD_GLEN - 0.1);
-    else if (k === "e") BEAD_WRAP += 0.1;            // edge blend into the sennit (wider window)
-    else if (k === "d") BEAD_WRAP = Math.max(0, BEAD_WRAP - 0.1);
+    else if (k === "g") BEAD_RGROW += 0.01;          // grow wrap radius (sit prouder out of the groove)
+    else if (k === "f") BEAD_RGROW -= 0.01;
+    else if (k === "e") BEAD_BLEND = Math.min(0.9, BEAD_BLEND + 0.03);   // wider arc->sennit blend near the side
+    else if (k === "d") BEAD_BLEND = Math.max(0.05, BEAD_BLEND - 0.03);
     else if (k === "b") BEAD_ON = BEAD_ON ? 0 : 1;   // toggle the groove wrap
     else h = false;
     if (!h) return; e.preventDefault(); buildBraid();
     if (ready) { update(progress); composer.render(); }
-    console.log(`[braid] R ${BRAID_R.toFixed(2)} freq ${BRAID_FREQ} rad ${BRAID_RAD.toFixed(3)} over ${BRAID_OVER.toFixed(2)} glen ${BEAD_GLEN.toFixed(1)} wrap ${BEAD_WRAP.toFixed(1)} on ${BEAD_ON}`);
+    console.log(`[braid] R ${BRAID_R.toFixed(2)} freq ${BRAID_FREQ} rad ${BRAID_RAD.toFixed(3)} over ${BRAID_OVER.toFixed(2)} rgrow ${BEAD_RGROW.toFixed(2)} blend ${BEAD_BLEND.toFixed(2)} on ${BEAD_ON}`);
   });
 
   let model = null;
