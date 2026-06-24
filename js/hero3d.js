@@ -38,11 +38,14 @@ function webglOK() {
   try { const c = document.createElement("canvas"); return !!(window.WebGLRenderingContext && (c.getContext("webgl2") || c.getContext("webgl"))); }
   catch (e) { return false; }
 }
-const isMobile = window.matchMedia("(pointer: coarse)").matches || (window.innerWidth > 0 && window.innerWidth <= 820);
+const coarse = window.matchMedia("(pointer: coarse)").matches;   // phone / touch — kept to TRIM cost on mobile, NOT to disable
 const conn = navigator.connection || navigator.webkitConnection || {};
 const slowNet = conn.saveData === true || /(^|-)2g$/.test(conn.effectiveType || "");
 
-if (reduce || isMobile || slowNet || !webglOK()) {
+// The interactive bead scroll now runs on phones too. The static poster is only a fallback for genuinely
+// unsupported cases: no WebGL, an explicit reduced-motion preference, or a data-saver / 2G connection.
+// On coarse-pointer devices we keep the experience but lighten the render (pixel ratio + shadow map) in init().
+if (reduce || slowNet || !webglOK()) {
   section.classList.add("no3d");
   if (loaderEl) loaderEl.style.display = "none";
   window.__hero = { fallback: true };
@@ -52,7 +55,7 @@ if (reduce || isMobile || slowNet || !webglOK()) {
 
 function init() {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, powerPreference: "high-performance" });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, coarse ? 1.75 : 2));
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1.12;
   renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -67,14 +70,20 @@ function init() {
 
   // camera looks from +X (az 0) low; key lights the front so the near symbols catch gold
   const key = new THREE.DirectionalLight(0xfff4e6, 3.6); key.position.set(20, 16, 7);
-  key.castShadow = true; key.shadow.mapSize.set(2048, 2048);
+  key.castShadow = true; key.shadow.mapSize.set(coarse ? 1024 : 2048, coarse ? 1024 : 2048);
   key.shadow.camera.near = 1; key.shadow.camera.far = 120;
   key.shadow.camera.left = -22; key.shadow.camera.right = 22; key.shadow.camera.top = 22; key.shadow.camera.bottom = -22;
   key.shadow.bias = -0.0004;
   const fill = new THREE.DirectionalLight(0xfff1dd, 0.8); fill.position.set(13, -3, -6);
   const rim = new THREE.DirectionalLight(0xbcd2ff, 1.4); rim.position.set(-17, 9, -5);
   const rim2 = new THREE.DirectionalLight(0xffd9a6, 0.8); rim2.position.set(-6, 5, 16);
-  scene.add(key, fill, rim, rim2, new THREE.AmbientLight(0xffffff, 0.18));
+  const backRim = new THREE.DirectionalLight(0xfff0d6, 0.0); backRim.position.set(-21, 8, 3);   // edge light to pop the beads off a dark bg
+  const amb = new THREE.AmbientLight(0xffffff, 0.18);
+  scene.add(key, fill, rim, rim2, backRim, amb);
+  // Bead lighting is deliberately identical in both themes: matte black + warm gold = premium jewelry.
+  // Cranking the rim/edge light in dark mode washed the beads out ("pale, sun-bleached"), so instead the
+  // bracelet is separated from the page by a warm vignette POOL behind it (see .hero3d-sticky in style.css) —
+  // the background does the work, not extra light on the beads.
 
   const spin = new THREE.Group();        // rotates with scroll (about the bracelet's vertical axis)
   const orient = new THREE.Group();      // fixed flip so USB faces up
@@ -83,11 +92,13 @@ function init() {
   scene.add(spin);
   let modelR = 10;
 
-  function placeCamera() {
-    const az = (CAM_AZ + Math.sin(idle * 0.18) * 0.7) * DEG, el = CAM_EL * DEG;
-    const d = 3.15 * modelR, ce = Math.cos(el);
-    camera.position.set(Math.cos(az) * ce * d, Math.sin(el) * d, Math.sin(az) * ce * d);
-    camera.lookAt(0, 0, 0);
+  function placeCamera(settle = 0) {
+    const az = (CAM_AZ + Math.sin(idle * 0.18) * 0.7 * (1 - settle)) * DEG;   // idle sway fades out as we settle
+    const el = (CAM_EL + (CAM_EL_END - CAM_EL) * settle) * DEG;               // rise toward the top-front edge
+    const d = (3.15 + (CAM_DIST_END - 3.15) * settle) * modelR, ce = Math.cos(el);   // pull back to frame the whole bracelet
+    const pan = CAM_PAN_END * modelR * settle;   // pan the framing DOWN so the bracelet rises into the upper frame (text sits below it)
+    camera.position.set(Math.cos(az) * ce * d, Math.sin(el) * d - pan, Math.sin(az) * ce * d);
+    camera.lookAt(0, -pan, 0);
   }
 
   function build() {
@@ -110,6 +121,17 @@ function init() {
   // ---- overlay ----
   const intro = $("#heroIntro"), outro = $("#heroOutro"), cue = $("#heroCue"), bar = $("#heroProgress span");
   const capWrap = $("#heroCaption"), capK = capWrap?.querySelector(".hc-kicker"), capT = capWrap?.querySelector(".hc-title"), capL = capWrap?.querySelector(".hc-line");
+  // Caption "beats" introduced one by one as the bracelet spins — what sets M'AKOMA apart from other wearables.
+  // Claim discipline: "no screen / jewelry-first" and "weeks on standby" (System OFF ≈ µA) are documented; the
+  // water line is intentionally ASPIRATIONAL ("designed to…", no IP rating) since no water spec is validated yet;
+  // "heirloom" is positioning, not a warranty. Tighten these as real, shippable specs land.
+  const CAPS = [
+    { k: "Eight beads",      t: "Turn to meet them.",         l: "Each bead carries an engraved Adinkra symbol — a small circuit board and a haptic motor sealed inside." },
+    { k: "Wear anywhere",    t: "Jewelry first, always.",     l: "No screen, no feed, no notifications — just the few people you choose, with you all the time." },
+    { k: "Everyday-proof",   t: "Worn, not babied.",          l: "Designed to take everyday wear in stride — sweat, a splash, the rain you didn't plan for." },
+    { k: "Weeks on standby", t: "It waits for you.",          l: "Idle, it sips micro-amps and holds its charge for weeks — ready the moment someone reaches for you." },
+    { k: "Made to keep",     t: "An heirloom, not a gadget.", l: "Matte resin and solid gold-tone hardware — quiet, tactile, and built to be lived in every day." },
+  ];
   function overlay(p) {
     const introOp = 1 - smooth(0.03, 0.12, p);
     if (intro) intro.style.opacity = introOp;
@@ -117,12 +139,16 @@ function init() {
     const outOp = smooth(0.9, 0.99, p);
     if (outro) { outro.style.opacity = outOp; outro.style.pointerEvents = outOp > 0.5 ? "auto" : "none"; }
     if (bar) bar.style.transform = `scaleX(${p})`;
-    const op = Math.min(smooth(0.16, 0.28, p), 1 - smooth(0.82, 0.92, p));
     if (capWrap) {
-      if (capK) capK.textContent = "Eight beads";
-      if (capT) capT.textContent = "Turn to meet them.";
-      if (capL) capL.textContent = "Each bead carries an engraved Adinkra symbol; the core hub holds the gold button. The real assembly, exactly as it's built.";
-      capWrap.style.opacity = op;
+      const gate = Math.min(smooth(0.15, 0.24, p), 1 - smooth(0.88, 0.95, p));   // whole caption fades in/out at the ends
+      const n = CAPS.length, A = 0.18, B = 0.9;                                   // beats spread across this scroll band
+      const u = clamp((p - A) / (B - A), 0, 0.99999) * n;                         // float beat index
+      const i = Math.min(n - 1, Math.floor(u)), local = u - i, cap = CAPS[i];
+      const beatOp = smooth(0, 0.16, local) * (1 - smooth(0.84, 1, local));       // cross-dissolve: each beat fades at its edges
+      if (capK) capK.textContent = cap.k;
+      if (capT) capT.textContent = cap.t;
+      if (capL) capL.textContent = cap.l;
+      capWrap.style.opacity = gate * beatOp;
     }
   }
 
@@ -145,20 +171,45 @@ function init() {
   composer.addPass(new OutputPass());
 
   function update(p) {
-    spin.rotation.y = SPIN_PHASE + p * TAU * SPIN_TURNS;
-    const f = Math.min(1, p * 1.8);                // trace draws faster than the spin so it keeps pace (no lag)
+    // each reveal "steals" a dwell of scroll where spin + threading FREEZE while it opens & reassembles. Walk the
+    // dwells (sorted by pE) to map raw scroll p -> animation progress + each reveal's local explode phase e.
+    let anim = p;
+    for (const rv of reveals) rv._e = 0;
+    if (reveals.length) {
+      const totalW = reveals.reduce((s, rv) => s + rv.W, 0), r = 1 / (1 - totalW);
+      let remaining = p, a = 0;
+      for (const rv of reveals) {
+        const gap = (rv.pE - a) / r;                       // scroll to advance anim from a up to this reveal's pE
+        if (remaining <= gap) { a += remaining * r; remaining = 0; break; }
+        remaining -= gap; a = rv.pE;
+        if (remaining <= rv.W) { rv._e = remaining / rv.W; remaining = 0; break; }   // inside this dwell
+        remaining -= rv.W;                                 // past it (reassembled), keep walking
+      }
+      if (remaining > 0) a += remaining * r;
+      anim = clamp(a, 0, 1);
+    }
+    const settle = smooth(SETTLE0, 1, anim);       // 0 through the scroll, ramps to 1 at the very end (the pan-out)
+    let spinY = SPIN_PHASE + anim * TAU * SPIN_TURNS;
+    if (settle > 0) { let dd = endSpin - spinY; dd = ((dd + Math.PI) % TAU + TAU) % TAU - Math.PI; spinY += dd * settle; }   // ease to hub-at-back
+    spin.rotation.y = spinY;
+    const f = Math.min(1, anim * 1.8);             // trace draws faster than the spin so it keeps pace (no lag)
     if (cordMesh) {
       cordMesh.geometry.setDrawRange(0, Math.floor(cordTotal * f));
-      if (cordTip && cordCurve) {                    // rounded tip caps the growing end so the cord reads solid, not hollow
-        const vis = f > 0.004 && f < 0.996;
-        cordTip.visible = vis;
-        if (vis) cordTip.position.copy(cordCurve.getPointAt(Math.min(f, 0.999)));
+      if (cordTip && cordCurve) {                    // rounded tip caps the growing end (and the far hub end at full trace)
+        cordTip.visible = f > 0.004;
+        cordTip.position.copy(cordCurve.getPointAt(Math.min(f, 1)));
         if (cordStart) cordStart.visible = f > 0.004;
       }
     }
     if (braidB) { const n = Math.floor(braidTotal * f); braidB.geometry.setDrawRange(0, n); braidC.geometry.setDrawRange(0, n); }
-    placeCamera();
-    overlay(p);
+    matGlow.emissiveIntensity = 2.0 + 0.45 * (0.5 + 0.5 * Math.sin(idle * 0.55));   // LED breathing, toned down (2.0..2.45)
+    placeCamera(settle);
+    for (const rv of reveals) updateExplode(rv, rv._e);
+    if (settle > 0 && hubAsm) {   // rotate the hub UPRIGHT (button up, like the product shot) as we pan out
+      const up = EXPLODE_AXIS.clone().applyQuaternion(spin.quaternion.clone().invert()).applyQuaternion(orient.quaternion.clone().invert()).normalize();
+      hubAsm.pivot.quaternion.slerpQuaternions(new THREE.Quaternion(), new THREE.Quaternion().setFromUnitVectors(hubAsm.axis, up), settle);
+    }
+    overlay(anim);
   }
 
   let raf = 0;
@@ -185,6 +236,10 @@ function init() {
   // matte Akoma_4E look: deep matte-black resin + warm gold (no glossy clearcoat)
   const matBlack = new THREE.MeshPhysicalMaterial({ color: 0x0c0c0d, roughness: 0.82, metalness: 0.0, clearcoat: 0.0, envMapIntensity: 0.2 });
   const matGold = new THREE.MeshStandardMaterial({ color: 0xc6a24c, roughness: 0.36, metalness: 1.0, envMapIntensity: 0.6 });
+  // the platform behind each lit bead's symbol: a bright warm-gold EMISSIVE so the internal LED reads as light
+  // through the symbol cut-throughs — a genuinely BACKLIT symbol. The bloom pass turns the lit symbol into a soft
+  // halo. Low metalness so it reads as a glowing light source, not shiny metal. Breathed gently in update().
+  const matGlow = new THREE.MeshStandardMaterial({ color: 0xffd089, emissive: 0xffb247, emissiveIntensity: 2.3, roughness: 0.5, metalness: 0.15 });
   const matMetal = new THREE.MeshStandardMaterial({ color: 0x16161a, roughness: 0.46, metalness: 0.55, envMapIntensity: 0.35 });
   const remap = (m) => { const mm = (m && m.metalness !== undefined) ? m.metalness : 0; return mm > 0.8 ? matGold : (mm > 0.3 ? matMetal : matBlack); };
 
@@ -231,9 +286,16 @@ function init() {
                        // gaps between the braid coils): the sennit/wraps read as a SOLID rope, not a hollow coil.
   function buildCord() {
     if (cordMesh) { model.remove(cordMesh); cordMesh.geometry.dispose(); cordMesh = null; }
-    const pts = CORD_PATH.map((p) => new THREE.Vector3(p[0], p[1], p[2]));
-    const curve = new THREE.CatmullRomCurve3(pts, true, "centripetal");
-    const geo = new THREE.TubeGeometry(curve, 760, CORD_RAD, 12, true);
+    // drop the last 2 points (they cut ACROSS the hub) and run OPEN — the cord ends at the hub on both sides
+    // instead of looping straight through it. Then EXTEND each end along its tangent so it embeds INTO the hub
+    // wall (the thread fuses into the hub instead of floating in front of it).
+    const raw = CORD_PATH.slice(0, 101).map((p) => new THREE.Vector3(p[0], p[1], p[2]));
+    const n = raw.length, CORD_EMBED = 0.5;
+    const pL = raw[0].clone().addScaledVector(raw[0].clone().sub(raw[1]).normalize(), CORD_EMBED);
+    const pR = raw[n - 1].clone().addScaledVector(raw[n - 1].clone().sub(raw[n - 2]).normalize(), CORD_EMBED);
+    const pts = [pL, ...raw, pR];
+    const curve = new THREE.CatmullRomCurve3(pts, false, "centripetal");
+    const geo = new THREE.TubeGeometry(curve, 760, CORD_RAD, 12, false);
     cordMesh = new THREE.Mesh(geo, matCord); cordMesh.castShadow = true; cordMesh.receiveShadow = true;
     cordTotal = geo.index ? geo.index.count : geo.attributes.position.count;
     geo.setDrawRange(0, Math.floor(cordTotal * Math.min(1, progress * 1.8)));
@@ -344,13 +406,173 @@ function init() {
       ptsA.push(pB); ptsC.push(pC);
     }
     const mk = (pp) => {
-      const cu = new THREE.CatmullRomCurve3(pp, true, "centripetal");
-      const g = new THREE.TubeGeometry(cu, 2600, BRAID_RAD, 10, true);
+      const cu = new THREE.CatmullRomCurve3(pp, false, "centripetal");   // OPEN — the braid ends at the hub, not a loop
+      const g = new THREE.TubeGeometry(cu, 2600, BRAID_RAD, 10, false);
       const m = new THREE.Mesh(g, matCord); m.castShadow = true; m.receiveShadow = true; model.add(m); return m;
     };
     braidB = mk(ptsA); braidC = mk(ptsC);
     braidTotal = braidB.geometry.index ? braidB.geometry.index.count : braidB.geometry.attributes.position.count;
   }
+
+  // ---- EXPLODED-VIEW reveals. As the spin/threading runs, certain assemblies FREEZE in frame, tilt their axis
+  //      to vertical and split flat to show real internals, then reassemble and resume. Two reveals: the
+  //      akoma_ntoaso bead (real KiCad board + ERM motor) and the core hub (real KiCad board + battery + speaker).
+  const MM = 0.0966;                 // hero units per millimetre
+  const EXPLODE_BEAD = 7;            // BEAD_CENTERS index of akoma_ntoaso
+  const EXPLODE_NODE = '1';          // its GLB node suffix: FB_CAP1 / FB_BASE1 / PLATFORM1
+  const EXPLODE_WIN = 0.2;           // scroll fraction each reveal's dwell occupies (spin/trace freeze)
+  const EXPLODE_AXIS = new THREE.Vector3(0, 1, 0);   // world axis each assembly tilts to & splits along (Three Y-up = CAD +Z)
+  const reveals = [];                // [{ pivot, parts:[{obj,rest,dir,dist}], axis, pE, W, internals:[...], presentSpin }]
+  // end-of-scroll SETTLE: the spin eases to a stop with the hub at the back, the camera rises to a top-front 3/4
+  // view and pulls back to frame the whole bracelet, and the hub rotates upright (button up) like the product shot.
+  const SETTLE0 = 0.82, CAM_EL_END = 27, CAM_DIST_END = 4.7, CAM_PAN_END = 0.5;
+  let hubAsm = null, endSpin = 0;
+
+  function buildBoard(url, axis) {   // a REAL routed board exported from KiCad (Draco glTF), laid flat ⟂ axis
+    const g = new THREE.Group();     // filled asynchronously when the board GLB loads
+    loader.load(url, (gltf) => {
+      const board = gltf.scene;
+      board.position.sub(new THREE.Box3().setFromObject(board).getCenter(new THREE.Vector3()));   // centre on origin
+      board.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
+      const holder = new THREE.Group();
+      holder.add(board);
+      holder.scale.setScalar(MM * 1000);                                 // KiCad glTF is in metres -> hero units
+      holder.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), axis);   // component side -> assembly axis
+      g.add(holder);
+    }, undefined, (e) => console.warn("[hero3d] board load failed:", url, e));
+    return g;
+  }
+  const mkMetal = (c, r, m) => new THREE.MeshStandardMaterial({ color: c, roughness: r, metalness: m });
+  function buildBox(L, T, W, axis, mat, decor) {   // an L×W slab, T thick; its thin (Y) axis aligned to `axis`
+    const g = new THREE.Group();
+    g.add(new THREE.Mesh(new THREE.BoxGeometry(L * MM, T * MM, W * MM), mat));
+    if (decor) decor(g);
+    g.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), axis);
+    g.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
+    return g;
+  }
+  function buildBattery(axis) {      // PKCELL LP402025 LiPo pouch, 25 × 20 × 4 mm
+    return buildBox(25, 4, 20, axis, mkMetal(0xb9bcc4, 0.42, 0.7), (g) => {
+      const tab = new THREE.Mesh(new THREE.BoxGeometry(4 * MM, 4 * MM, 6 * MM), mkMetal(0xc9a84a, 0.45, 0.6));
+      tab.position.x = 13 * MM; g.add(tab);                              // foil tab / leads on one edge
+    });
+  }
+  function buildSpeaker(axis) {      // Soberton SP-1308 micro speaker, 13 × 8 × 2.5 mm
+    return buildBox(13, 2.5, 8, axis, mkMetal(0x202024, 0.5, 0.55), (g) => {
+      const cone = new THREE.Mesh(new THREE.CylinderGeometry(3 * MM, 3.4 * MM, 0.5 * MM, 20), mkMetal(0x111114, 0.7, 0.15));
+      cone.position.y = 1.45 * MM; g.add(cone);
+    });
+  }
+  function buildMotor(axis) {         // Adafruit 1201 ERM: Φ10 × 2.7 mm can + eccentric weight + leads
+    const g = new THREE.Group();
+    const R = 5.0 * MM, thk = 2.7 * MM;
+    const can = new THREE.Mesh(new THREE.CylinderGeometry(R, R, thk, 28),
+      new THREE.MeshStandardMaterial({ color: 0xb8bcc2, roughness: 0.35, metalness: 0.85 }));
+    g.add(can);
+    const weight = new THREE.Mesh(new THREE.CylinderGeometry(R * 0.62, R * 0.62, thk * 0.7, 24, 1, false, 0, Math.PI),
+      new THREE.MeshStandardMaterial({ color: 0xcaa24a, roughness: 0.3, metalness: 0.95 }));  // brass eccentric mass
+    weight.position.y = thk * 0.18; g.add(weight);
+    for (const [c, dx] of [[0xb22222, -1.2 * MM], [0x161616, 1.2 * MM]]) {                       // red/black flying leads
+      const lead = new THREE.Mesh(new THREE.CylinderGeometry(0.45 * MM, 0.45 * MM, 3.2 * MM, 8),
+        new THREE.MeshStandardMaterial({ color: c, roughness: 0.6 }));
+      lead.position.set(dx, thk / 2 + 1.6 * MM, 0); g.add(lead);
+    }
+    g.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), axis);   // can axis along the assembly axis
+    g.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
+    return g;
+  }
+
+  // recenter a GLB shell node's geometry on its own centre + reparent into `pivot`, so the pivot rotates it IN PLACE
+  function attachPart(pivot, name, dist) {
+    const o = model.getObjectByName(name); if (!o) return null;
+    o.updateWorldMatrix(true, false);
+    o.geometry.computeBoundingBox();
+    const gcL = o.geometry.boundingBox.getCenter(new THREE.Vector3());
+    const wc = gcL.clone().applyMatrix4(o.matrixWorld);
+    const wq = o.getWorldQuaternion(new THREE.Quaternion());
+    o.geometry.translate(-gcL.x, -gcL.y, -gcL.z);
+    pivot.add(o); pivot.updateWorldMatrix(true, false);
+    o.position.copy(pivot.worldToLocal(wc.clone()));
+    o.quaternion.copy(pivot.getWorldQuaternion(new THREE.Quaternion()).invert().multiply(wq));
+    return { obj: o, rest: o.position.clone(), dir: null, dist };
+  }
+  const frontSpin = (pivot) => {   // spin angle that brings `pivot` frontmost (max world-X, toward the camera)
+    let bestX = -Infinity, bestTh = 0; const tmpv = new THREE.Vector3(), sav = spin.rotation.y;
+    for (let k = 0; k < 360; k++) { const th = k / 360 * TAU; spin.rotation.y = th; spin.updateMatrixWorld(true); pivot.getWorldPosition(tmpv); if (tmpv.x > bestX) { bestX = tmpv.x; bestTh = th; } }
+    spin.rotation.y = sav; spin.updateMatrixWorld(true); return bestTh;
+  };
+
+  function setupExplode() {
+    if (!model || !cordCurve) return;
+    model.updateMatrixWorld(true);
+    setupBeadReveal();
+    setupHubReveal();
+    // subtle gold halo through the MIDDLE 5 beads' symbols (cord order pos 3-7); NOT the first (Akoma),
+    // second (akoma_ntoaso, the exploded bead) or last (sankofa).
+    for (const n of [2, 3, 4, 5, 6]) { const o = model.getObjectByName('PLATFORM' + n); if (o) o.material = matGlow; }
+    reveals.sort((a, b) => a.pE - b.pE);
+  }
+
+  function setupBeadReveal() {   // akoma_ntoaso bead: revealed RIGHT BEFORE the cord threads it (so it swings to front)
+    const bc = BEAD_CENTERS[EXPLODE_BEAD];
+    const O = new THREE.Vector3(bc[0], bc[1], bc[2]);
+    const pivot = new THREE.Group(); pivot.position.copy(O); model.add(pivot); model.updateMatrixWorld(true);
+    let bt = 0, bd = Infinity;
+    for (let j = 0; j < 2400; j++) { const tt = j / 2400; const d = cordCurve.getPointAt(tt).distanceToSquared(O); if (d < bd) { bd = d; bt = tt; } }
+    const pE = clamp(bt / 1.8 - 0.02, 0.06, 0.5);
+    const parts = [];
+    const cap = attachPart(pivot, 'FB_CAP' + EXPLODE_NODE, 1.0); parts.push(cap);
+    const base = attachPart(pivot, 'FB_BASE' + EXPLODE_NODE, -0.85); parts.push(base);
+    const axis = cap.rest.clone().sub(base.rest).normalize();   // true symbol axis (cap centre -> base centre)
+    parts.push(attachPart(pivot, 'PLATFORM' + EXPLODE_NODE, 0.6));
+    const pcb = buildBoard('assets/models/akoma_pcb.glb', axis); pcb.position.copy(axis).multiplyScalar(0.3 * MM); pivot.add(pcb);
+    parts.push({ obj: pcb, rest: pcb.position.clone(), dir: axis, dist: 0.18 });
+    const motor = buildMotor(axis); motor.position.copy(axis).multiplyScalar(-1.5 * MM); pivot.add(motor);
+    parts.push({ obj: motor, rest: motor.position.clone(), dir: axis, dist: -0.42 });
+    for (const p of parts) p.dir = axis;
+    reveals.push({ pivot, parts, axis, pE, W: EXPLODE_WIN, internals: [pcb, motor], presentSpin: frontSpin(pivot) });
+  }
+
+  function setupHubReveal() {     // core hub: revealed WHEN it rotates into frame (already front -> no swing needed)
+    const wc = (nm) => { const o = model.getObjectByName(nm); o.geometry.computeBoundingBox(); const c = o.geometry.boundingBox.getCenter(new THREE.Vector3()); o.localToWorld(c); return model.worldToLocal(c.clone()); };
+    const O = wc('HUB_BASE').add(wc('HUB_TOP')).multiplyScalar(0.5);
+    const pivot = new THREE.Group(); pivot.position.copy(O); model.add(pivot); model.updateMatrixWorld(true);
+    const parts = [];
+    const base = attachPart(pivot, 'HUB_BASE', -1.25); parts.push(base);
+    const top = attachPart(pivot, 'HUB_TOP', 0.9); parts.push(top);
+    parts.push(attachPart(pivot, 'BASIN_SWITCH', 1.45));
+    const axis = top.rest.clone().sub(base.rest).normalize();   // base -> top (button/up direction)
+    const board = buildBoard('assets/models/akoma_hub_pcb.glb', axis); board.position.copy(axis).multiplyScalar(0.3); pivot.add(board);
+    parts.push({ obj: board, rest: board.position.clone(), dir: axis, dist: 0.3 });
+    const battery = buildBattery(axis); battery.position.copy(axis).multiplyScalar(-0.3); pivot.add(battery);
+    parts.push({ obj: battery, rest: battery.position.clone(), dir: axis, dist: -0.35 });
+    const speaker = buildSpeaker(axis); speaker.position.copy(axis).multiplyScalar(-0.15); pivot.add(speaker);
+    parts.push({ obj: speaker, rest: speaker.position.clone(), dir: axis, dist: -0.8 });
+    for (const p of parts) p.dir = axis;
+    const fs = frontSpin(pivot);
+    const pE = (((fs - SPIN_PHASE) / TAU) % 1 + 1) % 1;   // anim where the hub is frontmost
+    hubAsm = { pivot, parts, axis, pE, W: EXPLODE_WIN, internals: [board, battery, speaker], presentSpin: null };
+    reveals.push(hubAsm);
+    endSpin = fs + Math.PI;   // settle target: hub swung to the BACK so the beads face the camera in the final shot
+  }
+
+  function updateExplode(asm, e) {
+    const rot = clamp(Math.min(smooth(0.05, 0.28, e), 1 - smooth(0.74, 0.97, e)), 0, 1);   // tilt-up, hold, tilt-back
+    const exp = clamp(Math.min(smooth(0.22, 0.46, e), 1 - smooth(0.66, 0.9, e)), 0, 1);    // split-out, hold, reassemble
+    if (asm.presentSpin != null && rot > 0) {   // swing the bracelet to bring this assembly frontmost
+      const frozen = SPIN_PHASE + asm.pE * TAU * SPIN_TURNS;
+      let d = asm.presentSpin - frozen; d = ((d + Math.PI) % TAU + TAU) % TAU - Math.PI;
+      spin.rotation.y = frozen + d * rot; spin.updateMatrixWorld(true);
+    }
+    // TILT so the assembly's axis faces EXPLODE_AXIS (world up), then split the parts flat along it.
+    const tgt = EXPLODE_AXIS.clone()
+      .applyQuaternion(spin.quaternion.clone().invert())
+      .applyQuaternion(orient.quaternion.clone().invert()).normalize();
+    asm.pivot.quaternion.slerpQuaternions(new THREE.Quaternion(), new THREE.Quaternion().setFromUnitVectors(asm.axis, tgt), rot);
+    for (const pt of asm.parts) pt.obj.position.copy(pt.rest).addScaledVector(pt.dir, pt.dist * exp);
+    for (const o of asm.internals) o.visible = exp > 0.004;
+  }
+
   window.addEventListener("keydown", (e) => {            // q/a belt · w/s window · e/d smooth-core · r/f sennit-gap · b=toggle bead-wrap
     const k = e.key; let h = true;
     if (k === "1") BRAID_R = Math.max(0.1, BRAID_R - 0.03);
@@ -388,5 +610,6 @@ function init() {
     buildCord();
     buildBraid();
     build();
+    setupExplode();
   }, undefined, fail);
 }
