@@ -141,7 +141,7 @@ h1,h2,h3{ font-family:var(--serif); font-weight:500; line-height:1.04; letter-sp
 /* ============ HERO — scroll-driven 3D ============ */
 .hero3d{ position:relative; height:560vh; background:var(--black); }
 .hero3d.no3d{ height:100svh; }
-.hero3d-sticky{ position:sticky; top:0; height:100svh; overflow:hidden;
+.hero3d-sticky{ position:sticky; top:0; height:100svh; height:100dvh; overflow:hidden;
   /* a focused warm POOL behind the bracelet + a darker vignette frame, so the bracelet pops off the page
      without brightening the beads themselves (extra rim light just washed them out / "sun-bleached"). */
   background:

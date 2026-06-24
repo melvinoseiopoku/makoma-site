@@ -159,7 +159,11 @@ function init() {
     target = clamp(-rect.top / Math.max(total, 1), 0, 1);
   }
   function resize() {
-    const w = section.clientWidth || window.innerWidth || 1280, h = window.innerHeight || 800;
+    // size to the canvas's ACTUAL displayed box, not window.innerHeight — on mobile the URL bar makes
+    // innerHeight taller than the 100dvh canvas, and a taller buffer squished into a shorter box stretches
+    // the render (beads go wide). Matching the buffer aspect to the display box keeps spheres round.
+    const w = canvas.clientWidth || section.clientWidth || window.innerWidth || 1280;
+    const h = canvas.clientHeight || window.innerHeight || 800;
     renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix();
     composer.setSize(w, h);
   }
@@ -230,6 +234,7 @@ function init() {
 
   window.addEventListener("scroll", onScroll, { passive: true });
   window.addEventListener("resize", resize);
+  if (window.visualViewport) window.visualViewport.addEventListener("resize", resize);   // mobile URL-bar show/hide resizes the canvas box
   new IntersectionObserver((es) => { inView = es[0].isIntersecting; }, { threshold: 0 }).observe(section);
   resize();
 
