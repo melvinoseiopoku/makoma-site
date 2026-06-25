@@ -346,17 +346,26 @@
   }
 
   /* ------------------------------------------------------------------
-     Join form — waitlist capture
+     Join form — waitlist capture (wired for Buttondown)
 
-     ▶ TO GO LIVE: paste your endpoint into JOIN_ENDPOINT below. It works
-       with any service that accepts a POST of the fields { email, intent }:
-         • Buttondown : https://buttondown.email/api/emails/embed-subscribe/YOUR_USERNAME
-         • Formspree  : https://formspree.io/f/YOUR_FORM_ID
-         • ConvertKit : https://app.convertkit.com/forms/YOUR_FORM_ID/subscriptions
-     Until it is set, submissions are saved in the visitor's browser
+     ▶ TO GO LIVE: create a Buttondown account, then drop your username into
+       the URL below (replace YOUR_USERNAME). Signups then land in your
+       Buttondown subscriber list and you can broadcast to the whole circle
+       at launch. By default Buttondown sends a confirmation email (double
+       opt-in) — that's why the success copy says "watch your inbox".
+         const JOIN_ENDPOINT = "https://buttondown.com/api/emails/embed-subscribe/makoma";
+
+     Buttondown's embed endpoint is a cross-origin form target, not a CORS/JSON
+     API — a normal fetch() can't read its reply — so Buttondown URLs are
+     auto-detected and POSTed in no-cors mode (a completed request counts as
+     success). Any other provider whose endpoint accepts a POST with an `email`
+     field still works (Formspree: https://formspree.io/f/ID, ConvertKit, …);
+     those are posted as FormData and their HTTP status is checked.
+
+     Until JOIN_ENDPOINT is set, submissions are saved in the visitor's browser
      (localStorage key "makoma_waitlist") so nothing is lost while testing.
   ------------------------------------------------------------------ */
-  const JOIN_ENDPOINT = ""; // e.g. "https://formspree.io/f/abcdwxyz"
+  const JOIN_ENDPOINT = "https://buttondown.com/api/emails/embed-subscribe/makoma";
 
   function setupForm() {
     const form = $("#joinForm"), status = $("#joinStatus"),
@@ -403,16 +412,29 @@
 
       if (!JOIN_ENDPOINT) { done(); return; } // placeholder mode — no backend wired yet
 
+      const isButtondown = /buttondown\.(com|email)/i.test(JOIN_ENDPOINT);
       const label = submit.textContent;
       submit.disabled = true; submit.textContent = "Reserving…";
       say("Reserving your spot…");
       try {
-        const body = new FormData();
-        body.append("email", v);
-        body.append("intent", intent());
-        const res = await fetch(JOIN_ENDPOINT, { method: "POST", body, headers: { Accept: "application/json" } });
-        if (!res.ok) throw new Error("HTTP " + res.status);
-        done();
+        if (isButtondown) {
+          // cross-origin form target → no-cors POST; the reply is opaque, so a
+          // completed request is treated as success (localStorage above is the backup)
+          const params = new URLSearchParams();
+          params.append("email", v);
+          params.append("embed", "1");
+          params.append("tag", giving ? "gift" : "self");   // segment the list in Buttondown
+          params.append("metadata__intent", intent());
+          await fetch(JOIN_ENDPOINT, { method: "POST", mode: "no-cors", body: params });
+          done();
+        } else {
+          const body = new FormData();
+          body.append("email", v);
+          body.append("intent", intent());
+          const res = await fetch(JOIN_ENDPOINT, { method: "POST", body, headers: { Accept: "application/json" } });
+          if (!res.ok) throw new Error("HTTP " + res.status);
+          done();
+        }
       } catch (err) {
         say("Hmm — that didn’t go through. Mind trying again in a moment?", true);
       } finally {
