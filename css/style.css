@@ -151,9 +151,8 @@ h1,h2,h3{ font-family:var(--serif); font-weight:500; line-height:1.04; letter-sp
 .hero3d.no3d #heroCanvas{ display:none; }
 .hero3d-poster{
   position:absolute; inset:0; width:100%; height:100%; object-fit:cover; object-position:center;
-  z-index:0; opacity:1; transition:opacity 1.1s var(--ease);
+  z-index:0; opacity:0; transition:opacity 1.1s var(--ease);   /* hidden during 3D load (no render flash); only shown as the no-WebGL fallback */
 }
-.hero3d-poster.hide{ opacity:0; }
 .hero3d.no3d .hero3d-poster{ opacity:1; }
 .hero3d-veil{
   position:absolute; inset:0; z-index:2; pointer-events:none;
