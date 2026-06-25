@@ -121,35 +121,40 @@ function init() {
   // ---- overlay ----
   const intro = $("#heroIntro"), outro = $("#heroOutro"), cue = $("#heroCue"), bar = $("#heroProgress span");
   const capWrap = $("#heroCaption"), capK = capWrap?.querySelector(".hc-kicker"), capT = capWrap?.querySelector(".hc-title"), capL = capWrap?.querySelector(".hc-line");
-  // Caption "beats" introduced one by one as the bracelet spins — what sets M'AKOMA apart from other wearables.
-  // Claim discipline: "no screen / jewelry-first" and "weeks on standby" (System OFF ≈ µA) are documented; the
-  // water line is intentionally ASPIRATIONAL ("designed to…", no IP rating) since no water spec is validated yet;
-  // "heirloom" is positioning, not a warranty. Tighten these as real, shippable specs land.
-  const CAPS = [
-    { k: "Eight beads",      t: "Turn to meet them.",         l: "Each bead carries an engraved Adinkra symbol — a small circuit board and a haptic motor sealed inside." },
-    { k: "Wear anywhere",    t: "Jewelry first, always.",     l: "No screen, no feed, no notifications — just the few people you choose, with you all the time." },
-    { k: "Everyday-proof",   t: "Worn, not babied.",          l: "Designed to take everyday wear in stride — sweat, a splash, the rain you didn't plan for." },
-    { k: "Weeks on standby", t: "It waits for you.",          l: "Idle, it sips micro-amps and holds its charge for weeks — ready the moment someone reaches for you." },
-    { k: "Made to keep",     t: "An heirloom, not a gadget.", l: "Matte resin and solid gold-tone hardware — quiet, tactile, and built to be lived in every day." },
-  ];
-  function overlay(p) {
+  // Scene-tied hero narrative — captions are PINNED to what the bracelet is doing (not spread evenly), so each
+  // idea lands while the visual proves it: the bead opens → "alive / you touch it, it answers"; the spin →
+  // "a bead per person", then "every symbol means something"; the hub opens → "the core". One screen-free line
+  // per moment, never a spec dump. Claim discipline: descriptive only — no battery hours, no waterproof rating,
+  // no GPS here until the specs are shippable (see the hub copy + the spec-claims note).
+  const SCENE = {
+    bead:    { k: "Alive in your hand",   t: "Touch it. It answers.",         l: "A gold plate beneath each symbol feels your touch — and answers in light, a soft pulse, and a voice." },
+    person:  { k: "One bead, one person", t: "Everyone gets their own.",      l: "Not one screen for everyone — each person you love lives on their own bead. Nothing else is built this way." },
+    symbols: { k: "Adinkra",              t: "Every symbol means something.", l: "Each bead is engraved with an Adinkra symbol — endurance, return, the bonds that hold people together." },
+    hub:     { k: "The core",             t: "Everything, quietly inside.",   l: "The battery, the sound, the mic, the brains — sealed into a hub small enough to forget you're wearing." },
+  };
+  function overlay(p) {                  // p == anim (de-dwelled scroll). reveals[0] = bead reveal, reveals[1] = hub (sorted by pE)
     const introOp = 1 - smooth(0.03, 0.12, p);
     if (intro) intro.style.opacity = introOp;
     if (cue) cue.style.opacity = introOp;
     const outOp = smooth(0.9, 0.99, p);
     if (outro) { outro.style.opacity = outOp; outro.style.pointerEvents = outOp > 0.5 ? "auto" : "none"; }
     if (bar) bar.style.transform = `scaleX(${p})`;
-    if (capWrap) {
-      const gate = Math.min(smooth(0.15, 0.24, p), 1 - smooth(0.88, 0.95, p));   // whole caption fades in/out at the ends
-      const n = CAPS.length, A = 0.18, B = 0.9;                                   // beats spread across this scroll band
-      const u = clamp((p - A) / (B - A), 0, 0.99999) * n;                         // float beat index
-      const i = Math.min(n - 1, Math.floor(u)), local = u - i, cap = CAPS[i];
-      const beatOp = smooth(0, 0.16, local) * (1 - smooth(0.84, 1, local));       // cross-dissolve: each beat fades at its edges
-      if (capK) capK.textContent = cap.k;
-      if (capT) capT.textContent = cap.t;
-      if (capL) capL.textContent = cap.l;
-      capWrap.style.opacity = gate * beatOp;
+    if (!capWrap) return;
+    const beadE = reveals[0] ? reveals[0]._e : 0;     // 0..1 explode phase of each reveal (peaks mid-dwell)
+    const hubE  = reveals[1] ? reveals[1]._e : 0;
+    const openEnv = (e) => clamp(smooth(0.12, 0.34, e) * (1 - smooth(0.70, 0.92, e)), 0, 1);   // rise as parts split, fall as they reassemble
+    let cap, op;
+    if (beadE > 0.02) { cap = SCENE.bead; op = openEnv(beadE); }            // a bead is OPEN → alive / touch
+    else if (hubE > 0.02) { cap = SCENE.hub; op = openEnv(hubE); }          // the hub is OPEN → the core
+    else {                                                                  // SPIN between the two reveals
+      const mid = 0.47;
+      if (p < mid) { cap = SCENE.person;  op = smooth(0.15, 0.27, p) * (1 - smooth(mid - 0.05, mid + 0.01, p)); }
+      else         { cap = SCENE.symbols; op = smooth(mid + 0.02, mid + 0.10, p) * (1 - smooth(0.70, 0.79, p)); }
     }
+    if (capK) capK.textContent = cap.k;
+    if (capT) capT.textContent = cap.t;
+    if (capL) capL.textContent = cap.l;
+    capWrap.style.opacity = clamp(op, 0, 1);
   }
 
   let ready = false, progress = 0, target = 0, idle = 0, inView = true;
@@ -245,6 +250,10 @@ function init() {
   // through the symbol cut-throughs — a genuinely BACKLIT symbol. The bloom pass turns the lit symbol into a soft
   // halo. Low metalness so it reads as a glowing light source, not shiny metal. Breathed gently in update().
   const matGlow = new THREE.MeshStandardMaterial({ color: 0xffd089, emissive: 0xffb247, emissiveIntensity: 2.3, roughness: 0.5, metalness: 0.15 });
+  // the gold CAPACITIVE TOUCH / backlight plate inside each bead. In the explode it's a flat disc seen near edge-on
+  // from the low camera, so a plain gold finish barely reads — instead it GLOWS warm gold (the "touch it, it answers
+  // in light" moment made literal), which stays unmistakable at any angle and blooms softly.
+  const matPlate = new THREE.MeshStandardMaterial({ color: 0xffcf7a, emissive: 0xffb24a, emissiveIntensity: 2.2, roughness: 0.4, metalness: 0.55 });
   const matMetal = new THREE.MeshStandardMaterial({ color: 0x16161a, roughness: 0.46, metalness: 0.55, envMapIntensity: 0.35 });
   const remap = (m) => { const mm = (m && m.metalness !== undefined) ? m.metalness : 0; return mm > 0.8 ? matGold : (mm > 0.3 ? matMetal : matBlack); };
 
@@ -526,10 +535,11 @@ function init() {
     for (let j = 0; j < 2400; j++) { const tt = j / 2400; const d = cordCurve.getPointAt(tt).distanceToSquared(O); if (d < bd) { bd = d; bt = tt; } }
     const pE = clamp(bt / 1.8 - 0.02, 0.06, 0.5);
     const parts = [];
-    const cap = attachPart(pivot, 'FB_CAP' + EXPLODE_NODE, 1.0); parts.push(cap);
+    const cap = attachPart(pivot, 'FB_CAP' + EXPLODE_NODE, 1.7); parts.push(cap);   // lift the symbol lid well clear so the plate under it is exposed
     const base = attachPart(pivot, 'FB_BASE' + EXPLODE_NODE, -0.85); parts.push(base);
     const axis = cap.rest.clone().sub(base.rest).normalize();   // true symbol axis (cap centre -> base centre)
-    parts.push(attachPart(pivot, 'PLATFORM' + EXPLODE_NODE, 0.6));
+    const plate = attachPart(pivot, 'PLATFORM' + EXPLODE_NODE, 0.55);   // the gold touch/backlight plate — now sits in the OPEN gap below the lifted lid
+    if (plate) { plate.obj.material = matPlate; parts.push(plate); }    // glowing gold (its loaded material read dark, and the cap was hiding it)
     const pcb = buildBoard('assets/models/akoma_pcb.glb', axis); pcb.position.copy(axis).multiplyScalar(0.3 * MM); pivot.add(pcb);
     parts.push({ obj: pcb, rest: pcb.position.clone(), dir: axis, dist: 0.18 });
     const motor = buildMotor(axis); motor.position.copy(axis).multiplyScalar(-1.5 * MM); pivot.add(motor);
