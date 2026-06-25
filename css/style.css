@@ -1436,40 +1436,17 @@ section{ position:relative; z-index:2; }
 .wl-node--beads .wl-string{ display:flex; align-items:center; justify-content:center; }
 .wl-beadimg{ width:clamp(22px,3vw,30px); height:auto; margin:0 -2px; filter:drop-shadow(0 4px 9px rgba(0,0,0,.55)); }
 
-/* ===== Where we live — flat positioning quadrant (replaces the 3D plane) ===== */
-.wl-plot{ position:relative; width:100%; max-width:840px; aspect-ratio:16 / 9; margin:46px auto 0;
-  border:1px solid rgba(201,160,78,.16); border-radius:12px;
-  background:
-    repeating-linear-gradient(to right, rgba(201,160,78,.07) 0 1px, transparent 1px 20%),
-    repeating-linear-gradient(to bottom, rgba(201,160,78,.07) 0 1px, transparent 1px 20%); }
-.wl-axisline{ position:absolute; background:rgba(237,231,218,.2); pointer-events:none; }
-.wl-axisline--h{ left:0; right:0; top:50%; height:1px; }
-.wl-axisline--v{ top:0; bottom:0; left:50%; width:1px; }
-.wl-edge{ position:absolute; font-family:var(--sans); font-size:.76rem; letter-spacing:.02em; color:var(--ink-soft); white-space:nowrap; pointer-events:none; }
-.wl-edge--t{ top:-28px; left:50%; transform:translateX(-50%); }
-.wl-edge--b{ bottom:-28px; left:50%; transform:translateX(-50%); }
-.wl-edge--l{ left:-14px; top:50%; transform:translate(-100%,-50%); }
-.wl-edge--r{ right:-14px; top:50%; transform:translate(100%,-50%); }
-.wl-pts{ position:absolute; inset:0; }
-.wl-pt{ position:absolute; transform:translate(-50%,-50%); display:flex; flex-direction:column; align-items:center; gap:5px; transition:transform .3s var(--ease); cursor:default; }
-.wl-pt:hover{ transform:translate(-50%,-50%) scale(1.14); z-index:6; }
-.wl-ic{ width:40px; height:40px; border-radius:11px; display:flex; align-items:center; justify-content:center; box-shadow:0 7px 18px rgba(0,0,0,.5); }
-.wl-ic img, .wl-ic svg{ width:23px; height:23px; display:block; }
-.wl-tag{ font-family:var(--sans); font-size:.58rem; letter-spacing:.04em; color:var(--ink-mute); opacity:0; transition:opacity .25s; white-space:nowrap; }
-.wl-pt:hover .wl-tag{ opacity:1; }
-.wl-pt--mark{ flex-direction:row; gap:9px; }
-.wl-dot2{ width:13px; height:13px; border-radius:50%; background:#cdc6b6; flex:0 0 auto; box-shadow:0 0 0 5px rgba(237,231,218,.07); }
-.wl-dot2--gold{ background:var(--gold); box-shadow:0 0 18px 4px rgba(201,160,78,.55), 0 0 0 7px rgba(201,160,78,.13); }
-.wl-lab{ font-family:var(--sans); font-size:.78rem; color:var(--ink-soft); white-space:nowrap; }
-.wl-lab--gold{ color:var(--gold-pale); font-weight:600; letter-spacing:.04em; }
-.wl-pt--akoma{ z-index:5; }
-@media(max-width:680px){
-  .wl-plot{ aspect-ratio:3 / 4; max-width:340px; }
-  .wl-edge{ font-size:.6rem; }
-  .wl-edge--l{ left:2px; transform:translateY(-50%); writing-mode:vertical-rl; }
-  .wl-edge--r{ right:2px; transform:translateY(-50%); writing-mode:vertical-rl; }
-  .wl-ic{ width:32px; height:32px; border-radius:9px; } .wl-ic img,.wl-ic svg{ width:18px; height:18px; }
-  .wl-dot2{ width:11px; height:11px; } .wl-lab{ font-size:.68rem; }
+/* Where we live — quadrant edge labels (mounted on the stage so they DON'T tilt with the plane) */
+.wl-edge{ position:absolute; z-index:7; font-family:var(--sans); font-size:.72rem; letter-spacing:.02em; color:var(--ink-soft); white-space:nowrap; pointer-events:none; }
+.wl-edge--t{ top:-6px; left:50%; transform:translateX(-50%); }
+.wl-edge--b{ bottom:-6px; left:50%; transform:translateX(-50%); }
+.wl-edge--l{ left:0; top:50%; transform:translate(calc(-100% - 8px),-50%); }
+.wl-edge--r{ right:0; top:50%; transform:translate(calc(100% + 8px),-50%); }
+.wl-logo svg{ width:22px; height:22px; display:block; }
+@media(max-width:860px){
+  .wl-edge{ font-size:.56rem; letter-spacing:0; }
+  .wl-edge--l{ left:1px; transform:translateY(-50%); writing-mode:vertical-rl; }
+  .wl-edge--r{ right:1px; transform:translateY(-50%); writing-mode:vertical-rl; }
 }
 
 /* ===== How it begins — two animated panels (bundle/gift + reach via the app) ===== */
