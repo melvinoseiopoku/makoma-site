@@ -65,19 +65,44 @@
     }
     return 1;
   }
-  var played = false, startT = 0, raf = 0;
+  // ---- play once on view, then REPLAY whenever the carousel sits idle (so people who missed it see it) ----
+  var IDLE_MS = 12000;   // replay after this long with no carousel interaction (while the section is on screen)
+  var playing = false, started = false, visible = false, startT = 0, raf = 0, idleT = 0;
+
   function frame(now) {
     if (!startT) startT = now;
     var t = now - startT;
     apply(progAt(t));
-    if (t < DUR) raf = requestAnimationFrame(frame);
+    if (t < DUR) { raf = requestAnimationFrame(frame); }
+    else { playing = false; scheduleIdle(); }     // sequence finished → start the idle countdown
   }
-  function play() { if (played) return; played = true; startT = 0; cancelAnimationFrame(raf); raf = requestAnimationFrame(frame); }
+  function play() {
+    if (playing) return;
+    playing = true; clearTimeout(idleT); startT = 0;
+    cancelAnimationFrame(raf); raf = requestAnimationFrame(frame);
+  }
+  function scheduleIdle() {
+    clearTimeout(idleT);
+    if (!visible || playing) return;
+    idleT = setTimeout(function () { if (visible && !playing) play(); }, IDLE_MS);
+  }
+  function bump() { clearTimeout(idleT); if (!playing) scheduleIdle(); }   // any carousel interaction resets the countdown
 
   apply(0);   // start state (phone, notifications hidden) before it scrolls in
-  if (!("IntersectionObserver" in window)) { play(); return; }
-  var io = new IntersectionObserver(function (es) {
-    es.forEach(function (e) { if (e.isIntersecting) { play(); io.disconnect(); } });
-  }, { threshold: 0.4 });
-  io.observe(section);
+
+  if ("IntersectionObserver" in window) {
+    new IntersectionObserver(function (es) {
+      es.forEach(function (e) {
+        visible = e.isIntersecting;
+        if (visible) { if (!started) { started = true; play(); } else scheduleIdle(); }
+        else clearTimeout(idleT);
+      });
+    }, { threshold: 0.4 }).observe(section);
+  } else { play(); }
+
+  // reset the idle timer on any interaction with the interactive carousel
+  var carWrap = section.querySelector(".car-wrap");
+  if (carWrap) ["pointerdown", "keydown", "wheel", "touchstart"].forEach(function (ev) {
+    carWrap.addEventListener(ev, bump, { passive: true });
+  });
 })();
