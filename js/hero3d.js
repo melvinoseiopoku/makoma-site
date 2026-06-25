@@ -214,6 +214,7 @@ function init() {
     matGlow.emissiveIntensity = 2.0 + 0.45 * (0.5 + 0.5 * Math.sin(idle * 0.55));   // LED breathing, toned down (2.0..2.45)
     placeCamera(settle);
     for (const rv of reveals) updateExplode(rv, rv._e);
+    updateHubLabels(hubAsm ? hubAsm._e : 0);
     if (settle > 0 && hubAsm) {   // rotate the hub UPRIGHT (button up, like the product shot) as we pan out
       const up = EXPLODE_AXIS.clone().applyQuaternion(spin.quaternion.clone().invert()).applyQuaternion(orient.quaternion.clone().invert()).normalize();
       hubAsm.pivot.quaternion.slerpQuaternions(new THREE.Quaternion(), new THREE.Quaternion().setFromUnitVectors(hubAsm.axis, up), settle);
@@ -564,9 +565,17 @@ function init() {
     const speaker = buildSpeaker(axis); speaker.position.copy(axis).multiplyScalar(-0.15); pivot.add(speaker);
     parts.push({ obj: speaker, rest: speaker.position.clone(), dir: axis, dist: -0.8 });
     for (const p of parts) p.dir = axis;
+    // one defensible tag per component (GPS is flagged "soon" — it isn't shipped; battery is the documented standby figure)
+    const labels = buildHubLabels([
+      [top.obj,  "Water-ready"],
+      [board,    "Motion-aware · GPS soon"],
+      [battery,  "Weeks on standby"],
+      [speaker,  "Real sound + mic"],
+      [base.obj, "Adjustable fit"],
+    ]);
     const fs = frontSpin(pivot);
     const pE = (((fs - SPIN_PHASE) / TAU) % 1 + 1) % 1;   // anim where the hub is frontmost
-    hubAsm = { pivot, parts, axis, pE, W: EXPLODE_WIN, internals: [board, battery, speaker], presentSpin: null };
+    hubAsm = { pivot, parts, axis, pE, W: EXPLODE_WIN, internals: [board, battery, speaker], presentSpin: null, labels };
     reveals.push(hubAsm);
     endSpin = fs + Math.PI;   // settle target: hub swung to the BACK so the beads face the camera in the final shot
   }
@@ -586,6 +595,37 @@ function init() {
     asm.pivot.quaternion.slerpQuaternions(new THREE.Quaternion(), new THREE.Quaternion().setFromUnitVectors(asm.axis, tgt), rot);
     for (const pt of asm.parts) pt.obj.position.copy(pt.rest).addScaledVector(pt.dir, pt.dist * exp);
     for (const o of asm.internals) o.visible = exp > 0.004;
+  }
+
+  // ---- per-component HUB labels: one tag pinned to each part, projected to screen and revealed as the hub splits ----
+  const hubLabelHost = $("#hubLabels");
+  function buildHubLabels(defs) {
+    if (!hubLabelHost) return [];
+    hubLabelHost.innerHTML = "";
+    return defs.map(([obj, text]) => {
+      const el = document.createElement("div"); el.className = "hub-label";
+      el.innerHTML = '<i></i><span>' + text + '</span>';
+      hubLabelHost.appendChild(el);
+      return { obj, el };
+    });
+  }
+  const _lblV = new THREE.Vector3();
+  function updateHubLabels(e) {
+    if (!hubAsm || !hubAsm.labels || !hubAsm.labels.length) return;
+    const show = clamp(Math.min(smooth(0.34, 0.54, e), 1 - smooth(0.66, 0.86, e)), 0, 1);   // appear once parts have split, fade before they close
+    if (show < 0.01) { for (const L of hubAsm.labels) L.el.style.opacity = "0"; return; }
+    const w = canvas.clientWidth || window.innerWidth || 1, h = canvas.clientHeight || window.innerHeight || 1;
+    camera.updateMatrixWorld();
+    hubAsm.labels.forEach((L, i) => {
+      L.obj.getWorldPosition(_lblV); _lblV.project(camera);
+      if (_lblV.z >= 1) { L.el.style.opacity = "0"; return; }    // behind the camera
+      const x = (_lblV.x * 0.5 + 0.5) * w, y = (-_lblV.y * 0.5 + 0.5) * h;
+      const side = (i % 2 === 0) ? 1 : -1;                        // alternate parts to opposite margins so the tags never collide
+      const off = Math.min(w, 1400) * 0.075 * side;              // and sit clear of the central part column
+      L.el.style.left = Math.round(x + off) + "px"; L.el.style.top = Math.round(y) + "px";
+      L.el.classList.toggle("flip", side < 0);                    // left margin: tag reads inward, toward its part
+      L.el.style.opacity = String(show);
+    });
   }
 
   window.addEventListener("keydown", (e) => {            // q/a belt · w/s window · e/d smooth-core · r/f sennit-gap · b=toggle bead-wrap

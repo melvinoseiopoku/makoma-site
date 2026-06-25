@@ -177,6 +177,15 @@ h1,h2,h3{ font-family:var(--serif); font-weight:500; line-height:1.04; letter-sp
 .hero-caption .hc-title{ font-size:clamp(1.8rem,3.6vw,2.8rem); margin-bottom:14px; color:var(--ink); }
 .hero-caption .hc-line{ color:var(--ink-soft); font-size:1.02rem; line-height:1.5; }
 
+/* exploded-diagram callouts for the hub components (positions set per-frame in hero3d.js) */
+.hub-labels{ position:absolute; inset:0; z-index:3; pointer-events:none; overflow:hidden; }
+.hub-label{ position:absolute; transform:translateY(-50%); opacity:0; white-space:nowrap; display:flex; align-items:center; gap:8px;
+  font-size:.64rem; letter-spacing:.14em; text-transform:uppercase; font-weight:500; color:var(--gold-pale);
+  text-shadow:0 1px 12px rgba(0,0,0,.92), 0 0 2px rgba(0,0,0,.8); will-change:left,top,opacity; }
+.hub-label i{ width:5px; height:5px; border-radius:50%; background:var(--gold); box-shadow:0 0 10px 1px rgba(201,160,78,.85); flex:0 0 auto; }
+.hub-label.flip{ flex-direction:row-reverse; transform:translate(-100%,-50%); }
+@media(max-width:820px){ .hub-label{ font-size:.55rem; letter-spacing:.1em; gap:6px; } }
+
 .hero-outro{ position:absolute; left:0; right:0; top:72%; transform:translateY(-50%); text-align:center; opacity:0; padding:0 24px; }
 .hero-outro h2{ font-size:clamp(2.4rem,6vw,4.4rem); margin-bottom:30px; }
 .hero-outro .hero-actions{ justify-content:center; margin-bottom:0; }
