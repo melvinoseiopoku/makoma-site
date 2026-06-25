@@ -1388,16 +1388,16 @@ section{ position:relative; z-index:2; }
 #whyStage.cap-b .wp-cap-b{ opacity:1; }
 @media (prefers-reduced-motion: reduce){ .wp-person, .wp-phone, .wp-notif, .wp-lock, .wp-msgs, .wp-cap span{ transition:none !important; } }
 
-/* ===== MERGE: the phone is a scroll-driven overlay above the (untouched) carousel, in one tall sticky section ===== */
-.circle-merge{ position:relative; min-height:360vh; padding:0; }
-.circle-sticky{ position:sticky; top:0; min-height:100svh; min-height:100dvh; display:flex; align-items:center; justify-content:center; overflow:hidden; padding:0 16px; }
+/* ===== MERGE: the phone is an AUTOPLAY overlay above the (untouched) carousel, in one centered stage ===== */
+.circle-merge{ position:relative; }
+.circle-sticky{ position:relative; display:flex; align-items:center; justify-content:center; min-height:660px; padding:24px 16px; }
 .circle-merge .car-wrap{ transition:opacity .7s ease; }
 .circle-merge #whyStage{ display:none; position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); margin:0; z-index:5; transition:opacity .7s ease; }
 .circle-merge.circle-anim #whyStage{ display:block; }
 .circle-merge.circle-anim:not(.is-handoff) .car-wrap{ opacity:0; pointer-events:none; }   /* carousel hidden during the phone intro */
 .circle-merge.is-handoff #whyStage{ opacity:0; pointer-events:none; }                       /* phone gone, carousel takes over */
 #whyStage.phone-out .wp-phone{ opacity:0; }   /* fade the device once the beads have formed, before the carousel reveal */
-@media (prefers-reduced-motion: reduce){ .circle-merge{ min-height:0; } .circle-sticky{ position:static; min-height:0; } }
+@media (prefers-reduced-motion: reduce){ .circle-sticky{ min-height:0; } }
 
 /* ----- carousel: avatar in the header (app-style), not on the bead ----- */
 .car-avatarwrap{ width:clamp(60px,12vw,78px); height:clamp(60px,12vw,78px); border-radius:50%;
