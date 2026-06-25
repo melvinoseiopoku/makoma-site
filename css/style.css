@@ -1295,6 +1295,75 @@ section{ position:relative; z-index:2; }
 .rp-bead:nth-child(5){ transform:translateY(22px) rotate(9deg); }
 @media(max-width:560px){ .rp-arrow{ transform:rotate(90deg); } }
 
+/* ===== Why M'AKOMA: phone-of-noise → five pinned people → beads (autoplay, js/why.js) ===== */
+.why-stage{ position:relative; width:100%; max-width:480px; height:clamp(470px,74vh,600px); margin:26px auto 0; }
+
+/* the phone */
+.wp-phone{ position:absolute; left:50%; top:1%; width:clamp(232px,62vw,268px); aspect-ratio:1 / 2.04;
+  transform:translateX(-50%); transform-origin:50% 30%; transition:opacity .9s var(--ease), transform .9s var(--ease); z-index:1; }
+.wp-screen{ position:absolute; inset:0; border-radius:36px; background:#0a0a0c; border:1px solid #2a2823;
+  box-shadow:0 32px 70px rgba(0,0,0,.6), inset 0 0 0 4px #161518; overflow:hidden; }
+.wp-island{ position:absolute; top:11px; left:50%; transform:translateX(-50%); width:62px; height:17px; border-radius:10px; background:#000; z-index:6; }
+.wp-bar{ position:absolute; top:10px; left:0; right:0; display:flex; justify-content:space-between; align-items:center; padding:0 22px; font-size:11px; font-weight:600; color:#ece6d8; z-index:5; }
+.wp-bar-i{ display:flex; gap:3px; align-items:center; }
+.wp-bar-i i{ width:4px; height:9px; border-radius:1px; background:#ece6d8; opacity:.9; }
+
+/* lock screen + notification pile */
+.wp-lock{ position:absolute; inset:0; padding:44px 12px 12px; display:flex; flex-direction:column; gap:9px; z-index:2;
+  transition:opacity .55s, filter .55s; }
+.wp-clock{ text-align:center; color:#fff; margin-bottom:2px; }
+.wp-clock .wp-t{ font-size:44px; font-weight:300; letter-spacing:-.02em; line-height:1; }
+.wp-clock .wp-d{ font-size:12px; color:#b7b0a1; margin-top:3px; }
+.wp-notifs{ display:flex; flex-direction:column; gap:7px; overflow:hidden; }
+.wp-notif{ background:rgba(42,40,44,.86); -webkit-backdrop-filter:blur(6px); backdrop-filter:blur(6px); border-radius:14px; padding:8px 12px;
+  display:flex; flex-direction:column; gap:1px; color:#ece6d8;
+  opacity:0; transform:translateY(-12px) scale(.95); transition:opacity .45s, transform .45s; transition-delay:calc(var(--k) * .12s); }
+.wp-notif b{ font-size:10.5px; font-weight:700; }
+.wp-notif span{ font-size:10.5px; color:#b3ac9f; }
+
+/* messages view */
+.wp-msgs{ position:absolute; inset:0; padding:48px 16px 14px; opacity:0; pointer-events:none; transition:opacity .6s; z-index:1; }
+.wp-msgs-head{ font-size:23px; font-weight:700; color:#fff; }
+.wp-pin-label{ font-size:10.5px; color:#8a8478; text-transform:uppercase; letter-spacing:.14em; margin:60px 0 0; }
+.wp-threads{ display:flex; flex-direction:column; gap:13px; margin-top:94px; }
+.wp-threads span{ height:34px; border-radius:9px; background:linear-gradient(90deg, rgba(60,57,52,.45), rgba(60,57,52,.08)); }
+
+/* the five people overlay — hidden until Messages opens (phase 3), then they lift out */
+.wp-people{ position:absolute; inset:0; z-index:4; opacity:0; transition:opacity .55s; }
+#whyStage[data-phase="3"] .wp-people, #whyStage[data-phase="4"] .wp-people, #whyStage[data-phase="5"] .wp-people{ opacity:1; }
+.wp-person{ position:absolute; left:calc(50% + (var(--i) - 2) * 12.5%); top:27.5%; width:52px; height:52px; transform:translate(-50%,-50%);
+  transition:left 1.05s var(--ease), top 1.05s var(--ease), width 1.05s var(--ease), height 1.05s var(--ease); }
+.wp-person img{ position:absolute; inset:0; width:100%; height:100%; }
+.wp-face{ object-fit:cover; border-radius:50%; box-shadow:0 0 0 2px rgba(255,255,255,.16); opacity:1; transition:opacity .7s; }
+.wp-bead{ object-fit:contain; opacity:0; transition:opacity .7s, filter .7s; }
+.wp-person b{ position:absolute; left:50%; bottom:-17px; transform:translateX(-50%); font-size:9.5px; font-weight:500; color:var(--ink-soft); white-space:nowrap; opacity:0; transition:opacity .5s; }
+
+/* caption */
+.wp-cap{ position:absolute; left:0; right:0; bottom:0; text-align:center; font-family:var(--serif); font-size:clamp(1.05rem,2.6vw,1.5rem); color:var(--gold-pale); height:1.6em; }
+.wp-cap span{ position:absolute; left:0; right:0; transition:opacity .7s; }
+.wp-cap-b{ opacity:0; }
+
+/* ---- phase states ---- */
+#whyStage[data-phase="1"] .wp-notif, #whyStage[data-phase="2"] .wp-notif{ opacity:1; transform:none; }
+#whyStage[data-phase="2"] .wp-notif{ opacity:0; transform:translateX(135%); transition-duration:.5s; transition-delay:calc(var(--k) * .05s); }
+#whyStage[data-phase="2"] .wp-lock{ opacity:0; filter:blur(2px); }
+#whyStage[data-phase="3"] .wp-lock, #whyStage[data-phase="4"] .wp-lock, #whyStage[data-phase="5"] .wp-lock{ opacity:0; pointer-events:none; }
+#whyStage[data-phase="3"] .wp-msgs, #whyStage[data-phase="4"] .wp-msgs{ opacity:1; }
+#whyStage[data-phase="4"] .wp-phone, #whyStage[data-phase="5"] .wp-phone{ opacity:0; transform:translateX(-50%) translateY(-26px) scale(.9); }
+#whyStage[data-phase="4"] .wp-person, #whyStage[data-phase="5"] .wp-person{ width:60px; height:60px; left:calc(50% + (var(--i) - 2) * 20.5%); }
+#whyStage[data-phase="4"] .wp-person:nth-child(1), #whyStage[data-phase="5"] .wp-person:nth-child(1){ top:50%; }
+#whyStage[data-phase="4"] .wp-person:nth-child(2), #whyStage[data-phase="5"] .wp-person:nth-child(2){ top:57.5%; }
+#whyStage[data-phase="4"] .wp-person:nth-child(3), #whyStage[data-phase="5"] .wp-person:nth-child(3){ top:60%; }
+#whyStage[data-phase="4"] .wp-person:nth-child(4), #whyStage[data-phase="5"] .wp-person:nth-child(4){ top:57.5%; }
+#whyStage[data-phase="4"] .wp-person:nth-child(5), #whyStage[data-phase="5"] .wp-person:nth-child(5){ top:50%; }
+#whyStage[data-phase="4"] .wp-face, #whyStage[data-phase="5"] .wp-face{ opacity:0; }
+#whyStage[data-phase="4"] .wp-bead, #whyStage[data-phase="5"] .wp-bead{ opacity:1;
+  filter:drop-shadow(0 6px 14px rgba(0,0,0,.55)) drop-shadow(0 0 13px color-mix(in srgb, var(--hue) 62%, transparent)); }
+#whyStage[data-phase="5"] .wp-person b{ opacity:.9; }
+#whyStage[data-phase="5"] .wp-cap-a{ opacity:0; }
+#whyStage[data-phase="5"] .wp-cap-b{ opacity:1; }
+@media (prefers-reduced-motion: reduce){ .wp-person, .wp-phone, .wp-notif, .wp-lock, .wp-msgs, .wp-cap span{ transition:none !important; } }
+
 /* ----- carousel: avatar in the header (app-style), not on the bead ----- */
 .car-avatarwrap{ width:clamp(60px,12vw,78px); height:clamp(60px,12vw,78px); border-radius:50%;
   margin:0 auto 14px; padding:3px; box-sizing:border-box;

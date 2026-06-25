@@ -171,40 +171,46 @@
     <p class="section-tag reveal">Why M&rsquo;akoma</p>
     <h2 class="big-statement reveal">Only the few<span class="muted"> who matter, <span class="strike">kept close.</span></span></h2>
 
-    <!-- reachable → present: a phone full of contacts → the bracelet (real beads, no background) -->
-    <div class="rp reveal">
-      <figure class="rp-side">
-        <div class="rp-phone">
-          <svg viewBox="0 0 210 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="A phone full of contacts">
-            <rect x="18" y="8" width="174" height="284" rx="26" fill="#0d0d10" stroke="#3a3833" stroke-width="1.4"/>
-            <text x="34" y="48" font-family="Inter, sans-serif" font-size="17" fill="#b7b0a1" font-weight="600">Contacts</text>
-            <rect x="34" y="62" width="142" height="20" rx="10" fill="none" stroke="#3a3833" stroke-width="1.2"/>
-            <circle cx="48" cy="72" r="4.5" fill="none" stroke="#7d776b" stroke-width="1.2"/>
-            <g>
-              <!-- contact rows -->
-              <g transform="translate(34 100)"><circle cx="9" cy="9" r="9" fill="#23221f"/><rect x="26" y="3" width="78" height="6" rx="3" fill="#8a8478"/><rect x="26" y="14" width="52" height="5" rx="2.5" fill="#4a473f"/></g>
-              <g transform="translate(34 134)"><circle cx="9" cy="9" r="9" fill="#23221f"/><rect x="26" y="3" width="96" height="6" rx="3" fill="#8a8478"/><rect x="26" y="14" width="40" height="5" rx="2.5" fill="#4a473f"/></g>
-              <g transform="translate(34 168)"><circle cx="9" cy="9" r="9" fill="#23221f"/><rect x="26" y="3" width="64" height="6" rx="3" fill="#8a8478"/><rect x="26" y="14" width="58" height="5" rx="2.5" fill="#4a473f"/></g>
-              <g transform="translate(34 202)"><circle cx="9" cy="9" r="9" fill="#23221f"/><rect x="26" y="3" width="88" height="6" rx="3" fill="#8a8478"/><rect x="26" y="14" width="46" height="5" rx="2.5" fill="#4a473f"/></g>
-              <g transform="translate(34 236)"><circle cx="9" cy="9" r="9" fill="#23221f"/><rect x="26" y="3" width="72" height="6" rx="3" fill="#8a8478"/><rect x="26" y="14" width="60" height="5" rx="2.5" fill="#4a473f"/></g>
-            </g>
-          </svg>
-        </div>
-        <figcaption>Reachable</figcaption>
-      </figure>
+    <!-- Why M'AKOMA: a phone buried in notifications quiets to 5 pinned people, who lift out as beads. Autoplay on view (js/why.js). -->
+    <div class="why-stage reveal" id="whyStage" data-phase="0" role="img"
+         aria-label="A phone buried in notifications quiets down to five pinned people, who lift out of the screen and become the beads of a bracelet.">
+      <div class="wp-phone" aria-hidden="true">
+        <div class="wp-screen">
+          <span class="wp-island"></span>
+          <div class="wp-bar"><span>9:41</span><span class="wp-bar-i"><i></i><i></i><i></i></span></div>
 
-      <span class="rp-arrow" aria-hidden="true">→</span>
+          <!-- lock screen + the pile of noise -->
+          <div class="wp-lock">
+            <div class="wp-clock"><div class="wp-t">9:41</div><div class="wp-d">Tuesday, June 24</div></div>
+            <div class="wp-notifs">
+              <div class="wp-notif" style="--k:0"><b>Trends</b><span>47 people are posting about this</span></div>
+              <div class="wp-notif" style="--k:1"><b>The Squad</b><span>142 new messages</span></div>
+              <div class="wp-notif" style="--k:2"><b>Headlines</b><span>BREAKING — you have to see this</span></div>
+              <div class="wp-notif" style="--k:3"><b>Likes</b><span>+318 reactions on your photo</span></div>
+              <div class="wp-notif" style="--k:4"><b>Screen Time</b><span>4h 12m scrolling today</span></div>
+              <div class="wp-notif" style="--k:5"><b>Don’t miss out</b><span>Flash sale ends in 09:59</span></div>
+            </div>
+          </div>
 
-      <figure class="rp-side">
-        <div class="rp-bracelet">
-          <img class="rp-bead" src="assets/beads/gye_nyame.png" alt="" aria-hidden="true" />
-          <img class="rp-bead" src="assets/beads/sankofa.png" alt="" aria-hidden="true" />
-          <img class="rp-bead" src="assets/beads/akoma.png" alt="" aria-hidden="true" />
-          <img class="rp-bead" src="assets/beads/aya.png" alt="" aria-hidden="true" />
-          <img class="rp-bead" src="assets/beads/nkyinkyim.png" alt="" aria-hidden="true" />
+          <!-- the few who matter: pinned chats (avatars live in .wp-people, above) -->
+          <div class="wp-msgs">
+            <div class="wp-msgs-head">Messages</div>
+            <div class="wp-pin-label">Pinned</div>
+            <div class="wp-threads"><span></span><span></span><span></span></div>
+          </div>
         </div>
-        <figcaption>Present</figcaption>
-      </figure>
+      </div>
+
+      <!-- the five: pinned avatars that lift out of the screen and cross-fade into their Adinkra beads -->
+      <div class="wp-people" aria-hidden="true">
+        <div class="wp-person" style="--i:0;--hue:#B77AF4"><img class="wp-face" src="assets/avatars/maya.png"  alt=""><img class="wp-bead" src="assets/beads/sankofa.png"   alt=""><b>Maya</b></div>
+        <div class="wp-person" style="--i:1;--hue:#D6A84F"><img class="wp-face" src="assets/avatars/ama.png"   alt=""><img class="wp-bead" src="assets/beads/akoma.png"     alt=""><b>Ama</b></div>
+        <div class="wp-person" style="--i:2;--hue:#63CE88"><img class="wp-face" src="assets/avatars/kwame.png" alt=""><img class="wp-bead" src="assets/beads/aya.png"       alt=""><b>Kwame</b></div>
+        <div class="wp-person" style="--i:3;--hue:#E7A94E"><img class="wp-face" src="assets/avatars/nana.png"  alt=""><img class="wp-bead" src="assets/beads/gye_nyame.png" alt=""><b>Nana</b></div>
+        <div class="wp-person" style="--i:4;--hue:#5C9CEB"><img class="wp-face" src="assets/avatars/kofi.png"  alt=""><img class="wp-bead" src="assets/beads/nkyinkyim.png" alt=""><b>Kofi</b></div>
+      </div>
+
+      <p class="wp-cap"><span class="wp-cap-a">Everyone, all at once.</span><span class="wp-cap-b">Only the few you carry.</span></p>
     </div>
   </div>
 </section>
@@ -510,6 +516,7 @@
 <script type="module" src="js/hero3d.js"></script>
 <script src="js/carousel.js"></script>
 <script src="js/positioning.js"></script>
+<script src="js/why.js" defer></script>
 <script>
   /* Safety net: if the 3D module never runs (parse/load error), collapse the
      pinned anatomy hero to the static render rather than show empty scroll. */
