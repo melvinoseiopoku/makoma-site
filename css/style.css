@@ -1472,6 +1472,43 @@ section{ position:relative; z-index:2; }
   .wl-dot2{ width:11px; height:11px; } .wl-lab{ font-size:.68rem; }
 }
 
+/* ===== How it begins — two animated panels (bundle/gift + reach via the app) ===== */
+.hib-grid{ display:grid; grid-template-columns:1fr; gap:26px; max-width:940px; margin:42px auto 0; }
+@media(min-width:780px){ .hib-grid{ grid-template-columns:1fr 1fr; gap:30px; } }
+.hib-panel{ margin:0; background:var(--black-2); border:1px solid var(--line); border-radius:20px; padding:26px 26px 30px; overflow:hidden; }
+.hib-scene{ position:relative; height:206px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px; }
+.hib-cap{ text-align:left; margin-top:16px; }
+.hib-cap h3{ font-family:var(--serif); font-size:1.45rem; font-weight:500; color:var(--ink); margin:0 0 8px; }
+.hib-cap p{ color:var(--ink-soft); font-size:1rem; line-height:1.55; margin:0; }
+/* mini-bracelet: a gentle arc of bead renders */
+.hib-brace{ display:inline-flex; align-items:center; }
+.hib-brace img{ width:34px; height:auto; margin:0 -5px; filter:drop-shadow(0 6px 12px rgba(0,0,0,.55)); }
+.hib-brace > img:nth-child(1), .hib-brace > img:nth-child(5){ transform:translateY(9px); }
+.hib-brace > img:nth-child(2), .hib-brace > img:nth-child(4){ transform:translateY(3px); }
+/* panel 1: bundle + gift */
+.hib-badge{ font-family:var(--sans); font-size:.66rem; letter-spacing:.16em; text-transform:uppercase; color:var(--gold-pale); border:1px solid rgba(201,160,78,.4); border-radius:20px; padding:5px 13px; }
+.hib-pair{ display:flex; gap:22px; align-items:center; }
+.hib-note{ font-family:var(--serif); font-style:italic; color:var(--gold-pale); opacity:.85; font-size:1.02rem; }
+.hib-brace.b1{ animation:hib-bob 3.4s ease-in-out infinite; }
+.hib-brace.b2{ position:relative; animation:hib-bob 3.4s ease-in-out infinite .5s; }
+@keyframes hib-bob{ 0%,100%{ transform:translateY(0); } 50%{ transform:translateY(-7px); } }
+.hib-spark{ position:absolute; top:-8px; right:-4px; width:10px; height:10px; border-radius:50%; background:var(--gold); box-shadow:0 0 12px 3px rgba(201,160,78,.7); animation:hib-spark 3.4s ease-in-out infinite .5s; }
+@keyframes hib-spark{ 0%,40%,100%{ opacity:0; transform:scale(.4); } 60%,82%{ opacity:1; transform:scale(1); } }
+/* panel 2: app → glow travels → bracelet bead lights up */
+.hib-scene--app{ flex-direction:row; gap:4px; }
+.hib-phone{ position:relative; width:82px; flex:0 0 auto; border-radius:14px; overflow:hidden; border:1px solid #2a2823; box-shadow:0 10px 26px rgba(0,0,0,.5); }
+.hib-phone img{ width:100%; display:block; }
+.hib-tap{ position:absolute; left:50%; top:46%; width:14px; height:14px; margin:-7px 0 0 -7px; border-radius:50%; border:2px solid var(--gold); animation:hib-tap 3s ease-out infinite; }
+@keyframes hib-tap{ 0%{ opacity:.9; transform:scale(.3); } 55%,100%{ opacity:0; transform:scale(2.4); } }
+.hib-link{ width:104px; height:60px; flex:0 0 auto; }
+.hib-link path{ animation:hib-flow 3s linear infinite; }
+@keyframes hib-flow{ to{ stroke-dashoffset:-40; } }
+.hib-lit{ position:relative; display:inline-block; width:34px; margin:0 -5px; filter:drop-shadow(0 6px 12px rgba(0,0,0,.55)); }
+.hib-lit img{ width:34px !important; height:auto; margin:0 !important; display:block; }
+.hib-lit .hib-glow{ position:absolute; inset:0; opacity:0; animation:hib-light 3s ease-in-out infinite; }
+@keyframes hib-light{ 0%,45%{ opacity:0; } 70%,90%{ opacity:1; } 100%{ opacity:0; } }
+@media (prefers-reduced-motion: reduce){ .hib-brace.b1,.hib-brace.b2,.hib-spark,.hib-tap,.hib-link path,.hib-lit .hib-glow{ animation:none !important; } .hib-lit .hib-glow{ opacity:.9; } }
+
 /* theme toggle */
 .theme-toggle{ display:inline-flex; align-items:center; justify-content:center; width:38px; height:38px;
   border-radius:50%; border:1px solid var(--line); color:var(--ink-soft); transition:border-color .3s, color .3s; flex:0 0 auto; }
