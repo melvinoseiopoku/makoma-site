@@ -192,22 +192,31 @@
             </div>
           </div>
 
-          <!-- the few who matter: pinned chats (avatars live in .wp-people, above) -->
+          <!-- Messages: header + a pinned-chats grid (the avatars themselves live in .wp-people) + threads + search -->
           <div class="wp-msgs">
-            <div class="wp-msgs-head">Messages</div>
-            <div class="wp-pin-label">Pinned</div>
-            <div class="wp-threads"><span></span><span></span><span></span></div>
+            <div class="wp-msgs-top">
+              <span class="wp-edit">Edit</span>
+              <span class="wp-mtitle">Messages</span>
+              <span class="wp-filter"><i></i><i></i><i></i></span>
+            </div>
+            <div class="wp-pingrid"></div>
+            <div class="wp-threads">
+              <div class="wp-thread"><span class="wp-th-av wp-th-g"></span><span class="wp-th-tx"><b>The Squad</b><i>142 new messages</i></span></div>
+              <div class="wp-thread"><span class="wp-th-av"></span><span class="wp-th-tx"><b>+1 (844) 997-0963</b><i>Summer Sale — 30% off, today only…</i></span></div>
+              <div class="wp-thread"><span class="wp-th-av"></span><span class="wp-th-tx"><b>72524</b><i>DHL: your parcel info was received…</i></span></div>
+            </div>
+            <div class="wp-search"><span class="wp-search-mag"></span>Search</div>
           </div>
         </div>
       </div>
 
-      <!-- the five: pinned avatars that lift out of the screen and cross-fade into their Adinkra beads -->
+      <!-- the five pinned chats: avatars laid out in the 3+2 grid, that lift out one-by-one and become Adinkra beads -->
       <div class="wp-people" aria-hidden="true">
-        <div class="wp-person" style="--i:0;--hue:#B77AF4"><img class="wp-face" src="assets/avatars/maya.png"  alt=""><img class="wp-bead" src="assets/beads/sankofa.png"   alt=""><b>Maya</b></div>
+        <div class="wp-person" style="--i:0;--hue:#B77AF4"><span class="wp-bubble">Not gonna sit here and beg…</span><img class="wp-face" src="assets/avatars/maya.png"  alt=""><img class="wp-bead" src="assets/beads/sankofa.png"   alt=""><span class="wp-udot"></span><b>Maya</b></div>
         <div class="wp-person" style="--i:1;--hue:#D6A84F"><img class="wp-face" src="assets/avatars/ama.png"   alt=""><img class="wp-bead" src="assets/beads/akoma.png"     alt=""><b>Ama</b></div>
         <div class="wp-person" style="--i:2;--hue:#63CE88"><img class="wp-face" src="assets/avatars/kwame.png" alt=""><img class="wp-bead" src="assets/beads/aya.png"       alt=""><b>Kwame</b></div>
         <div class="wp-person" style="--i:3;--hue:#E7A94E"><img class="wp-face" src="assets/avatars/nana.png"  alt=""><img class="wp-bead" src="assets/beads/gye_nyame.png" alt=""><b>Nana</b></div>
-        <div class="wp-person" style="--i:4;--hue:#5C9CEB"><img class="wp-face" src="assets/avatars/kofi.png"  alt=""><img class="wp-bead" src="assets/beads/nkyinkyim.png" alt=""><b>Kofi</b></div>
+        <div class="wp-person" style="--i:4;--hue:#5C9CEB"><img class="wp-face" src="assets/avatars/kofi.png"  alt=""><img class="wp-bead" src="assets/beads/nkyinkyim.png" alt=""><span class="wp-udot"></span><b>Kofi</b></div>
       </div>
 
       <p class="wp-cap"><span class="wp-cap-a">Everyone, all at once.</span><span class="wp-cap-b">Only the few you carry.</span></p>

@@ -1321,22 +1321,43 @@ section{ position:relative; z-index:2; }
 .wp-notif b{ font-size:10.5px; font-weight:700; }
 .wp-notif span{ font-size:10.5px; color:#b3ac9f; }
 
-/* messages view */
-.wp-msgs{ position:absolute; inset:0; padding:48px 16px 14px; opacity:0; pointer-events:none; transition:opacity .6s; z-index:1; }
-.wp-msgs-head{ font-size:23px; font-weight:700; color:#fff; }
-.wp-pin-label{ font-size:10.5px; color:#8a8478; text-transform:uppercase; letter-spacing:.14em; margin:60px 0 0; }
-.wp-threads{ display:flex; flex-direction:column; gap:13px; margin-top:94px; }
-.wp-threads span{ height:34px; border-radius:9px; background:linear-gradient(90deg, rgba(60,57,52,.45), rgba(60,57,52,.08)); }
+/* messages view — header + a 3+2 pinned-chats grid (avatars overlay it) + faded threads + search */
+.wp-msgs{ position:absolute; inset:0; padding:40px 13px 12px; opacity:0; pointer-events:none; transition:opacity .6s; z-index:1; display:flex; flex-direction:column; }
+.wp-msgs-top{ display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
+.wp-edit{ font-size:12px; color:#cdb06a; }
+.wp-mtitle{ font-size:15px; font-weight:700; color:#fff; }
+.wp-filter{ display:flex; flex-direction:column; gap:2px; width:23px; height:23px; border-radius:50%; background:#1b1a1e; align-items:center; justify-content:center; }
+.wp-filter i{ width:9px; height:1.5px; border-radius:1px; background:#cdb06a; }
+.wp-filter i:nth-child(2){ width:6px; } .wp-filter i:nth-child(3){ width:3px; }
+.wp-pingrid{ height:172px; flex:0 0 auto; }   /* reserves the grid space; the real avatars are positioned over it */
+.wp-threads{ display:flex; flex-direction:column; gap:1px; flex:1 1 auto; }
+.wp-thread{ display:flex; align-items:center; gap:9px; padding:5px 2px; opacity:.5; }
+.wp-th-av{ width:30px; height:30px; border-radius:50%; background:#2a2830; flex:0 0 auto; }
+.wp-th-g{ background:radial-gradient(circle at 35% 32%, #3c3944, #221f27); }
+.wp-th-tx{ display:flex; flex-direction:column; gap:1px; min-width:0; }
+.wp-th-tx b{ font-size:11px; color:#ece6d8; font-weight:600; }
+.wp-th-tx i{ font-size:10px; color:#8a8478; font-style:normal; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:178px; }
+.wp-search{ display:flex; align-items:center; gap:7px; height:30px; border-radius:9px; background:#1b1a1e; color:#8a8478; font-size:12px; padding:0 11px; margin-top:5px; }
+.wp-search-mag{ width:11px; height:11px; border:1.6px solid #8a8478; border-radius:50%; position:relative; flex:0 0 auto; }
+.wp-search-mag::after{ content:""; position:absolute; right:-3px; bottom:-3px; width:5px; height:1.6px; background:#8a8478; transform:rotate(45deg); border-radius:1px; }
 
 /* the five people overlay — hidden until Messages opens (phase 3), then they lift out */
 .wp-people{ position:absolute; inset:0; z-index:4; opacity:0; transition:opacity .55s; }
 #whyStage[data-phase="3"] .wp-people, #whyStage[data-phase="4"] .wp-people, #whyStage[data-phase="5"] .wp-people{ opacity:1; }
-.wp-person{ position:absolute; left:calc(50% + (var(--i) - 2) * 12.5%); top:27.5%; width:52px; height:52px; transform:translate(-50%,-50%);
+.wp-person{ position:absolute; width:58px; height:58px; transform:translate(-50%,-50%);
   transition:left 1.05s var(--ease), top 1.05s var(--ease), width 1.05s var(--ease), height 1.05s var(--ease); }
+/* pinned 3+2 grid (phase ≤3): row 1 = three across, row 2 = two left-aligned, like the screenshot */
+.wp-person:nth-child(1){ left:31%; top:21.5%; }
+.wp-person:nth-child(2){ left:50%; top:21.5%; }
+.wp-person:nth-child(3){ left:69%; top:21.5%; }
+.wp-person:nth-child(4){ left:31%; top:34.5%; }
+.wp-person:nth-child(5){ left:50%; top:34.5%; }
 .wp-person img{ position:absolute; inset:0; width:100%; height:100%; }
-.wp-face{ object-fit:cover; border-radius:50%; box-shadow:0 0 0 2px rgba(255,255,255,.16); opacity:1; transition:opacity .7s; }
+.wp-face{ object-fit:cover; border-radius:50%; box-shadow:0 0 0 1px rgba(255,255,255,.1); opacity:1; transition:opacity .7s; }
 .wp-bead{ object-fit:contain; opacity:0; transition:opacity .7s, filter .7s; }
-.wp-person b{ position:absolute; left:50%; bottom:-17px; transform:translateX(-50%); font-size:9.5px; font-weight:500; color:var(--ink-soft); white-space:nowrap; opacity:0; transition:opacity .5s; }
+.wp-person b{ position:absolute; left:50%; bottom:-15px; transform:translateX(-50%); font-size:9.5px; font-weight:500; color:#c8c2b4; white-space:nowrap; opacity:0; transition:opacity .5s; }
+.wp-udot{ position:absolute; left:calc(50% - 30px); bottom:-13px; width:7px; height:7px; border-radius:50%; background:#3b82f6; opacity:0; transition:opacity .4s; }
+.wp-bubble{ position:absolute; left:-8px; top:-26px; width:118px; background:#2c2a30; color:#d7d2c6; font-size:9px; line-height:1.3; padding:5px 8px; border-radius:12px 12px 12px 3px; opacity:0; transition:opacity .4s; z-index:3; pointer-events:none; }
 
 /* caption */
 .wp-cap{ position:absolute; left:0; right:0; bottom:0; text-align:center; font-family:var(--serif); font-size:clamp(1.05rem,2.6vw,1.5rem); color:var(--gold-pale); height:1.6em; }
@@ -1359,7 +1380,8 @@ section{ position:relative; z-index:2; }
 #whyStage[data-phase="4"] .wp-face, #whyStage[data-phase="5"] .wp-face{ opacity:0; }
 #whyStage[data-phase="4"] .wp-bead, #whyStage[data-phase="5"] .wp-bead{ opacity:1;
   filter:drop-shadow(0 6px 14px rgba(0,0,0,.55)) drop-shadow(0 0 13px color-mix(in srgb, var(--hue) 62%, transparent)); }
-#whyStage[data-phase="5"] .wp-person b{ opacity:.9; }
+#whyStage[data-phase="3"] .wp-person b, #whyStage[data-phase="4"] .wp-person b, #whyStage[data-phase="5"] .wp-person b{ opacity:.88; }
+#whyStage[data-phase="3"] .wp-udot, #whyStage[data-phase="3"] .wp-bubble{ opacity:1; }
 #whyStage[data-phase="5"] .wp-cap-a{ opacity:0; }
 #whyStage[data-phase="5"] .wp-cap-b{ opacity:1; }
 @media (prefers-reduced-motion: reduce){ .wp-person, .wp-phone, .wp-notif, .wp-lock, .wp-msgs, .wp-cap span{ transition:none !important; } }
