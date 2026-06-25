@@ -1372,6 +1372,10 @@ section{ position:relative; z-index:2; }
 #whyStage[data-phase="3"] .wp-msgs, #whyStage[data-phase="4"] .wp-msgs{ opacity:1; }
 #whyStage[data-phase="4"] .wp-phone, #whyStage[data-phase="5"] .wp-phone{ opacity:0; transform:translateX(-50%) translateY(-26px) scale(.9); }
 #whyStage[data-phase="4"] .wp-person, #whyStage[data-phase="5"] .wp-person{ width:60px; height:60px; left:calc(50% + (var(--i) - 2) * 20.5%); }
+/* single-file: each avatar peels off and becomes a bead one after the other (per-index delay) */
+#whyStage[data-phase="4"] .wp-person, #whyStage[data-phase="5"] .wp-person,
+#whyStage[data-phase="4"] .wp-face,   #whyStage[data-phase="5"] .wp-face,
+#whyStage[data-phase="4"] .wp-bead,   #whyStage[data-phase="5"] .wp-bead{ transition-delay: calc(var(--i) * 0.17s); }
 #whyStage[data-phase="4"] .wp-person:nth-child(1), #whyStage[data-phase="5"] .wp-person:nth-child(1){ top:50%; }
 #whyStage[data-phase="4"] .wp-person:nth-child(2), #whyStage[data-phase="5"] .wp-person:nth-child(2){ top:57.5%; }
 #whyStage[data-phase="4"] .wp-person:nth-child(3), #whyStage[data-phase="5"] .wp-person:nth-child(3){ top:60%; }
