@@ -1370,25 +1370,34 @@ section{ position:relative; z-index:2; }
 #whyStage[data-phase="2"] .wp-lock{ opacity:0; filter:blur(2px); }
 #whyStage[data-phase="3"] .wp-lock, #whyStage[data-phase="4"] .wp-lock, #whyStage[data-phase="5"] .wp-lock{ opacity:0; pointer-events:none; }
 #whyStage[data-phase="3"] .wp-msgs, #whyStage[data-phase="4"] .wp-msgs{ opacity:1; }
-#whyStage[data-phase="4"] .wp-phone, #whyStage[data-phase="5"] .wp-phone{ opacity:0; transform:translateX(-50%) translateY(-26px) scale(.9); }
-#whyStage[data-phase="4"] .wp-person, #whyStage[data-phase="5"] .wp-person{ width:60px; height:60px; left:calc(50% + (var(--i) - 2) * 20.5%); }
-/* single-file: each avatar peels off and becomes a bead one after the other (per-index delay) */
-#whyStage[data-phase="4"] .wp-person, #whyStage[data-phase="5"] .wp-person,
-#whyStage[data-phase="4"] .wp-face,   #whyStage[data-phase="5"] .wp-face,
-#whyStage[data-phase="4"] .wp-bead,   #whyStage[data-phase="5"] .wp-bead{ transition-delay: calc(var(--i) * 0.17s); }
-#whyStage[data-phase="4"] .wp-person:nth-child(1), #whyStage[data-phase="5"] .wp-person:nth-child(1){ top:50%; }
-#whyStage[data-phase="4"] .wp-person:nth-child(2), #whyStage[data-phase="5"] .wp-person:nth-child(2){ top:57.5%; }
-#whyStage[data-phase="4"] .wp-person:nth-child(3), #whyStage[data-phase="5"] .wp-person:nth-child(3){ top:60%; }
-#whyStage[data-phase="4"] .wp-person:nth-child(4), #whyStage[data-phase="5"] .wp-person:nth-child(4){ top:57.5%; }
-#whyStage[data-phase="4"] .wp-person:nth-child(5), #whyStage[data-phase="5"] .wp-person:nth-child(5){ top:50%; }
-#whyStage[data-phase="4"] .wp-face, #whyStage[data-phase="5"] .wp-face{ opacity:0; }
-#whyStage[data-phase="4"] .wp-bead, #whyStage[data-phase="5"] .wp-bead{ opacity:1;
-  filter:drop-shadow(0 6px 14px rgba(0,0,0,.55)) drop-shadow(0 0 13px color-mix(in srgb, var(--hue) 62%, transparent)); }
-#whyStage[data-phase="3"] .wp-person b, #whyStage[data-phase="4"] .wp-person b, #whyStage[data-phase="5"] .wp-person b{ opacity:.88; }
+/* peel: each avatar, once "departed", flies to the bracelet arc and cross-fades into its Adinkra bead */
+.wp-person.departed{ width:60px; height:60px; left:calc(50% + (var(--i) - 2) * 20.5%); }
+.wp-person.departed:nth-child(1){ top:50%; }
+.wp-person.departed:nth-child(2){ top:57.5%; }
+.wp-person.departed:nth-child(3){ top:60%; }
+.wp-person.departed:nth-child(4){ top:57.5%; }
+.wp-person.departed:nth-child(5){ top:50%; }
+.wp-person.departed .wp-face{ opacity:0; }
+.wp-person.departed .wp-bead{ opacity:1; filter:drop-shadow(0 6px 14px rgba(0,0,0,.55)) drop-shadow(0 0 13px color-mix(in srgb, var(--hue) 62%, transparent)); }
+#whyStage .wp-person.departed .wp-udot, #whyStage .wp-person.departed .wp-bubble{ opacity:0; }
+.wp-person.departed b{ opacity:.85; }
+/* names + pinned details appear once Messages is open */
+#whyStage[data-phase="3"] .wp-person b{ opacity:.88; }
 #whyStage[data-phase="3"] .wp-udot, #whyStage[data-phase="3"] .wp-bubble{ opacity:1; }
-#whyStage[data-phase="5"] .wp-cap-a{ opacity:0; }
-#whyStage[data-phase="5"] .wp-cap-b{ opacity:1; }
+#whyStage.cap-b .wp-cap-a{ opacity:0; }
+#whyStage.cap-b .wp-cap-b{ opacity:1; }
 @media (prefers-reduced-motion: reduce){ .wp-person, .wp-phone, .wp-notif, .wp-lock, .wp-msgs, .wp-cap span{ transition:none !important; } }
+
+/* ===== MERGE: the phone is a scroll-driven overlay above the (untouched) carousel, in one tall sticky section ===== */
+.circle-merge{ position:relative; min-height:360vh; padding:0; }
+.circle-sticky{ position:sticky; top:0; min-height:100svh; min-height:100dvh; display:flex; align-items:center; justify-content:center; overflow:hidden; padding:0 16px; }
+.circle-merge .car-wrap{ transition:opacity .7s ease; }
+.circle-merge #whyStage{ display:none; position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); margin:0; z-index:5; transition:opacity .7s ease; }
+.circle-merge.circle-anim #whyStage{ display:block; }
+.circle-merge.circle-anim:not(.is-handoff) .car-wrap{ opacity:0; pointer-events:none; }   /* carousel hidden during the phone intro */
+.circle-merge.is-handoff #whyStage{ opacity:0; pointer-events:none; }                       /* phone gone, carousel takes over */
+#whyStage.phone-out .wp-phone{ opacity:0; }   /* fade the device once the beads have formed, before the carousel reveal */
+@media (prefers-reduced-motion: reduce){ .circle-merge{ min-height:0; } .circle-sticky{ position:static; min-height:0; } }
 
 /* ----- carousel: avatar in the header (app-style), not on the bead ----- */
 .car-avatarwrap{ width:clamp(60px,12vw,78px); height:clamp(60px,12vw,78px); border-radius:50%;

@@ -171,8 +171,14 @@
     <p class="section-tag reveal">Why M&rsquo;akoma</p>
     <h2 class="big-statement reveal">Only the few<span class="muted"> who matter, <span class="strike">kept close.</span></span></h2>
 
-    <!-- Why M'AKOMA: a phone buried in notifications quiets to 5 pinned people, who lift out as beads. Autoplay on view (js/why.js). -->
-    <div class="why-stage reveal" id="whyStage" data-phase="0" role="img"
+
+  </div>
+</section>
+
+<!-- ============ THE CIRCLE — bead carousel (merges Circle Mode + Echo/Pulse/Glow + Adinkra) ============ -->
+<section id="circle" class="car-section circle-merge" aria-labelledby="car-headline">
+  <div class="circle-sticky" id="circleSticky">
+    <div class="why-stage" id="whyStage" data-phase="0" role="img"
          aria-label="A phone buried in notifications quiets down to five pinned people, who lift out of the screen and become the beads of a bracelet.">
       <div class="wp-phone" aria-hidden="true">
         <div class="wp-screen">
@@ -221,11 +227,7 @@
 
       <p class="wp-cap"><span class="wp-cap-a">Everyone, all at once.</span><span class="wp-cap-b">Only the few you carry.</span></p>
     </div>
-  </div>
-</section>
 
-<!-- ============ THE CIRCLE — bead carousel (merges Circle Mode + Echo/Pulse/Glow + Adinkra) ============ -->
-<section id="circle" class="car-section" aria-labelledby="car-headline">
   <div class="car-wrap">
     <header class="car-head">
       <p class="car-eyebrow">The circle</p>
@@ -269,6 +271,7 @@
         <span class="car-btn-hint">set their colour</span>
       </button>
     </div>
+  </div>
   </div>
 </section>
 
@@ -525,7 +528,7 @@
 <script type="module" src="js/hero3d.js"></script>
 <script src="js/carousel.js"></script>
 <script src="js/positioning.js"></script>
-<script src="js/why.js" defer></script>
+<script src="js/circle.js" defer></script>
 <script>
   /* Safety net: if the 3D module never runs (parse/load error), collapse the
      pinned anatomy hero to the static render rather than show empty scroll. */
