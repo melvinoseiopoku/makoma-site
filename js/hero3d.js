@@ -212,9 +212,11 @@ function init() {
     }
     if (braidB) { const n = Math.floor(braidTotal * f); braidB.geometry.setDrawRange(0, n); braidC.geometry.setDrawRange(0, n); }
     matGlow.emissiveIntensity = 2.0 + 0.45 * (0.5 + 0.5 * Math.sin(idle * 0.55));   // LED breathing, toned down (2.0..2.45)
+    matLED.emissiveIntensity = 2.8 + 0.7 * (0.5 + 0.5 * Math.sin(idle * 0.6));      // the exploded bead's PCB LED breathes (2.8..3.5)
     placeCamera(settle);
     for (const rv of reveals) updateExplode(rv, rv._e);
     updateHubLabels(hubAsm ? hubAsm._e : 0);
+    updateBeadLabels(beadAsm ? beadAsm._e : 0);
     if (settle > 0 && hubAsm) {   // rotate the hub UPRIGHT (button up, like the product shot) as we pan out
       const up = EXPLODE_AXIS.clone().applyQuaternion(spin.quaternion.clone().invert()).applyQuaternion(orient.quaternion.clone().invert()).normalize();
       hubAsm.pivot.quaternion.slerpQuaternions(new THREE.Quaternion(), new THREE.Quaternion().setFromUnitVectors(hubAsm.axis, up), settle);
@@ -255,6 +257,14 @@ function init() {
   // from the low camera, so a plain gold finish barely reads — instead it GLOWS warm gold (the "touch it, it answers
   // in light" moment made literal), which stays unmistakable at any angle and blooms softly.
   const matPlate = new THREE.MeshStandardMaterial({ color: 0xffcf7a, emissive: 0xffb24a, emissiveIntensity: 2.2, roughness: 0.4, metalness: 0.55 });
+  // the gold capacitive ELECTRODE plate — a passive touch pad, NOT a light source.
+  // Satin warm gold with lower metalness so it catches the key light and reads as a
+  // gold surface at the low camera angle (rather than a dark mirror). The glow comes
+  // from the LED on the PCB, not from this plate.
+  const matElectrode = new THREE.MeshStandardMaterial({ color: 0xdcb35f, roughness: 0.46, metalness: 0.4, envMapIntensity: 0.7 });
+  // the PCB's indicator LED — THIS is the actual light source. Bright warm emissive that
+  // blooms; breathed gently in update() like the backlit symbols.
+  const matLED = new THREE.MeshStandardMaterial({ color: 0xfff1d4, emissive: 0xffb24a, emissiveIntensity: 3.2, roughness: 0.4, metalness: 0.0 });
   const matMetal = new THREE.MeshStandardMaterial({ color: 0x16161a, roughness: 0.46, metalness: 0.55, envMapIntensity: 0.35 });
   const remap = (m) => { const mm = (m && m.metalness !== undefined) ? m.metalness : 0; return mm > 0.8 ? matGold : (mm > 0.3 ? matMetal : matBlack); };
 
@@ -441,7 +451,7 @@ function init() {
   // end-of-scroll SETTLE: the spin eases to a stop with the hub at the back, the camera rises to a top-front 3/4
   // view and pulls back to frame the whole bracelet, and the hub rotates upright (button up) like the product shot.
   const SETTLE0 = 0.82, CAM_EL_END = 27, CAM_DIST_END = 4.7, CAM_PAN_END = 0.5;
-  let hubAsm = null, endSpin = 0;
+  let hubAsm = null, beadAsm = null, endSpin = 0;
 
   function buildBoard(url, axis) {   // a REAL routed board exported from KiCad (Draco glTF), laid flat ⟂ axis
     const g = new THREE.Group();     // filled asynchronously when the board GLB loads
@@ -539,14 +549,28 @@ function init() {
     const cap = attachPart(pivot, 'FB_CAP' + EXPLODE_NODE, 1.7); parts.push(cap);   // lift the symbol lid well clear so the plate under it is exposed
     const base = attachPart(pivot, 'FB_BASE' + EXPLODE_NODE, -0.85); parts.push(base);
     const axis = cap.rest.clone().sub(base.rest).normalize();   // true symbol axis (cap centre -> base centre)
-    const plate = attachPart(pivot, 'PLATFORM' + EXPLODE_NODE, 0.55);   // the gold touch/backlight plate — now sits in the OPEN gap below the lifted lid
-    if (plate) { plate.obj.material = matPlate; parts.push(plate); }    // glowing gold (its loaded material read dark, and the cap was hiding it)
+    const plate = attachPart(pivot, 'PLATFORM' + EXPLODE_NODE, 0.55);   // the gold capacitive electrode — sits in the OPEN gap below the lifted lid
+    if (plate) { plate.obj.material = matElectrode; parts.push(plate); }  // passive gold pad (NOT glowing — the light is the PCB LED)
     const pcb = buildBoard('assets/models/akoma_pcb.glb', axis); pcb.position.copy(axis).multiplyScalar(0.3 * MM); pivot.add(pcb);
     parts.push({ obj: pcb, rest: pcb.position.clone(), dir: axis, dist: 0.18 });
+    // the indicator LED ON the PCB — the real light source (what shines out through the symbol).
+    // A bright emissive dome plus a small point light so it visibly lights the board around it.
+    const led = new THREE.Mesh(new THREE.SphereGeometry(1.5 * MM, 20, 16), matLED);
+    led.position.copy(axis).multiplyScalar(1.1 * MM);   // proud of the board, on the symbol-facing side
+    pcb.add(led);
+    const ledGlow = new THREE.PointLight(0xffc878, 6, 6 * MM, 2); ledGlow.position.copy(led.position); pcb.add(ledGlow);
     const motor = buildMotor(axis); motor.position.copy(axis).multiplyScalar(-1.5 * MM); pivot.add(motor);
     parts.push({ obj: motor, rest: motor.position.clone(), dir: axis, dist: -0.42 });
     for (const p of parts) p.dir = axis;
-    reveals.push({ pivot, parts, axis, pE, W: EXPLODE_WIN, internals: [pcb, motor], presentSpin: frontSpin(pivot) });
+    // exploded-diagram callouts: touch goes IN at the electrode; the answer comes OUT
+    // as light (the PCB LED) and a pulse (the ERM motor) — "touch it, it answers"
+    const labels = buildLabels(beadLabelHost, [
+      [plate ? plate.obj : pcb, "Touch"],
+      [led,                     "Light"],
+      [motor,                   "A pulse"],
+    ]);
+    beadAsm = { pivot, parts, axis, pE, W: EXPLODE_WIN, internals: [pcb, motor], presentSpin: frontSpin(pivot), labels };
+    reveals.push(beadAsm);
   }
 
   function setupHubReveal() {     // core hub: revealed WHEN it rotates into frame (already front -> no swing needed)
@@ -597,18 +621,20 @@ function init() {
     for (const o of asm.internals) o.visible = exp > 0.004;
   }
 
-  // ---- per-component HUB labels: one tag pinned to each part, projected to screen and revealed as the hub splits ----
+  // ---- per-component labels: one tag pinned to each part, projected to screen and revealed as the assembly splits ----
   const hubLabelHost = $("#hubLabels");
-  function buildHubLabels(defs) {
-    if (!hubLabelHost) return [];
-    hubLabelHost.innerHTML = "";
+  const beadLabelHost = $("#beadLabels");
+  function buildLabels(host, defs) {
+    if (!host) return [];
+    host.innerHTML = "";
     return defs.map(([obj, text]) => {
       const el = document.createElement("div"); el.className = "hub-label";
       el.innerHTML = '<i></i><span>' + text + '</span>';
-      hubLabelHost.appendChild(el);
+      host.appendChild(el);
       return { obj, el };
     });
   }
+  function buildHubLabels(defs) { return buildLabels(hubLabelHost, defs); }
   const _lblV = new THREE.Vector3();
   function updateHubLabels(e) {
     if (!hubAsm || !hubAsm.labels || !hubAsm.labels.length) return;
@@ -624,6 +650,26 @@ function init() {
       const off = Math.min(w, 1400) * 0.075 * side;              // and sit clear of the central part column
       L.el.style.left = Math.round(x + off) + "px"; L.el.style.top = Math.round(y) + "px";
       L.el.classList.toggle("flip", side < 0);                    // left margin: tag reads inward, toward its part
+      L.el.style.opacity = String(show);
+    });
+  }
+
+  // ---- bead-reveal callouts: Touch (electrode) → Light (PCB LED) + A pulse (motor) ----
+  const _bLblV = new THREE.Vector3();
+  function updateBeadLabels(e) {
+    if (!beadAsm || !beadAsm.labels || !beadAsm.labels.length) return;
+    const show = clamp(Math.min(smooth(0.34, 0.54, e), 1 - smooth(0.66, 0.86, e)), 0, 1);
+    if (show < 0.01) { for (const L of beadAsm.labels) L.el.style.opacity = "0"; return; }
+    const w = canvas.clientWidth || window.innerWidth || 1, h = canvas.clientHeight || window.innerHeight || 1;
+    camera.updateMatrixWorld();
+    beadAsm.labels.forEach((L, i) => {
+      L.obj.getWorldPosition(_bLblV); _bLblV.project(camera);
+      if (_bLblV.z >= 1) { L.el.style.opacity = "0"; return; }
+      const x = (_bLblV.x * 0.5 + 0.5) * w, y = (-_bLblV.y * 0.5 + 0.5) * h;
+      const side = (i === 1) ? -1 : 1;                 // "Light" to the left margin; "Touch"/"A pulse" to the right
+      const off = Math.min(w, 1400) * 0.06 * side;
+      L.el.style.left = Math.round(x + off) + "px"; L.el.style.top = Math.round(y) + "px";
+      L.el.classList.toggle("flip", side < 0);
       L.el.style.opacity = String(show);
     });
   }

@@ -1451,14 +1451,15 @@ section{ position:relative; z-index:2; }
 }
 .wl-edge--t{ top:0;    left:50%; transform:translate(-50%,-148%); }
 .wl-edge--b{ bottom:0; left:50%; transform:translate(-50%, 148%); }
-.wl-edge--l{ left:0;   top:50%;  transform:translate(-72%,-50%); }
-.wl-edge--r{ right:0;  top:50%;  transform:translate( 72%,-50%); }
+/* x-axis (effort↔presence) labels run VERTICALLY, reading bottom-to-top, sitting
+   on the left/right edges — and still mounted on the plane so they tilt with it */
+.wl-edge--l{ left:0;   top:50%;  transform:translate(-62%,-50%) rotate(-90deg); }
+.wl-edge--r{ right:0;  top:50%;  transform:translate( 62%,-50%) rotate(-90deg); }
 .wl-logo svg{ width:22px; height:22px; display:block; }
 @media(max-width:860px){
   .wl-edge{ font-size:.52rem; letter-spacing:.04em; padding:3px 7px; }
-  /* keep side callouts inside the grid so they never clip off a narrow screen */
-  .wl-edge--l{ left:3%;  transform:translate(0,-50%); }
-  .wl-edge--r{ right:3%; transform:translate(0,-50%); }
+  .wl-edge--l{ left:0;  transform:translate(-54%,-50%) rotate(-90deg); }
+  .wl-edge--r{ right:0; transform:translate( 54%,-50%) rotate(-90deg); }
   .wl-edge--t{ transform:translate(-50%,-128%); }
   .wl-edge--b{ transform:translate(-50%, 128%); }
 }
@@ -1528,25 +1529,26 @@ section{ position:relative; z-index:2; }
 :root[data-theme="light"] .car-bead-img, :root[data-theme="light"] .wl-beadimg, :root[data-theme="light"] .rp-bead{ filter:drop-shadow(0 8px 18px rgba(60,45,15,.3)); }
 
 /* light mode: the hero copy sits over the busy 3D scene (dark beads on a light
-   ground), so dark text collides with the beads. Lay a soft left-anchored veil
-   in the paper colour behind the copy, and give the text a faint light halo. */
+   ground). Lay a clean left-anchored veil in the paper colour behind the copy so
+   the dark text reads against an even backdrop — and crucially NO glow halo on the
+   text (a light halo just fogs the edges and made it harder to read). */
 :root[data-theme="light"] .hero3d-overlay::before{
   content:""; position:absolute; inset:0; pointer-events:none; z-index:0;
-  background:linear-gradient(96deg,
+  background:linear-gradient(98deg,
     var(--black) 0%,
-    color-mix(in srgb, var(--black) 82%, transparent) 24%,
-    color-mix(in srgb, var(--black) 34%, transparent) 44%,
-    transparent 62%);
+    var(--black) 30%,
+    color-mix(in srgb, var(--black) 90%, transparent) 42%,
+    color-mix(in srgb, var(--black) 50%, transparent) 54%,
+    transparent 70%);
 }
 :root[data-theme="light"] .hero-intro,
 :root[data-theme="light"] .hero-caption{ z-index:1; }
-:root[data-theme="light"] .hero-intro .eyebrow,
-:root[data-theme="light"] .hero-intro .hero-title,
-:root[data-theme="light"] .hero-intro .hero-sub,
-:root[data-theme="light"] .hero-caption .hc-kicker,
-:root[data-theme="light"] .hero-caption .hc-title,
-:root[data-theme="light"] .hero-caption .hc-line{
-  text-shadow:0 1px 2px rgba(255,251,243,.9), 0 0 16px rgba(255,251,243,.65);
+/* keep the gold title/accent legible on the light ground: drop the lightest
+   gradient stop so "you carry." is a deep, readable gold rather than pale */
+:root[data-theme="light"] .hero-title .gold-ink,
+:root[data-theme="light"] .hc-title .gold-ink{
+  background:linear-gradient(100deg, var(--gold-bright), var(--gold-pale) 55%, var(--gold-bright));
+  -webkit-background-clip:text; background-clip:text;
 }
 
 /* ============================================================
