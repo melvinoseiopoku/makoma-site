@@ -622,7 +622,7 @@ function init() {
     beadWords = chosen.map((b, k) => {
       const el = document.createElement("div"); el.className = "bead-word"; el.textContent = words[k];
       beadWordHost.appendChild(el);
-      return { anchor: b.anchor, el };
+      return { anchor: b.anchor, el, frontAnim: b.anim };   // the anim where this bead is dead-front
     });
   }
 
@@ -703,19 +703,24 @@ function init() {
   const _bwV = new THREE.Vector3();
   function updateBeadWords(anim) {
     if (!beadWords.length) return;
-    const startA = beadAsm ? beadAsm.pE + 0.02 : 0.18;     // appear once the exploded bead has been & gone
-    const master = clamp(smooth(startA, startA + 0.05, anim) * (1 - smooth(0.72, 0.85, anim)), 0, 1);
+    if (beadAsm && beadAsm._e > 0.03 && beadAsm._e < 0.97) {   // exploded bead is mid-reveal → keep the words clear of it
+      for (const W of beadWords) W.el.style.opacity = "0"; return;
+    }
+    const startA = beadAsm ? beadAsm.pE - 0.02 : 0.14;     // full by the time the first after-bead swings front
+    const master = clamp(smooth(startA, startA + 0.02, anim) * (1 - smooth(0.86, 0.96, anim)), 0, 1);
     const w = canvas.clientWidth || window.innerWidth || 1, h = canvas.clientHeight || window.innerHeight || 1;
     if (master < 0.01) { for (const W of beadWords) W.el.style.opacity = "0"; return; }
     camera.updateMatrixWorld();
     for (const W of beadWords) {
       W.anchor.getWorldPosition(_bwV);
-      const facing = smooth(0.1, 0.5, _bwV.x / Math.max(modelR, 0.001));   // camera at +X: +front, −back
+      let d = anim - W.frontAnim; d = ((d % 1) + 1) % 1; if (d > 0.5) d -= 1;   // signed circular distance to this bead's front
+      const facing = clamp(1 - smooth(0, 0.085, Math.abs(d)), 0, 1);            // full at dead-front, gone within ±0.085 → words fire one after another
       _bwV.project(camera);
-      if (_bwV.z >= 1) { W.el.style.opacity = "0"; continue; }
+      if (_bwV.z >= 1 || facing < 0.01) { W.el.style.opacity = "0"; continue; }
       const x = (_bwV.x * 0.5 + 0.5) * w, y = (-_bwV.y * 0.5 + 0.5) * h;
+      const rise = h * (0.085 + 0.06 * facing);             // pops UP from behind the bead as it turns to front; always sits ABOVE it
       W.el.style.left = Math.round(x) + "px";
-      W.el.style.top = Math.round(y - h * 0.075) + "px";   // sit just ABOVE (on top of) the bead
+      W.el.style.top = Math.round(y - rise) + "px";
       W.el.style.opacity = String(master * facing);
     }
   }
