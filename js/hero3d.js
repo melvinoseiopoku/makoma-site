@@ -206,9 +206,26 @@ function init() {
     updateHubLabels(hubAsm ? hubAsm._e : 0);
     updateBeadLabels(beadAsm ? beadAsm._e : 0);
     updateBeadWords(anim);
-    if (settle > 0 && hubAsm) {   // rotate the hub UPRIGHT (button up, like the product shot) as we pan out
+    if (settle > 0 && hubAsm && cordEndL && cordEndR) {
+      // rotate the hub UPRIGHT (button up) for the product shot — but ONLY about the axis through its
+      // two cord ends (the bus-hole line, which runs through the hub centre), and pivot about that
+      // line's midpoint, NOT the hub centre. So the bus holes stay exactly on the cord ends instead
+      // of the hub swinging off the cord.
       const up = EXPLODE_AXIS.clone().applyQuaternion(spin.quaternion.clone().invert()).applyQuaternion(orient.quaternion.clone().invert()).normalize();
-      hubAsm.pivot.quaternion.slerpQuaternions(new THREE.Quaternion(), new THREE.Quaternion().setFromUnitVectors(hubAsm.axis, up), settle);
+      const eAxis = cordEndR.clone().sub(cordEndL).normalize();   // model space == pivot-local direction
+      const f = hubAsm.axis.clone().addScaledVector(eAxis, -hubAsm.axis.dot(eAxis));   // button axis ⟂ eAxis
+      const t = up.clone().addScaledVector(eAxis, -up.dot(eAxis));                      // world-up ⟂ eAxis
+      let ang = 0;
+      if (f.lengthSq() > 1e-6 && t.lengthSq() > 1e-6) {
+        f.normalize(); t.normalize();
+        ang = Math.acos(clamp(f.dot(t), -1, 1));
+        if (new THREE.Vector3().crossVectors(f, t).dot(eAxis) < 0) ang = -ang;
+      }
+      const q = new THREE.Quaternion().slerpQuaternions(new THREE.Quaternion(),
+        new THREE.Quaternion().setFromAxisAngle(eAxis, ang), settle);
+      hubAsm.pivot.quaternion.copy(q);
+      const M = cordEndL.clone().add(cordEndR).multiplyScalar(0.5);                    // midpoint of the cord ends
+      hubAsm.pivot.position.copy(hubAsm.O.clone().sub(M).applyQuaternion(q).add(M));    // rotate the pivot ABOUT that line
     }
     overlay(anim);
   }
@@ -296,6 +313,7 @@ function init() {
   cordNormal.colorSpace = THREE.NoColorSpace;
   const matCord = new THREE.MeshStandardMaterial({ color: 0x0a0a0a, roughness: 0.95, metalness: 0.0, envMapIntensity: 0.2, normalMap: cordNormal, normalScale: new THREE.Vector2(0.8, 0.8), roughnessMap: cordRough, side: THREE.DoubleSide });
   let cordMesh = null, cordTotal = 0, cordCurve = null, cordTip = null, cordStart = null;
+  let cordEndL = null, cordEndR = null;   // the two cord ends at the hub (model space) = the bus-hole axis
   let CORD_RAD = 0.2;  // core cord — fattened from the Ø2.8 mm path so it fully backs the sennit (no see-through
                        // gaps between the braid coils): the sennit/wraps read as a SOLID rope, not a hollow coil.
   function buildCord() {
@@ -307,6 +325,7 @@ function init() {
     const n = raw.length, CORD_EMBED = 0.5;
     const pL = raw[0].clone().addScaledVector(raw[0].clone().sub(raw[1]).normalize(), CORD_EMBED);
     const pR = raw[n - 1].clone().addScaledVector(raw[n - 1].clone().sub(raw[n - 2]).normalize(), CORD_EMBED);
+    cordEndL = pL.clone(); cordEndR = pR.clone();   // remember the hub entries for the settle rotation
     const pts = [pL, ...raw, pR];
     const curve = new THREE.CatmullRomCurve3(pts, false, "centripetal");
     const geo = new THREE.TubeGeometry(curve, 760, CORD_RAD, 12, false);
@@ -592,7 +611,7 @@ function init() {
     ]);
     const fs = frontSpin(pivot);
     const pE = (((fs - SPIN_PHASE) / TAU) % 1 + 1) % 1;   // anim where the hub is frontmost
-    hubAsm = { pivot, parts, axis, pE, W: EXPLODE_WIN, internals: [board, battery, speaker], presentSpin: null, labels };
+    hubAsm = { pivot, parts, axis, pE, W: EXPLODE_WIN, internals: [board, battery, speaker], presentSpin: null, labels, O: O.clone() };
     reveals.push(hubAsm);
     endSpin = fs + Math.PI;   // settle target: hub swung to the BACK so the beads face the camera in the final shot
   }
