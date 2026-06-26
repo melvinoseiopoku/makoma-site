@@ -185,6 +185,15 @@ h1,h2,h3{ font-family:var(--serif); font-weight:500; line-height:1.04; letter-sp
 .hub-label.flip{ flex-direction:row-reverse; transform:translate(-100%,-50%); }
 @media(max-width:820px){ .hub-label{ font-size:.55rem; letter-spacing:.1em; gap:6px; } }
 
+/* on-bead words ("Everyone gets their own") — pinned above each bead, tracking the spin.
+   Fixed pale-gold + a strong dark halo so they read on the matte-black beads in BOTH themes. */
+.bead-words{ position:absolute; inset:0; z-index:4; pointer-events:none; overflow:hidden; }
+.bead-word{ position:absolute; transform:translate(-50%,-50%); opacity:0; white-space:nowrap;
+  font-family:var(--serif); font-style:italic; font-size:clamp(1.1rem,2vw,1.65rem); letter-spacing:.01em;
+  color:#f3e7c8; text-shadow:0 2px 16px rgba(0,0,0,.96), 0 0 5px rgba(0,0,0,.9);
+  will-change:left,top,opacity; }
+@media(max-width:820px){ .bead-word{ font-size:1rem; } }
+
 .hero-outro{ position:absolute; left:0; right:0; top:72%; transform:translateY(-50%); text-align:center; opacity:0; padding:0 24px; }
 .hero-outro h2{ font-size:clamp(2.4rem,6vw,4.4rem); margin-bottom:30px; }
 .hero-outro .hero-actions{ justify-content:center; margin-bottom:0; }
@@ -1532,28 +1541,19 @@ section{ position:relative; z-index:2; }
    ground). Lay a clean left-anchored veil in the paper colour behind the copy so
    the dark text reads against an even backdrop — and crucially NO glow halo on the
    text (a light halo just fogs the edges and made it harder to read). */
-/* only a faint, narrow wash at the very left edge — the bracelet stays visible.
-   The real legibility comes from a paper-coloured halo that HUGS the text (below):
-   invisible over the light ground, it backs the text only where a dark bead is behind. */
-:root[data-theme="light"] .hero3d-overlay::before{
-  content:""; position:absolute; inset:0; pointer-events:none; z-index:0;
-  background:linear-gradient(98deg,
-    color-mix(in srgb, var(--black) 50%, transparent) 0%,
-    color-mix(in srgb, var(--black) 16%, transparent) 20%,
-    transparent 34%);
+/* light mode: don't veil the whole hero. Lay a soft paper "pool" behind ONLY the intro
+   copy so it reads cleanly, while the bracelet stays fully visible everywhere else. */
+:root[data-theme="light"] .hero-intro{ z-index:1; }
+:root[data-theme="light"] .hero-intro::before{
+  content:""; position:absolute; z-index:-1; pointer-events:none;
+  inset:-50px -92px -44px -64px;
+  background:radial-gradient(92% 90% at 33% 50%,
+    var(--black) 0%,
+    var(--black) 30%,
+    color-mix(in srgb, var(--black) 80%, transparent) 50%,
+    transparent 76%);
 }
-:root[data-theme="light"] .hero-intro,
-:root[data-theme="light"] .hero-caption{ z-index:1; }
-:root[data-theme="light"] .hero-intro .eyebrow,
-:root[data-theme="light"] .hero-intro .hero-title,
-:root[data-theme="light"] .hero-intro .hero-sub,
-:root[data-theme="light"] .hero-caption .hc-kicker,
-:root[data-theme="light"] .hero-caption .hc-title,
-:root[data-theme="light"] .hero-caption .hc-line{
-  text-shadow:0 0 2px var(--black), 0 0 4px var(--black), 0 0 7px var(--black), 0 0 10px var(--black);
-}
-/* keep the gold title/accent legible on the light ground: drop the lightest
-   gradient stop so "you carry." is a deep, readable gold rather than pale */
+/* keep the gold title legible on the light ground: drop the lightest gradient stop */
 :root[data-theme="light"] .hero-title .gold-ink,
 :root[data-theme="light"] .hc-title .gold-ink{
   background:linear-gradient(100deg, var(--gold-bright), var(--gold-pale) 55%, var(--gold-bright));

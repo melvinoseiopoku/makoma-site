@@ -139,22 +139,9 @@ function init() {
     const outOp = smooth(0.9, 0.99, p);
     if (outro) { outro.style.opacity = outOp; outro.style.pointerEvents = outOp > 0.5 ? "auto" : "none"; }
     if (bar) bar.style.transform = `scaleX(${p})`;
-    if (!capWrap) return;
-    const beadE = beadAsm ? beadAsm._e : 0;     // 0..1 explode phase (peaks mid-dwell)
-    const hubE  = hubAsm ? hubAsm._e : 0;
-    if (beadE > 0.02) { capWrap.style.opacity = "0"; return; }   // bead explode: the TOUCH / LIGHT / A PULSE callouts say it — no prose caption
-    const openEnv = (e) => clamp(smooth(0.12, 0.34, e) * (1 - smooth(0.70, 0.92, e)), 0, 1);   // rise as parts split, fall as they reassemble
-    let cap, op;
-    if (hubE > 0.02) { cap = SCENE.hub; op = openEnv(hubE); }          // the hub is OPEN → the core
-    else {                                                                  // SPIN between the two reveals
-      const mid = 0.47;
-      if (p < mid) { cap = SCENE.person;  op = smooth(0.15, 0.27, p) * (1 - smooth(mid - 0.05, mid + 0.01, p)); }
-      else         { cap = SCENE.symbols; op = smooth(mid + 0.02, mid + 0.10, p) * (1 - smooth(0.70, 0.79, p)); }
-    }
-    if (capK) capK.textContent = cap.k;
-    if (capT) capT.textContent = cap.t;
-    if (capL) capL.textContent = cap.l;
-    capWrap.style.opacity = clamp(op, 0, 1);
+    // bottom prose captions removed: the exploded-bead callouts (TOUCH/LIGHT/A pulse), the
+    // on-bead words ("Everyone gets their own"), and the hub component labels carry the story.
+    if (capWrap) capWrap.style.opacity = "0";
   }
 
   let ready = false, progress = 0, target = 0, idle = 0, inView = true;
@@ -217,6 +204,7 @@ function init() {
     for (const rv of reveals) updateExplode(rv, rv._e);
     updateHubLabels(hubAsm ? hubAsm._e : 0);
     updateBeadLabels(beadAsm ? beadAsm._e : 0);
+    updateBeadWords(anim);
     if (settle > 0 && hubAsm) {   // rotate the hub UPRIGHT (button up, like the product shot) as we pan out
       const up = EXPLODE_AXIS.clone().applyQuaternion(spin.quaternion.clone().invert()).applyQuaternion(orient.quaternion.clone().invert()).normalize();
       hubAsm.pivot.quaternion.slerpQuaternions(new THREE.Quaternion(), new THREE.Quaternion().setFromUnitVectors(hubAsm.axis, up), settle);
@@ -532,6 +520,7 @@ function init() {
     model.updateMatrixWorld(true);
     setupBeadReveal();
     setupHubReveal();
+    setupBeadWords();
     // subtle gold halo through the MIDDLE 5 beads' symbols (cord order pos 3-7); NOT the first (Akoma),
     // second (akoma_ntoaso, the exploded bead) or last (sankofa).
     for (const n of [2, 3, 4, 5, 6]) { const o = model.getObjectByName('PLATFORM' + n); if (o) o.material = matGlow; }
@@ -607,6 +596,36 @@ function init() {
     endSpin = fs + Math.PI;   // settle target: hub swung to the BACK so the beads face the camera in the final shot
   }
 
+  // ---- on-bead words: attach each word of "Everyone gets their own" to a bead that comes
+  //      around AFTER the exploded bead, so the phrase spells out across the beads as they spin.
+  //      Each word is anchored to its bead (a child of `model`) so it tracks the bead's spin. ----
+  function setupBeadWords() {
+    if (!beadWordHost || !model) return;
+    const words = ["Everyone", "gets", "their", "own"];
+    // front-facing anim for every bead (the anim value where it swings frontmost to the camera)
+    const info = BEAD_CENTERS.map((bc, i) => {
+      const a = new THREE.Group(); a.position.set(bc[0], bc[1], bc[2]); model.add(a);
+      model.updateMatrixWorld(true);
+      const anim = ((((frontSpin(a) - SPIN_PHASE) / (TAU * SPIN_TURNS)) % 1) + 1) % 1;
+      return { i, anchor: a, anim };
+    });
+    const exAnim = info[EXPLODE_BEAD].anim;
+    // the beads whose front moment falls AFTER the exploded bead (circular), nearest first
+    const chosen = info
+      .filter((b) => b.i !== EXPLODE_BEAD)
+      .map((b) => ({ b, d: (((b.anim - exAnim) % 1) + 1) % 1 }))
+      .sort((p, q) => p.d - q.d)
+      .slice(0, words.length)
+      .map((x) => x.b);
+    info.forEach((b) => { if (!chosen.includes(b)) model.remove(b.anchor); });   // drop unused anchors
+    beadWordHost.innerHTML = "";
+    beadWords = chosen.map((b, k) => {
+      const el = document.createElement("div"); el.className = "bead-word"; el.textContent = words[k];
+      beadWordHost.appendChild(el);
+      return { anchor: b.anchor, el };
+    });
+  }
+
   function updateExplode(asm, e) {
     const rot = clamp(Math.min(smooth(0.05, 0.28, e), 1 - smooth(0.74, 0.97, e)), 0, 1);   // tilt-up, hold, tilt-back
     const exp = clamp(Math.min(smooth(0.22, 0.46, e), 1 - smooth(0.66, 0.9, e)), 0, 1);    // split-out, hold, reassemble
@@ -627,6 +646,8 @@ function init() {
   // ---- per-component labels: one tag pinned to each part, projected to screen and revealed as the assembly splits ----
   const hubLabelHost = $("#hubLabels");
   const beadLabelHost = $("#beadLabels");
+  const beadWordHost = $("#beadWords");
+  let beadWords = [];
   function buildLabels(host, defs) {
     if (!host) return [];
     host.innerHTML = "";
@@ -675,6 +696,28 @@ function init() {
       L.el.classList.toggle("flip", side < 0);
       L.el.style.opacity = String(show);
     });
+  }
+
+  // ---- on-bead words: project each word to its bead's screen position every frame so it tracks
+  //      the spin; fade in as the bead swings to the front, out as it rotates away ----
+  const _bwV = new THREE.Vector3();
+  function updateBeadWords(anim) {
+    if (!beadWords.length) return;
+    const startA = beadAsm ? beadAsm.pE + 0.02 : 0.18;     // appear once the exploded bead has been & gone
+    const master = clamp(smooth(startA, startA + 0.05, anim) * (1 - smooth(0.72, 0.85, anim)), 0, 1);
+    const w = canvas.clientWidth || window.innerWidth || 1, h = canvas.clientHeight || window.innerHeight || 1;
+    if (master < 0.01) { for (const W of beadWords) W.el.style.opacity = "0"; return; }
+    camera.updateMatrixWorld();
+    for (const W of beadWords) {
+      W.anchor.getWorldPosition(_bwV);
+      const facing = smooth(0.1, 0.5, _bwV.x / Math.max(modelR, 0.001));   // camera at +X: +front, −back
+      _bwV.project(camera);
+      if (_bwV.z >= 1) { W.el.style.opacity = "0"; continue; }
+      const x = (_bwV.x * 0.5 + 0.5) * w, y = (-_bwV.y * 0.5 + 0.5) * h;
+      W.el.style.left = Math.round(x) + "px";
+      W.el.style.top = Math.round(y - h * 0.075) + "px";   // sit just ABOVE (on top of) the bead
+      W.el.style.opacity = String(master * facing);
+    }
   }
 
   window.addEventListener("keydown", (e) => {            // q/a belt · w/s window · e/d smooth-core · r/f sennit-gap · b=toggle bead-wrap
