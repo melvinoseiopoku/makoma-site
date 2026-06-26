@@ -1532,17 +1532,26 @@ section{ position:relative; z-index:2; }
    ground). Lay a clean left-anchored veil in the paper colour behind the copy so
    the dark text reads against an even backdrop — and crucially NO glow halo on the
    text (a light halo just fogs the edges and made it harder to read). */
+/* only a faint, narrow wash at the very left edge — the bracelet stays visible.
+   The real legibility comes from a paper-coloured halo that HUGS the text (below):
+   invisible over the light ground, it backs the text only where a dark bead is behind. */
 :root[data-theme="light"] .hero3d-overlay::before{
   content:""; position:absolute; inset:0; pointer-events:none; z-index:0;
   background:linear-gradient(98deg,
-    var(--black) 0%,
-    var(--black) 30%,
-    color-mix(in srgb, var(--black) 90%, transparent) 42%,
-    color-mix(in srgb, var(--black) 50%, transparent) 54%,
-    transparent 70%);
+    color-mix(in srgb, var(--black) 50%, transparent) 0%,
+    color-mix(in srgb, var(--black) 16%, transparent) 20%,
+    transparent 34%);
 }
 :root[data-theme="light"] .hero-intro,
 :root[data-theme="light"] .hero-caption{ z-index:1; }
+:root[data-theme="light"] .hero-intro .eyebrow,
+:root[data-theme="light"] .hero-intro .hero-title,
+:root[data-theme="light"] .hero-intro .hero-sub,
+:root[data-theme="light"] .hero-caption .hc-kicker,
+:root[data-theme="light"] .hero-caption .hc-title,
+:root[data-theme="light"] .hero-caption .hc-line{
+  text-shadow:0 0 2px var(--black), 0 0 4px var(--black), 0 0 7px var(--black), 0 0 10px var(--black);
+}
 /* keep the gold title/accent legible on the light ground: drop the lightest
    gradient stop so "you carry." is a deep, readable gold rather than pale */
 :root[data-theme="light"] .hero-title .gold-ink,

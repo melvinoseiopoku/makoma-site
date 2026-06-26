@@ -140,12 +140,12 @@ function init() {
     if (outro) { outro.style.opacity = outOp; outro.style.pointerEvents = outOp > 0.5 ? "auto" : "none"; }
     if (bar) bar.style.transform = `scaleX(${p})`;
     if (!capWrap) return;
-    const beadE = reveals[0] ? reveals[0]._e : 0;     // 0..1 explode phase of each reveal (peaks mid-dwell)
-    const hubE  = reveals[1] ? reveals[1]._e : 0;
+    const beadE = beadAsm ? beadAsm._e : 0;     // 0..1 explode phase (peaks mid-dwell)
+    const hubE  = hubAsm ? hubAsm._e : 0;
+    if (beadE > 0.02) { capWrap.style.opacity = "0"; return; }   // bead explode: the TOUCH / LIGHT / A PULSE callouts say it — no prose caption
     const openEnv = (e) => clamp(smooth(0.12, 0.34, e) * (1 - smooth(0.70, 0.92, e)), 0, 1);   // rise as parts split, fall as they reassemble
     let cap, op;
-    if (beadE > 0.02) { cap = SCENE.bead; op = openEnv(beadE); }            // a bead is OPEN → alive / touch
-    else if (hubE > 0.02) { cap = SCENE.hub; op = openEnv(hubE); }          // the hub is OPEN → the core
+    if (hubE > 0.02) { cap = SCENE.hub; op = openEnv(hubE); }          // the hub is OPEN → the core
     else {                                                                  // SPIN between the two reveals
       const mid = 0.47;
       if (p < mid) { cap = SCENE.person;  op = smooth(0.15, 0.27, p) * (1 - smooth(mid - 0.05, mid + 0.01, p)); }
@@ -212,7 +212,7 @@ function init() {
     }
     if (braidB) { const n = Math.floor(braidTotal * f); braidB.geometry.setDrawRange(0, n); braidC.geometry.setDrawRange(0, n); }
     matGlow.emissiveIntensity = 2.0 + 0.45 * (0.5 + 0.5 * Math.sin(idle * 0.55));   // LED breathing, toned down (2.0..2.45)
-    matLED.emissiveIntensity = 2.8 + 0.7 * (0.5 + 0.5 * Math.sin(idle * 0.6));      // the exploded bead's PCB LED breathes (2.8..3.5)
+    matLED.emissiveIntensity = 3.4 + 0.7 * (0.5 + 0.5 * Math.sin(idle * 0.6));      // the exploded bead's small PCB LED breathes (3.4..4.1)
     placeCamera(settle);
     for (const rv of reveals) updateExplode(rv, rv._e);
     updateHubLabels(hubAsm ? hubAsm._e : 0);
@@ -553,12 +553,15 @@ function init() {
     if (plate) { plate.obj.material = matElectrode; parts.push(plate); }  // passive gold pad (NOT glowing — the light is the PCB LED)
     const pcb = buildBoard('assets/models/akoma_pcb.glb', axis); pcb.position.copy(axis).multiplyScalar(0.3 * MM); pivot.add(pcb);
     parts.push({ obj: pcb, rest: pcb.position.clone(), dir: axis, dist: 0.18 });
-    // the indicator LED ON the PCB — the real light source (what shines out through the symbol).
-    // A bright emissive dome plus a small point light so it visibly lights the board around it.
-    const led = new THREE.Mesh(new THREE.SphereGeometry(1.5 * MM, 20, 16), matLED);
-    led.position.copy(axis).multiplyScalar(1.1 * MM);   // proud of the board, on the symbol-facing side
+    // a small SMD indicator LED sitting flat ON the board surface (NOT a dome) — the real
+    // light source. Offset toward an edge like a real placed component; it glows + blooms.
+    const led = new THREE.Mesh(new THREE.BoxGeometry(2.4 * MM, 0.85 * MM, 1.5 * MM), matLED);
+    led.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), axis);   // lie flat on the board
+    const ledPerp = new THREE.Vector3(0, 0, 1).cross(axis);
+    if (ledPerp.lengthSq() < 1e-4) ledPerp.copy(new THREE.Vector3(1, 0, 0).cross(axis));
+    ledPerp.normalize();
+    led.position.copy(axis).multiplyScalar(0.45 * MM).addScaledVector(ledPerp, 3.4 * MM);   // just proud of the surface, off-centre
     pcb.add(led);
-    const ledGlow = new THREE.PointLight(0xffc878, 6, 6 * MM, 2); ledGlow.position.copy(led.position); pcb.add(ledGlow);
     const motor = buildMotor(axis); motor.position.copy(axis).multiplyScalar(-1.5 * MM); pivot.add(motor);
     parts.push({ obj: motor, rest: motor.position.clone(), dir: axis, dist: -0.42 });
     for (const p of parts) p.dir = axis;
