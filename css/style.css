@@ -194,11 +194,11 @@ h1,h2,h3{ font-family:var(--serif); font-weight:500; line-height:1.04; letter-sp
   will-change:left,top,opacity; }
 @media(max-width:820px){ .bead-word{ font-size:1.4rem; } }
 
-/* exploded-bead callouts: solid pill so they're legible over any part/background (both themes), no fuzz */
-#beadLabels .hub-label{ font-weight:600; letter-spacing:.14em; text-shadow:none; }
-#beadLabels .hub-label span{ font-size:.66rem; color:#f4ead0; background:rgba(10,9,8,.78);
+/* exploded-view callouts (hub AND bead): solid pill so they're legible over any part/background (both themes), no fuzz */
+.hub-label{ font-weight:600; letter-spacing:.14em; text-shadow:none; }
+.hub-label span{ font-size:.66rem; color:#f4ead0; background:rgba(10,9,8,.78);
   padding:4px 11px; border-radius:999px; border:1px solid rgba(232,197,122,.38); backdrop-filter:blur(2px); }
-#beadLabels .hub-label i{ background:#e8c57a; box-shadow:0 0 8px rgba(232,197,122,.85); }
+.hub-label i{ background:#e8c57a; box-shadow:0 0 8px rgba(232,197,122,.85); }
 
 .hero-outro{ position:absolute; left:0; right:0; top:72%; transform:translateY(-50%); text-align:center; opacity:0; padding:0 24px; }
 .hero-outro h2{ font-size:clamp(2.4rem,6vw,4.4rem); margin-bottom:30px; }
@@ -1608,6 +1608,7 @@ section{ position:relative; z-index:2; }
    side so the bracelet is essentially untouched. */
 :root[data-theme="light"] .hero3d-overlay::before{
   content:""; position:absolute; inset:0; z-index:0; pointer-events:none;
+  opacity:var(--intro-op, 1);                 /* fades out together with the hero intro copy */
   background:radial-gradient(70% 78% at 24% 63%,
     var(--black) 0%,
     var(--black) 12%,

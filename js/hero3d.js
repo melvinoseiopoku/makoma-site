@@ -136,6 +136,7 @@ function init() {
     const introOp = 1 - smooth(0.03, 0.12, p);
     if (intro) intro.style.opacity = introOp;
     if (cue) cue.style.opacity = introOp;
+    section.style.setProperty("--intro-op", String(introOp));   // light-mode hero veil fades WITH the intro copy
     const outOp = smooth(0.9, 0.99, p);
     if (outro) { outro.style.opacity = outOp; outro.style.pointerEvents = outOp > 0.5 ? "auto" : "none"; }
     if (bar) bar.style.transform = `scaleX(${p})`;
