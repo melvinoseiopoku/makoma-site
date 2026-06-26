@@ -194,9 +194,11 @@ h1,h2,h3{ font-family:var(--serif); font-weight:500; line-height:1.04; letter-sp
   will-change:left,top,opacity; }
 @media(max-width:820px){ .bead-word{ font-size:1.4rem; } }
 
-/* exploded-bead callouts: crisp (no fuzzy blur), higher-contrast gold */
-#beadLabels .hub-label{ font-size:.72rem; font-weight:600; letter-spacing:.18em; color:var(--gold-bright);
-  text-shadow:0 1px 2px rgba(0,0,0,.55); }
+/* exploded-bead callouts: solid pill so they're legible over any part/background (both themes), no fuzz */
+#beadLabels .hub-label{ font-weight:600; letter-spacing:.14em; text-shadow:none; }
+#beadLabels .hub-label span{ font-size:.66rem; color:#f4ead0; background:rgba(10,9,8,.78);
+  padding:4px 11px; border-radius:999px; border:1px solid rgba(232,197,122,.38); backdrop-filter:blur(2px); }
+#beadLabels .hub-label i{ background:#e8c57a; box-shadow:0 0 8px rgba(232,197,122,.85); }
 
 .hero-outro{ position:absolute; left:0; right:0; top:72%; transform:translateY(-50%); text-align:center; opacity:0; padding:0 24px; }
 .hero-outro h2{ font-size:clamp(2.4rem,6vw,4.4rem); margin-bottom:30px; }
@@ -1254,6 +1256,33 @@ section{ position:relative; z-index:2; }
     .ig-pulse-core{ animation:none; opacity:1; }
   }
 
+  /* ---- THE ROAD: a closing-circle progress ring (the circle completes only when we ship) ---- */
+  .rd-fig{ margin:0 auto; width:min(92vw,520px); }
+  .rd-fig svg{ width:100%; height:auto; display:block; overflow:visible; }
+  .rd-track{ fill:none; stroke:var(--line); stroke-width:3; }
+  .rd-prog{ fill:none; stroke:var(--gold); stroke-width:4.5; stroke-linecap:round;
+    stroke-dasharray:942.48; stroke-dashoffset:942.48;
+    filter:drop-shadow(0 0 6px color-mix(in srgb, var(--gold-bright) 55%, transparent)); }
+  .reveal.in .rd-prog{ animation:rd-fill 1.9s var(--ease) .25s forwards; }
+  @keyframes rd-fill{ to{ stroke-dashoffset:235.6; } }                 /* 75% — gap left is the road to ship */
+  .rd-dot{ stroke-width:1.6; }
+  .rd-dot--done{ fill:var(--gold); stroke:var(--gold-bright); }
+  .rd-dot--goal{ fill:none; stroke:var(--ink-mute); stroke-width:2; stroke-dasharray:3 4.5; }  /* hollow: not reached yet */
+  .rd-check{ fill:none; stroke:#060607; stroke-width:1.7; stroke-linecap:round; stroke-linejoin:round; }
+  .rd-head-ring{ fill:none; stroke:var(--gold-bright); stroke-width:1.5; }
+  .rd-head{ fill:var(--gold-bright); stroke:var(--gold-pale); stroke-width:1.6; }
+  .reveal.in .rd-head-ring{ animation:rd-pulse 2.6s ease-out 1.9s infinite; }
+  @keyframes rd-pulse{ 0%{ r:9; opacity:.85; } 70%{ r:30; opacity:0; } 100%{ r:30; opacity:0; } }
+  .rd-eyebrow{ font-family:"JetBrains Mono",monospace; font-size:11px; letter-spacing:.26em; text-transform:uppercase; fill:var(--gold); }
+  .rd-now{ font-family:"Cormorant Garamond",Georgia,serif; font-weight:500; font-size:30px; fill:var(--ink); }
+  .rd-sub{ font-family:"Inter",sans-serif; font-size:13px; fill:var(--ink-mute); }
+  .rd-label{ font-family:"Inter",sans-serif; font-size:13px; letter-spacing:.03em; fill:var(--ink-soft); }
+  .rd-goal-lab{ font-family:"JetBrains Mono",monospace; font-size:12px; letter-spacing:.2em; text-transform:uppercase; fill:var(--gold); font-weight:500; }
+  @media (prefers-reduced-motion: reduce){
+    .reveal.in .rd-prog{ animation:none; stroke-dashoffset:235.6; }
+    .reveal.in .rd-head-ring{ animation:none; opacity:0; }
+  }
+
 /* ----- v2: still-photo hero (shown FIRST, before the 3D anatomy) ----- */
 .hero-still{ position:relative; height:100svh; min-height:600px; overflow:hidden; display:flex; align-items:flex-end; }
 .hero-still-img{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; object-position:center 42%; z-index:0; }
@@ -1574,16 +1603,18 @@ section{ position:relative; z-index:2; }
 /* light mode: don't veil the whole hero. Lay a soft paper "pool" behind ONLY the intro
    copy so it reads cleanly, while the bracelet stays fully visible everywhere else. */
 :root[data-theme="light"] .hero-intro{ z-index:1; }
-:root[data-theme="light"] .hero-intro::before{
-  content:""; position:absolute; z-index:-1; pointer-events:none;
-  inset:-120px -220px -120px -150px;          /* extends far past the text so the fade finishes in open space */
-  background:radial-gradient(68% 62% at 32% 50%,
+/* full-bleed radial that NEVER reaches transparent inside the frame — so there's no edge
+   anywhere. Strong behind the copy (lower-left), easing to a barely-there floor at the far
+   side so the bracelet is essentially untouched. */
+:root[data-theme="light"] .hero3d-overlay::before{
+  content:""; position:absolute; inset:0; z-index:0; pointer-events:none;
+  background:radial-gradient(70% 78% at 24% 63%,
     var(--black) 0%,
-    var(--black) 24%,
-    color-mix(in srgb, var(--black) 66%, transparent) 44%,
-    color-mix(in srgb, var(--black) 34%, transparent) 62%,
-    color-mix(in srgb, var(--black) 12%, transparent) 80%,
-    transparent 100%);                         /* long, gradual fall-off → no perceptible edge */
+    var(--black) 12%,
+    color-mix(in srgb, var(--black) 58%, transparent) 30%,
+    color-mix(in srgb, var(--black) 24%, transparent) 50%,
+    color-mix(in srgb, var(--black) 8%, transparent) 74%,
+    color-mix(in srgb, var(--black) 2%, transparent) 100%);
 }
 /* keep the gold title legible on the light ground: drop the lightest gradient stop */
 :root[data-theme="light"] .hero-title .gold-ink,

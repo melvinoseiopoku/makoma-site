@@ -601,7 +601,7 @@ function init() {
   //      Each word is anchored to its bead (a child of `model`) so it tracks the bead's spin. ----
   function setupBeadWords() {
     if (!beadWordHost || !model) return;
-    const words = ["Everyone", "gets", "their", "own"];
+    const words = ["Everyone", "gets", "their", "own", "bead"];
     // front-facing anim for every bead (the anim value where it swings frontmost to the camera)
     const info = BEAD_CENTERS.map((bc, i) => {
       const a = new THREE.Group(); a.position.set(bc[0], bc[1], bc[2]); model.add(a);
