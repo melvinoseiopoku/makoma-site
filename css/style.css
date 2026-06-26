@@ -1382,8 +1382,33 @@ section{ position:relative; z-index:2; }
 #whyStage[data-phase="2"] .wp-lock{ opacity:0; filter:blur(2px); }
 #whyStage[data-phase="3"] .wp-lock, #whyStage[data-phase="4"] .wp-lock, #whyStage[data-phase="5"] .wp-lock{ opacity:0; pointer-events:none; }
 #whyStage[data-phase="3"] .wp-msgs, #whyStage[data-phase="4"] .wp-msgs{ opacity:1; }
-/* peel: each avatar, once "departed", flies to the bracelet arc and cross-fades into its Adinkra bead */
-.wp-person.departed{ width:60px; height:60px; left:calc(50% + (var(--i) - 2) * 20.5%); }
+/* SHOOT-OUT: each avatar bursts forward out of the phone screen, then rockets to its place
+   in the bracelet arc and settles as its glowing Adinkra bead. The position fly is briefly
+   delayed so the burst punches out AT the screen first, then it launches. */
+.wp-person.departed{ width:60px; height:60px; left:calc(50% + (var(--i) - 2) * 20.5%); z-index:6;
+  transition:left .82s cubic-bezier(.16,.86,.3,1) .09s, top .82s cubic-bezier(.16,.86,.3,1) .09s,
+             width .82s var(--ease) .09s, height .82s var(--ease) .09s;
+  animation:wp-shoot .9s cubic-bezier(.2,.85,.25,1) both; }
+@keyframes wp-shoot{
+  0%   { transform:translate(-50%,-50%) scale(.5)   rotate(-16deg); }
+  14%  { transform:translate(-50%,-50%) scale(1.95) rotate(8deg); }   /* punches out of the screen toward you */
+  50%  { transform:translate(-50%,-50%) scale(.9)   rotate(-3deg); }
+  100% { transform:translate(-50%,-50%) scale(1)    rotate(0); }
+}
+/* a colour-matched flash bursts behind the bead as it shoots out */
+.wp-person.departed::after{
+  content:""; position:absolute; left:50%; top:50%; width:150%; height:150%;
+  transform:translate(-50%,-50%); border-radius:50%; z-index:-1; pointer-events:none;
+  background:radial-gradient(circle, color-mix(in srgb, var(--hue) 82%, transparent) 0%,
+            color-mix(in srgb, var(--hue) 26%, transparent) 40%, transparent 70%);
+  opacity:0; animation:wp-burst .9s ease-out both;
+}
+@keyframes wp-burst{
+  0%   { opacity:0;   transform:translate(-50%,-50%) scale(.3); }
+  14%  { opacity:.85; transform:translate(-50%,-50%) scale(1.15); }
+  55%  { opacity:0;   transform:translate(-50%,-50%) scale(1.9); }
+  100% { opacity:0; }
+}
 .wp-person.departed:nth-child(1){ top:50%; }
 .wp-person.departed:nth-child(2){ top:57.5%; }
 .wp-person.departed:nth-child(3){ top:60%; }
@@ -1398,7 +1423,8 @@ section{ position:relative; z-index:2; }
 #whyStage[data-phase="3"] .wp-udot, #whyStage[data-phase="3"] .wp-bubble{ opacity:1; }
 #whyStage.cap-b .wp-cap-a{ opacity:0; }
 #whyStage.cap-b .wp-cap-b{ opacity:1; }
-@media (prefers-reduced-motion: reduce){ .wp-person, .wp-phone, .wp-notif, .wp-lock, .wp-msgs, .wp-cap span{ transition:none !important; } }
+@media (prefers-reduced-motion: reduce){ .wp-person, .wp-phone, .wp-notif, .wp-lock, .wp-msgs, .wp-cap span{ transition:none !important; }
+  .wp-person.departed, .wp-person.departed::after{ animation:none !important; } }
 
 /* ===== MERGE: the phone is an AUTOPLAY overlay above the (untouched) carousel, in one centered stage ===== */
 .circle-merge{ position:relative; }
