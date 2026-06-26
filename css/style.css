@@ -1436,17 +1436,31 @@ section{ position:relative; z-index:2; }
 .wl-node--beads .wl-string{ display:flex; align-items:center; justify-content:center; }
 .wl-beadimg{ width:clamp(22px,3vw,30px); height:auto; margin:0 -2px; filter:drop-shadow(0 4px 9px rgba(0,0,0,.55)); }
 
-/* Where we live — quadrant edge labels (mounted on the stage so they DON'T tilt with the plane) */
-.wl-edge{ position:absolute; z-index:7; font-family:var(--sans); font-size:.72rem; letter-spacing:.02em; color:var(--ink-soft); white-space:nowrap; pointer-events:none; }
-.wl-edge--t{ top:-6px; left:50%; transform:translateX(-50%); }
-.wl-edge--b{ bottom:-6px; left:50%; transform:translateX(-50%); }
-.wl-edge--l{ left:0; top:50%; transform:translate(calc(-100% - 8px),-50%); }
-.wl-edge--r{ right:0; top:50%; transform:translate(calc(100% + 8px),-50%); }
+/* Where we live — axis callouts, mounted ON the plane so they tilt/rotate WITH it
+   and sit right on the grid edges instead of floating far out at the stage margins */
+.wl-edge{
+  position:absolute; z-index:6; pointer-events:none; white-space:nowrap;
+  font-family:var(--sans); font-size:.6rem; font-weight:600;
+  letter-spacing:.12em; text-transform:uppercase; color:var(--gold);
+  padding:4px 11px; border-radius:999px;
+  background:color-mix(in srgb, var(--black) 82%, transparent);
+  border:1px solid var(--line);
+  box-shadow:0 3px 14px rgba(0,0,0,.16);
+  backface-visibility:hidden;
+  transition:opacity .6s var(--ease);
+}
+.wl-edge--t{ top:0;    left:50%; transform:translate(-50%,-148%); }
+.wl-edge--b{ bottom:0; left:50%; transform:translate(-50%, 148%); }
+.wl-edge--l{ left:0;   top:50%;  transform:translate(-72%,-50%); }
+.wl-edge--r{ right:0;  top:50%;  transform:translate( 72%,-50%); }
 .wl-logo svg{ width:22px; height:22px; display:block; }
 @media(max-width:860px){
-  .wl-edge{ font-size:.56rem; letter-spacing:0; }
-  .wl-edge--l{ left:1px; transform:translateY(-50%); writing-mode:vertical-rl; }
-  .wl-edge--r{ right:1px; transform:translateY(-50%); writing-mode:vertical-rl; }
+  .wl-edge{ font-size:.52rem; letter-spacing:.04em; padding:3px 7px; }
+  /* keep side callouts inside the grid so they never clip off a narrow screen */
+  .wl-edge--l{ left:3%;  transform:translate(0,-50%); }
+  .wl-edge--r{ right:3%; transform:translate(0,-50%); }
+  .wl-edge--t{ transform:translate(-50%,-128%); }
+  .wl-edge--b{ transform:translate(-50%, 128%); }
 }
 
 /* ===== How it begins — two animated panels (bundle/gift + reach via the app) ===== */
@@ -1499,7 +1513,7 @@ section{ position:relative; z-index:2; }
 :root[data-theme="light"]{
   --black:#f4efe4; --black-2:#ece4d3; --panel:#e8dfcd; --panel-2:#e1d7c2;
   --line:rgba(155,122,54,.34); --line-soft:rgba(40,33,18,.12);
-  --gold:#8a6a2c; --gold-bright:#6f5420; --gold-pale:#5b4719; --gold-deep:#9b7a36;
+  --gold:#7d5e23; --gold-bright:#6f5420; --gold-pale:#5b4719; --gold-deep:#9b7a36;
   --ink:#221e16; --ink-soft:#4b4537; --ink-mute:#6e6753;
 }
 :root[data-theme="light"] body{ background:var(--black); }
@@ -1512,6 +1526,28 @@ section{ position:relative; z-index:2; }
 :root[data-theme="light"] .btn-gold{ color:#fff; }
 :root[data-theme="light"] .hero-shot img{ -webkit-mask-image:none; mask-image:none; box-shadow:0 30px 80px -40px rgba(40,30,10,.4); }
 :root[data-theme="light"] .car-bead-img, :root[data-theme="light"] .wl-beadimg, :root[data-theme="light"] .rp-bead{ filter:drop-shadow(0 8px 18px rgba(60,45,15,.3)); }
+
+/* light mode: the hero copy sits over the busy 3D scene (dark beads on a light
+   ground), so dark text collides with the beads. Lay a soft left-anchored veil
+   in the paper colour behind the copy, and give the text a faint light halo. */
+:root[data-theme="light"] .hero3d-overlay::before{
+  content:""; position:absolute; inset:0; pointer-events:none; z-index:0;
+  background:linear-gradient(96deg,
+    var(--black) 0%,
+    color-mix(in srgb, var(--black) 82%, transparent) 24%,
+    color-mix(in srgb, var(--black) 34%, transparent) 44%,
+    transparent 62%);
+}
+:root[data-theme="light"] .hero-intro,
+:root[data-theme="light"] .hero-caption{ z-index:1; }
+:root[data-theme="light"] .hero-intro .eyebrow,
+:root[data-theme="light"] .hero-intro .hero-title,
+:root[data-theme="light"] .hero-intro .hero-sub,
+:root[data-theme="light"] .hero-caption .hc-kicker,
+:root[data-theme="light"] .hero-caption .hc-title,
+:root[data-theme="light"] .hero-caption .hc-line{
+  text-shadow:0 1px 2px rgba(255,251,243,.9), 0 0 16px rgba(255,251,243,.65);
+}
 
 /* ============================================================
    v2 fix: positioning lift in SCREEN space (no perspective magnification)
