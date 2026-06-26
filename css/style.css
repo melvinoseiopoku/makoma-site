@@ -1590,6 +1590,13 @@ section{ position:relative; z-index:2; }
 :root[data-theme="light"] .grain{ opacity:.03; }
 :root[data-theme="light"] .nav.scrolled{ background:rgba(244,239,228,.82); border-bottom-color:var(--line-soft); }
 :root[data-theme="light"] .hero3d-sticky{ background:radial-gradient(120% 95% at 50% 38%, #fffaef 0%, #efe6d4 55%, var(--black) 100%); }
+/* light mode: the shared veil is built for dark mode (dark vignette + a bottom fade that
+   starts at 72%, right under the bracelet). Replace it with just a gentle fade in the very
+   bottom strip so the transition sits well clear of the CAD model. */
+:root[data-theme="light"] .hero3d-veil{
+  background:linear-gradient(180deg, transparent 0%, transparent 85%,
+    color-mix(in srgb, var(--black) 55%, transparent) 94%, var(--black) 100%);
+}
 :root[data-theme="light"] .hero-still-veil{ background:linear-gradient(180deg, rgba(244,239,228,.5) 0%, transparent 26%, transparent 62%, rgba(244,239,228,.85) 100%); }
 :root[data-theme="light"] .vision-glow{ background:radial-gradient(ellipse at center, rgba(155,122,54,.16), transparent 62%); }
 :root[data-theme="light"] .btn-gold{ color:#fff; }
