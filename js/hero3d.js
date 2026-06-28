@@ -132,8 +132,11 @@ function init() {
     symbols: { k: "Adinkra",              t: "Every symbol means something.", l: "Each bead is engraved with an Adinkra symbol — endurance, return, the bonds that hold people together." },
     hub:     { k: "The core",             t: "Everything, quietly inside.",   l: "The battery, the sound, the mic, the brains — sealed into a hub small enough to forget you're wearing." },
   };
-  function overlay(p) {                  // p == anim (de-dwelled scroll). reveals[0] = bead reveal, reveals[1] = hub (sorted by pE)
-    const introOp = 1 - smooth(0.03, 0.12, p);
+  function overlay(p, rawP) {            // p == anim (de-dwelled); rawP == raw scroll (keeps advancing through dwells)
+    // Fade the intro on RAW scroll, not anim. The bead explodes at its natural front (early), and anim
+    // FREEZES during that dwell — so an anim-based fade would leave the intro frozen on top of the
+    // explosion. Raw scroll keeps moving, so the copy clears before the bead opens.
+    const introOp = 1 - smooth(0.035, 0.085, rawP == null ? p : rawP);
     if (intro) intro.style.opacity = introOp;
     if (cue) cue.style.opacity = introOp;
     section.style.setProperty("--intro-op", String(introOp));   // light-mode hero veil fades WITH the intro copy
@@ -210,7 +213,7 @@ function init() {
     // bracelet plane — but the cord and every bead's bus holes lie in one plane, so the hub must
     // stay in that plane too (exactly where it's threaded). It keeps its natural threaded
     // orientation through the settle, coplanar with the beads, so the cord stays in the bus holes.
-    overlay(anim);
+    overlay(anim, p);
   }
 
   let raf = 0;
@@ -534,9 +537,10 @@ function init() {
     const bc = BEAD_CENTERS[EXPLODE_BEAD];
     const O = new THREE.Vector3(bc[0], bc[1], bc[2]);
     const pivot = new THREE.Group(); pivot.position.copy(O); model.add(pivot); model.updateMatrixWorld(true);
-    let bt = 0, bd = Infinity;
-    for (let j = 0; j < 2400; j++) { const tt = j / 2400; const d = cordCurve.getPointAt(tt).distanceToSquared(O); if (d < bd) { bd = d; bt = tt; } }
-    const pE = clamp(bt / 1.8 - 0.02, 0.06, 0.5);
+    // explode the bead WHEN it naturally swings frontmost (no present-swing), exactly like the hub —
+    // so the spin runs straight into the reveal instead of overshooting to the next bead and retracting.
+    const fs = frontSpin(pivot);
+    const pE = (((fs - SPIN_PHASE) / (TAU * SPIN_TURNS)) % 1 + 1) % 1;
     const parts = [];
     const cap = attachPart(pivot, 'FB_CAP' + EXPLODE_NODE, 1.7); parts.push(cap);   // lift the symbol lid well clear so the plate under it is exposed
     const base = attachPart(pivot, 'FB_BASE' + EXPLODE_NODE, -0.85); parts.push(base);
@@ -564,7 +568,7 @@ function init() {
       [led,                     "Light"],
       [motor,                   "A pulse"],
     ]);
-    beadAsm = { pivot, parts, axis, pE, W: EXPLODE_WIN, internals: [pcb, motor], presentSpin: frontSpin(pivot), labels };
+    beadAsm = { pivot, parts, axis, pE, W: EXPLODE_WIN, internals: [pcb, motor], presentSpin: null, labels };
     reveals.push(beadAsm);
   }
 
