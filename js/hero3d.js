@@ -206,27 +206,10 @@ function init() {
     updateHubLabels(hubAsm ? hubAsm._e : 0);
     updateBeadLabels(beadAsm ? beadAsm._e : 0);
     updateBeadWords(anim);
-    if (settle > 0 && hubAsm && cordEndL && cordEndR) {
-      // rotate the hub UPRIGHT (button up) for the product shot — but ONLY about the axis through its
-      // two cord ends (the bus-hole line, which runs through the hub centre), and pivot about that
-      // line's midpoint, NOT the hub centre. So the bus holes stay exactly on the cord ends instead
-      // of the hub swinging off the cord.
-      const up = EXPLODE_AXIS.clone().applyQuaternion(spin.quaternion.clone().invert()).applyQuaternion(orient.quaternion.clone().invert()).normalize();
-      const eAxis = cordEndR.clone().sub(cordEndL).normalize();   // model space == pivot-local direction
-      const f = hubAsm.axis.clone().addScaledVector(eAxis, -hubAsm.axis.dot(eAxis));   // button axis ⟂ eAxis
-      const t = up.clone().addScaledVector(eAxis, -up.dot(eAxis));                      // world-up ⟂ eAxis
-      let ang = 0;
-      if (f.lengthSq() > 1e-6 && t.lengthSq() > 1e-6) {
-        f.normalize(); t.normalize();
-        ang = Math.acos(clamp(f.dot(t), -1, 1));
-        if (new THREE.Vector3().crossVectors(f, t).dot(eAxis) < 0) ang = -ang;
-      }
-      const q = new THREE.Quaternion().slerpQuaternions(new THREE.Quaternion(),
-        new THREE.Quaternion().setFromAxisAngle(eAxis, ang), settle);
-      hubAsm.pivot.quaternion.copy(q);
-      const M = cordEndL.clone().add(cordEndR).multiplyScalar(0.5);                    // midpoint of the cord ends
-      hubAsm.pivot.position.copy(hubAsm.O.clone().sub(M).applyQuaternion(q).add(M));    // rotate the pivot ABOUT that line
-    }
+    // NOTE: no end-of-scroll hub rotation. Any "button up" rotation tilts the hub OUT of the
+    // bracelet plane — but the cord and every bead's bus holes lie in one plane, so the hub must
+    // stay in that plane too (exactly where it's threaded). It keeps its natural threaded
+    // orientation through the settle, coplanar with the beads, so the cord stays in the bus holes.
     overlay(anim);
   }
 
