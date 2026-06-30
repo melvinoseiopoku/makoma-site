@@ -28,6 +28,27 @@ const CAM_AZ = 0, CAM_EL = 15;      // low camera that faces the radial symbols
 const SPIN_TURNS = 1;               // full revolutions across the scroll (8 beads → 1 is plenty)
 const SPIN_PHASE = 169.6 * DEG;    // start rotation: the Akoma (heart) bead faces front at p=0
 
+// ---- GATHER phase: after the hero settles, more scroll fades the text and blooms 5 clones of the
+//      bracelet out from the centre into a circle of 6 — all in the SAME scene (no viewports). ----
+const HERO_FRAC = 0.64;            // first 64% of the (taller) section = the existing hero; the rest gathers
+const GATHER_END = 0.88;           // gather completes here; 0.88–1.0 is an interactive dwell (cluster held)
+const GATHER_N = 6;
+const GATHER_SCALE = 0.45;         // each bracelet shrinks to this in the cluster
+const GATHER_DIST = 5.0;           // camera pull-back at full gather (× modelR)
+const GATHER_COLX = 0.66;          // half horizontal gap between the two columns (× modelR)
+const GATHER_ROWY = 0.72;          // vertical spacing between the three rows (× modelR)
+const GATHER_TILT = -18 * DEG;     // the BOTTOM row pitches up by this (about screen-horizontal) so its beads angle up, not down
+const GATHER_FLOAT = 0.022;        // very gentle float amplitude (× modelR) — barely-there drift
+const GATHER_SIDE = 3.0;           // off-screen start for the side slide-in (× modelR)
+const GATHER_FSPEED = [0.24, 0.31, 0.21, 0.34, 0.27, 0.19];   // vertical-drift speed per bracelet (slow, unsynchronised)
+const GATHER_FPHASE = [0.0, 1.7, 3.2, 0.8, 4.5, 2.3];         // vertical-drift phase
+const GATHER_FSPEED2 = [0.19, 0.27, 0.33, 0.22, 0.29, 0.25];  // horizontal-drift speed (diff freq → drifts every direction)
+const GATHER_FPHASE2 = [2.1, 0.4, 3.9, 1.5, 2.8, 0.9];        // horizontal-drift phase
+const GATHER_HUE = [0x48C9CB, 0xE0A52A, 0xB77AF4, 0xF0922C, 0x63CE88, 0x5C9CEB];   // tap-glow colour per person
+const GATHER_NODE = [4, 0, 6, 7, 2, 3];   // bead node that represents each person (You·Mom·Dad·Priscilla·Sylvester·Phoebe)
+const GATHER_NAME = ["You", "Mom", "Dad", "Priscilla", "Sylvester", "Phoebe"];   // the name pinned under each bracelet
+const GATHER_SHAKE = 0.05;         // vibrate amplitude of the REACHED BEAD when pinged (× modelR, bracelet-local); decays over ~0.42s
+
 const section = $("#hero");
 const canvas = $("#heroCanvas");
 const poster = $("#heroPoster");
@@ -91,14 +112,183 @@ function init() {
   spin.add(orient);
   scene.add(spin);
   let modelR = 10;
+  let gatherGroup = null; const gatherInstances = [];   // the 6 bracelet clones for the gather cluster
+  const gSpin = [], gVel = [], gBuzz = [], gTarget = [], gSnapping = [], gPitch = [];   // spin · velocity · pulse · snap target · snapping · bottom-row upward tilt
+  const frontAngleOf = {};                             // bead node → spin angle that faces it to the camera
+  let gLast = 0, gDragging = -1, gDownX = 0, gMoved = false, gLastX = 0;   // interaction state
 
-  function placeCamera(settle = 0) {
-    const az = (CAM_AZ + Math.sin(idle * 0.18) * 0.7 * (1 - settle)) * DEG;   // idle sway fades out as we settle
+  function placeCamera(settle = 0, g = 0) {
+    const az = (CAM_AZ + Math.sin(idle * 0.18) * 0.7 * (1 - settle) * (1 - g)) * DEG;   // idle sway fades out as we settle
     const el = (CAM_EL + (CAM_EL_END - CAM_EL) * settle) * DEG;               // rise toward the top-front edge
-    const d = (3.15 + (CAM_DIST_END - 3.15) * settle) * modelR, ce = Math.cos(el);   // pull back to frame the whole bracelet
-    const pan = CAM_PAN_END * modelR * settle;   // pan the framing DOWN so the bracelet rises into the upper frame (text sits below it)
+    let d = (3.15 + (CAM_DIST_END - 3.15) * settle) * modelR;                  // pull back to frame the whole bracelet
+    let pan = CAM_PAN_END * modelR * settle;   // pan the framing DOWN so the bracelet rises into the upper frame
+    if (g > 0) { d = lerp(d, GATHER_DIST * modelR, g); pan = lerp(pan, 0, g); }  // gather: pull further back, recentre on the circle
+    const ce = Math.cos(el);
     camera.position.set(Math.cos(az) * ce * d, Math.sin(el) * d - pan, Math.sin(az) * ce * d);
     camera.lookAt(0, -pan, 0);
+  }
+
+  // etch a name into the flat UNDERSIDE of a clone's hub (HUB_BASE, −Z face) as a gold-inlay decal that is a real
+  // child of the hub mesh — so it rides every spin/tilt the bracelet goes through, never a floating overlay.
+  function engraveHubName(clone, name) {
+    const base = clone.getObjectByName("HUB_BASE"); if (!base) return;
+    base.geometry.computeBoundingBox();
+    const s = base.geometry.boundingBox.getSize(new THREE.Vector3());   // 3.245 (x) × 2.888 (y) × 1.525 (z thickness)
+    const W = 1024, H = 288, maxW = W * 0.86, cv = document.createElement("canvas"); cv.width = W; cv.height = H;
+    const ctx = cv.getContext("2d");
+    const text = (name || "").toUpperCase(), FONT = (px) => `600 ${px}px Georgia, "Times New Roman", serif`;
+    const tw = (t, tr) => { let w = 0; for (const ch of t) w += ctx.measureText(ch).width; return w + tr * Math.max(0, t.length - 1); };
+    let fs = 156; ctx.font = FONT(fs);
+    while (tw(text, fs * 0.12) > maxW && fs > 28) { fs -= 6; ctx.font = FONT(fs); }
+    const tr = fs * 0.12, total = tw(text, tr), cy = H / 2;
+    ctx.textBaseline = "middle"; ctx.textAlign = "left";
+    const stroke = (dx, dy, style) => { ctx.fillStyle = style; let x = (W - total) / 2 + dx; for (const ch of text) { ctx.fillText(ch, x, cy + dy); x += ctx.measureText(ch).width + tr; } };
+    stroke(2.5, 3.5, "rgba(0,0,0,0.55)");        // carved shadow (depth)
+    stroke(0, 0, "#e3c074");                       // warm-gold inlay
+    stroke(-1, -1.5, "rgba(255,244,216,0.20)");    // faint top highlight (catch-light on the engraving)
+    const tex = new THREE.CanvasTexture(cv); tex.anisotropy = 4; tex.colorSpace = THREE.SRGBColorSpace;
+    const mat = new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false });
+    const pw = s.x * 0.82, ph = pw * (H / W);      // a band across the flat underside, with margin
+    const plane = new THREE.Mesh(new THREE.PlaneGeometry(pw, ph), mat);
+    plane.position.set(0, 0, -(s.z / 2) - 0.02);   // sit on the −Z underside flat, just proud of the surface
+    plane.rotation.y = Math.PI;                     // face outward from the underside
+    plane.renderOrder = 3;
+    base.add(plane);
+  }
+
+  // build 6 clones of the FINISHED hero bracelet (shared geometry) into one group — the gather cluster
+  function buildGather() {
+    gatherGroup = new THREE.Group(); gatherGroup.visible = false; scene.add(gatherGroup);
+    for (let i = 0; i < GATHER_N; i++) {
+      const mc = model.clone(true);
+      // give EACH bead platform its OWN material, so a ping lights a single bead (one-to-one), never the whole bracelet;
+      // and collect each bead's meshes (cap + base + symbol) by node so a ping can VIBRATE just that one bead.
+      const beadMat = {}, beadMeshes = {};
+      mc.traverse((o) => {
+        if (!o.isMesh) return;
+        o.castShadow = o.receiveShadow = false;                 // no shadows on the clones
+        const nm = o.name || ""; let node = NaN;
+        if (nm.indexOf("PLATFORM") === 0) {
+          node = nm === "PLATFORM" ? 0 : parseInt(nm.slice(8), 10);
+          if (o.material === matGlow) { const m = matGlow.clone(); m.userData.lit = true; o.material = m; beadMat[node] = m; }       // a hero-glow bead: breathes, can flare brighter
+          else if (o.material === matGold) { const m = matGold.clone(); m.userData.lit = false; o.material = m; beadMat[node] = m; } // a dark bead: gold at rest, lights only when pinged
+        } else if (nm.indexOf("FB_CAP") === 0) { node = nm === "FB_CAP" ? 0 : parseInt(nm.slice(6), 10); }   // bead top half
+        else if (nm.indexOf("FB_BASE") === 0) { node = nm === "FB_BASE" ? 0 : parseInt(nm.slice(7), 10); }  // bead bottom half
+        else return;
+        if (!isNaN(node)) (beadMeshes[node] || (beadMeshes[node] = [])).push({ mesh: o, base: o.position.clone() });
+      });
+      const ori = new THREE.Group(); ori.rotation.x = FLIP_X; ori.add(mc);
+      const sp = new THREE.Group(); sp.add(ori);
+      const pivot = new THREE.Group(); pivot.add(sp); gatherGroup.add(pivot);
+      gSpin[i] = gTarget[i] = endSpin; gVel[i] = 0; gBuzz[i] = null; gSnapping[i] = false;
+      engraveHubName(mc, GATHER_NAME[i]);   // the name is etched into the hub's flat underside — part of the bracelet, turns with it
+      gatherInstances.push({ pivot, spin: sp, beadMat, beadMeshes, _shakeNode: -1 });
+    }
+    // all bracelets keep the same (uniform) facing; the BOTTOM row alone pitches up so its beads angle up, not down.
+    const slotU = [GATHER_ROWY, GATHER_ROWY, 0, 0, -GATHER_ROWY, -GATHER_ROWY];
+    for (let i = 0; i < GATHER_N; i++) gPitch[i] = slotU[i] < 0 ? GATHER_TILT : 0;
+    // per-bead "front" spin angles, found against the cluster's (g=1) camera pose — for snap + the directed ping
+    const ELr = CAM_EL_END * DEG, dG = GATHER_DIST * modelR;
+    const camG = new THREE.Vector3(Math.cos(ELr) * dG, Math.sin(ELr) * dG, 0);
+    const ref = gatherInstances[0], suf = (k) => (k === 0 ? "" : String(k)), wc = new THREE.Vector3();
+    ref.pivot.position.set(0, 0, 0); ref.pivot.scale.setScalar(1);
+    gatherGroup.updateMatrixWorld(true);
+    for (const node of GATHER_NODE) {
+      const plat = ref.spin.getObjectByName("PLATFORM" + suf(node)); if (!plat) continue;
+      plat.geometry.computeBoundingBox();
+      const gcl = plat.geometry.boundingBox.getCenter(new THREE.Vector3());   // the disc's REAL centre (geometry, not the mesh origin)
+      let best = Infinity, bestTh = 0;
+      for (let k = 0; k < 360; k++) {
+        const th = k / 360 * TAU; ref.spin.rotation.y = th; ref.spin.updateMatrixWorld(true);
+        wc.copy(gcl).applyMatrix4(plat.matrixWorld);
+        const d = wc.distanceToSquared(camG);
+        if (d < best) { best = d; bestTh = th; }
+      }
+      frontAngleOf[node] = bestTh;
+    }
+    ref.spin.rotation.y = endSpin;   // all clones stay at the settled-hero pose (identical); swipe one to choose who to reach
+  }
+  // shortest signed angle and the person whose bead is nearest the front of bracelet `o`
+  const angDelta = (from, to) => ((to - from + Math.PI) % TAU + TAU) % TAU - Math.PI;
+  function frontPerson(spinVal) {
+    let best = -1, bd = TAU;
+    for (let pi = 0; pi < GATHER_N; pi++) { const d = angDelta(spinVal, frontAngleOf[GATHER_NODE[pi]]); if (Math.abs(d) < Math.abs(bd)) { bd = d; best = pi; } }
+    return best;
+  }
+  function gSnapTo(i) { gTarget[i] = gSpin[i] + angDelta(gSpin[i], frontAngleOf[GATHER_NODE[frontPerson(gSpin[i])]]); gSnapping[i] = true; }
+  const buzz = () => { try { if (navigator.vibrate) navigator.vibrate([0, 55, 35, 55]); } catch (e) {} };   // a clear two-pulse haptic on the bead that's reached
+  // the directed ping: tap bracelet `owner` → on the FRONT person's bracelet, spin to YOUR bead, light ONLY that bead, vibrate + buzz
+  function gReach(owner) {
+    const p = frontPerson(gSpin[owner]); if (p < 0) return;
+    const ownNode = GATHER_NODE[owner];   // the sender's own bead — the single bead that lights on the other bracelet
+    if (p === owner) { gBuzz[owner] = { node: ownNode, t0: idle, hue: GATHER_HUE[owner] }; buzz(); return; }
+    gTarget[p] = gSpin[p] + angDelta(gSpin[p], frontAngleOf[ownNode]); gSnapping[p] = true;
+    setTimeout(() => { gBuzz[p] = { node: ownNode, t0: idle, hue: GATHER_HUE[owner] }; buzz(); }, 260);
+  }
+
+  // the gather choreography: the main bracelet shrinks from centre, the copies slide IN FROM THE SIDES into a
+  // compact 2×3 cluster, then each floats on its own gentle (unsynchronised) bob. Hero text fades.
+  function updateGather(g) {
+    if (!gatherGroup) return;
+    renderer.toneMappingExposure = 1.12 + 0.62 * g;   // lift the matte beads out of the dark as they cluster
+    if (g > 0.0015 && outro) { const oo = clamp(1 - smooth(0.0, 0.18, g), 0, 1); outro.style.opacity = String(oo); outro.style.pointerEvents = oo > 0.5 ? "auto" : "none"; }
+    const show = g > 0.0015;
+    gatherGroup.visible = show; spin.visible = !show;          // hand off from the hero original to the clones
+    for (const id of ["#hubLabels", "#beadLabels", "#beadWords"]) { const h = $(id); if (h) h.style.opacity = show ? "0" : ""; }
+    if (!show) return;
+    camera.updateMatrixWorld(true);
+    const right = new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 0);   // screen-right
+    const up = new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 1);      // screen-up
+    const COLX = GATHER_COLX * modelR, ROWY = GATHER_ROWY * modelR, SIDE = GATHER_SIDE * modelR;
+    // 2 columns × 3 rows, in (up,right) screen coords: [u, r]
+    const slots = [[ROWY, -COLX], [ROWY, COLX], [0, -COLX], [0, COLX], [-ROWY, -COLX], [-ROWY, COLX]];
+    const breathe = matGlow.emissiveIntensity;
+    for (let i = 0; i < GATHER_N; i++) {
+      const inst = gatherInstances[i];
+      const su = slots[i][0], sr = slots[i][1];
+      const t0 = 0.04 + i * 0.07;
+      const e = smooth(t0, t0 + 0.5, g), ee = e * e * (3 - 2 * e);
+      // start: bracelet 0 from the centre (full size); the copies slide in from their column's side
+      const startU = i === 0 ? 0 : su, startR = i === 0 ? 0 : Math.sign(sr) * SIDE;
+      let u = lerp(startU, su, ee), r = lerp(startR, sr, ee);
+      const amp = GATHER_FLOAT * modelR * ee;                                          // subtle, multi-directional drift
+      u += Math.sin(idle * GATHER_FSPEED[i] + GATHER_FPHASE[i]) * amp;                 // vertical component
+      r += Math.sin(idle * GATHER_FSPEED2[i] + GATHER_FPHASE2[i]) * amp;               // horizontal component
+      const scaleNow = lerp(i === 0 ? 1 : GATHER_SCALE, GATHER_SCALE, ee);
+      // ping envelope, computed UP FRONT so the vibrate can ride it: expire at 0.7s, half-sine pulse meanwhile
+      const b = gBuzz[i];
+      if (b && (idle - b.t0) / 0.7 >= 1) gBuzz[i] = null;
+      const bb = gBuzz[i];
+      const pl = bb ? Math.sin(Math.min((idle - bb.t0) / 0.7, 1) * Math.PI) : 0;
+      inst.pivot.position.set(up.x * u + right.x * r, up.y * u + right.y * r, up.z * u + right.z * r);
+      inst.pivot.scale.setScalar(scaleNow);
+      inst.pivot.quaternion.setFromAxisAngle(right, gPitch[i] * ee);   // bottom row pitches up about the screen-horizontal axis
+      // VIBRATE: a ping shakes ONLY the reached bead (its cap + base + symbol meshes), not the whole bracelet
+      const shakeNode = bb ? bb.node : -1;
+      if (inst._shakeNode !== shakeNode && inst._shakeNode >= 0) {   // a bead was shaking and no longer is → settle it back to rest
+        const prev = inst.beadMeshes[inst._shakeNode]; if (prev) for (const bm of prev) bm.mesh.position.copy(bm.base);
+      }
+      inst._shakeNode = shakeNode;
+      if (bb) {
+        const sd = Math.max(0, 1 - (idle - bb.t0) / 0.42), k = GATHER_SHAKE * modelR * sd * sd;   // strongest at the hit, gone by ~0.42s
+        const dx = Math.sin(idle * 88.0) * k, dy = Math.sin(idle * 97.0 + 1.3) * k, dz = Math.sin(idle * 105.0 + 2.6) * k;   // 3 axes → a visible tremor at any spin
+        const meshes = inst.beadMeshes[bb.node];
+        if (meshes) for (const bm of meshes) bm.mesh.position.set(bm.base.x + dx, bm.base.y + dy, bm.base.z + dz);
+      }
+      // spin: drag → momentum → SNAP to the nearest bead's front
+      if (gDragging === i) { /* live drag sets gSpin */ }
+      else if (gSnapping[i]) { const d = angDelta(gSpin[i], gTarget[i]); gSpin[i] += d * 0.2; if (Math.abs(d) < 0.003) { gSpin[i] = gTarget[i]; gSnapping[i] = false; } }
+      else if (Math.abs(gVel[i]) > 0.0004) { gSpin[i] += gVel[i]; gVel[i] *= 0.92; if (Math.abs(gVel[i]) < 0.006) { gVel[i] = 0; gSnapTo(i); } }
+      inst.spin.rotation.y = gSpin[i];
+      // glow: every lit bead breathes like the hero; a ping flares ONLY the sender's bead (one-to-one), in their hue
+      for (const node in inst.beadMat) {
+        const m = inst.beadMat[node];
+        if (bb && +node === bb.node) { m.emissive.setHex(bb.hue); m.emissiveIntensity = (m.userData.lit ? breathe : 0) + 7 * pl; }
+        else if (m.userData.lit) { m.emissive.setHex(0xffb247); m.emissiveIntensity = breathe * (1 - 0.82 * pl); }   // the others dim away so the single reached bead stands alone
+        else { m.emissiveIntensity = 0; }
+      }
+    }
+    canvas.style.cursor = g > 0.92 ? "grab" : "default";
   }
 
   function build() {
@@ -141,7 +331,8 @@ function init() {
     if (cue) cue.style.opacity = introOp;
     section.style.setProperty("--intro-op", String(introOp));   // light-mode hero veil fades WITH the intro copy
     const outOp = smooth(0.9, 0.99, p);
-    if (outro) { outro.style.opacity = outOp; outro.style.pointerEvents = outOp > 0.5 ? "auto" : "none"; }
+    // the touch-demo takes over the outro fade once you scroll into it (suppressOutro); default off = unchanged
+    if (outro && !(window.__hero && window.__hero._suppressOutro)) { outro.style.opacity = outOp; outro.style.pointerEvents = outOp > 0.5 ? "auto" : "none"; }
     if (bar) bar.style.transform = `scaleX(${p})`;
     // bottom prose captions removed: the exploded-bead callouts (TOUCH/LIGHT/A pulse), the
     // on-bead words ("Everyone gets their own"), and the hub component labels carry the story.
@@ -170,7 +361,12 @@ function init() {
   composer.addPass(bloom);
   composer.addPass(new OutputPass());
 
-  function update(p) {
+  function update(rawP) {
+    // the first HERO_FRAC of the (taller) section drives the existing hero exactly as before; the remainder
+    // drives the gather. heroP stays clamped at 1 through the gather so the bracelet holds its settled pose.
+    const p = Math.min(1, rawP / HERO_FRAC);
+    const gather = Math.max(0, Math.min(1, (rawP - HERO_FRAC) / (GATHER_END - HERO_FRAC)));   // reaches 1 before the end → an interactive dwell
+    gLast = gather;
     // each reveal "steals" a dwell of scroll where spin + threading FREEZE while it opens & reassembles. Walk the
     // dwells (sorted by pE) to map raw scroll p -> animation progress + each reveal's local explode phase e.
     let anim = p;
@@ -204,7 +400,7 @@ function init() {
     if (braidB) { const n = Math.floor(braidTotal * f); braidB.geometry.setDrawRange(0, n); braidC.geometry.setDrawRange(0, n); }
     matGlow.emissiveIntensity = 2.0 + 0.45 * (0.5 + 0.5 * Math.sin(idle * 0.55));   // LED breathing, toned down (2.0..2.45)
     matLED.emissiveIntensity = 3.4 + 0.7 * (0.5 + 0.5 * Math.sin(idle * 0.6));      // the exploded bead's small PCB LED breathes (3.4..4.1)
-    placeCamera(settle);
+    placeCamera(settle, gather);
     for (const rv of reveals) updateExplode(rv, rv._e);
     updateHubLabels(hubAsm ? hubAsm._e : 0);
     updateBeadLabels(beadAsm ? beadAsm._e : 0);
@@ -214,6 +410,7 @@ function init() {
     // stay in that plane too (exactly where it's threaded). It keeps its natural threaded
     // orientation through the settle, coplanar with the beads, so the cord stays in the bus holes.
     overlay(anim, p);
+    updateGather(gather);
   }
 
   let raf = 0;
@@ -228,6 +425,7 @@ function init() {
 
   window.__hero = {
     setProgress(p) { p = clamp(p, 0, 1); target = progress = p; if (ready) { update(p); composer.render(); } },
+    suppressOutro(v) { this._suppressOutro = v; },   // the touch-demo owns the outro fade once it's in view
     get progress() { return progress; },
     get ready() { return ready; },
   };
@@ -237,6 +435,38 @@ function init() {
   if (window.visualViewport) window.visualViewport.addEventListener("resize", resize);   // mobile URL-bar show/hide resizes the canvas box
   new IntersectionObserver((es) => { inView = es[0].isIntersecting; }, { threshold: 0 }).observe(section);
   resize();
+
+  // ---- gather interaction: drag a bracelet to spin it; tap it to light up + buzz (only once gathered) ----
+  const gRay = new THREE.Raycaster();
+  function gPick(ev) {
+    if (!gatherGroup || !gatherGroup.visible) return -1;
+    const rect = canvas.getBoundingClientRect();
+    gRay.setFromCamera(new THREE.Vector2(((ev.clientX - rect.left) / rect.width) * 2 - 1, -((ev.clientY - rect.top) / rect.height) * 2 + 1), camera);
+    const hits = gRay.intersectObject(gatherGroup, true);
+    if (!hits.length) return -1;
+    let o = hits[0].object; while (o && o.parent !== gatherGroup) o = o.parent;
+    return gatherInstances.findIndex((g) => g.pivot === o);
+  }
+  canvas.addEventListener("pointerdown", (ev) => {
+    if (gLast < 0.92) return;
+    const i = gPick(ev); if (i < 0) return;
+    gDragging = i; gDownX = gLastX = ev.clientX; gMoved = false; gVel[i] = 0;
+    try { canvas.setPointerCapture(ev.pointerId); } catch (e) {}
+  });
+  canvas.addEventListener("pointermove", (ev) => {
+    if (gDragging < 0) return;
+    if (Math.abs(ev.clientX - gDownX) > 4) gMoved = true;
+    const d = (ev.clientX - gLastX) * 0.012;
+    gSpin[gDragging] += d; gVel[gDragging] = d; gLastX = ev.clientX;
+  });
+  const gEnd = (ev) => {
+    if (gDragging < 0) return; const i = gDragging; gDragging = -1;
+    try { canvas.releasePointerCapture(ev.pointerId); } catch (e) {}
+    if (!gMoved) gReach(i);                              // tap → directed ping to the front person's bracelet
+    else if (Math.abs(gVel[i]) < 0.006) gSnapTo(i);     // slow release → snap now; else momentum carries, then snaps
+  };
+  canvas.addEventListener("pointerup", gEnd);
+  canvas.addEventListener("pointercancel", gEnd);
 
   // matte Akoma_4E look: deep matte-black resin + warm gold (no glossy clearcoat)
   const matBlack = new THREE.MeshPhysicalMaterial({ color: 0x0c0c0d, roughness: 0.82, metalness: 0.0, clearcoat: 0.0, envMapIntensity: 0.2 });
@@ -770,5 +1000,6 @@ function init() {
     buildBraid();
     build();
     setupExplode();
+    buildGather();      // clone the FINISHED hero bracelet (after setupExplode → glow + hub correct) for the circle
   }, undefined, fail);
 }

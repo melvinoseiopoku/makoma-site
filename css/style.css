@@ -139,7 +139,7 @@ h1,h2,h3{ font-family:var(--serif); font-weight:500; line-height:1.04; letter-sp
 }
 
 /* ============ HERO — scroll-driven 3D ============ */
-.hero3d{ position:relative; height:560vh; background:var(--black); }
+.hero3d{ position:relative; height:880vh; background:var(--black); }
 .hero3d.no3d{ height:100svh; }
 .hero3d-sticky{ position:sticky; top:0; height:100svh; height:100dvh; overflow:hidden;
   /* a focused warm POOL behind the bracelet + a darker vignette frame, so the bracelet pops off the page
@@ -1645,3 +1645,48 @@ section{ position:relative; z-index:2; }
 /* keep the bead string compact + a sane size */
 .wl-node--beads .wl-string{ gap:0; }
 .wl-beadimg{ width:26px !important; margin:0 -3px; }
+
+/* ===== Touch demo — pinned hero→ring transition; six CAD bracelets bloom from centre into a ring ===== */
+.td-section{ position:relative; height:300vh; background:var(--black); }
+.td-pin{ position:sticky; top:0; height:100svh; height:100dvh; overflow:hidden;
+  /* EXACT hero pool gradient so the hand-off seam from the hero is invisible */
+  background:
+    radial-gradient(62% 50% at 50% 42%, #3a2a12 0%, #1c140b 45%, transparent 72%),
+    radial-gradient(130% 105% at 50% 40%, #110c07 0%, #070605 58%, #030303 100%); }
+:root[data-theme="light"] .td-pin{ background:radial-gradient(120% 95% at 50% 38%, #fffaef 0%, #efe6d4 55%, var(--black) 100%); }
+
+.td-stage-root{ position:absolute; inset:0; }
+#tdCanvas{ position:absolute; inset:0; width:100%; height:100%; z-index:1; pointer-events:none; }
+
+/* each bracelet's invisible hit-area (td3d.js positions it every frame); feathered edges hide the viewport cut */
+.td-hit{ position:absolute; z-index:4; cursor:grab; touch-action:pan-y; -webkit-tap-highlight-color:transparent; }
+.td-hit:active{ cursor:grabbing; }
+
+/* the buzz halo — blooms behind the front bead when a ping lands on this bracelet */
+.td-stage-glow{ position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); width:54%; height:120%;
+  border-radius:50%; pointer-events:none; z-index:1; opacity:0; mix-blend-mode:screen;
+  background:radial-gradient(circle, var(--hue,#caa24a), transparent 60%); }
+
+/* in the pinned 3D view the bracelets carry the story (with the foot line); copy only shows in the fallback */
+.td-copy{ display:none; }
+.td-no3d .td-copy{ display:block; }
+.td-copy.legacy{ position:absolute; left:0; right:0; bottom:7.5vh; text-align:center; z-index:5; pointer-events:none; padding:0 24px; opacity:0; }
+.td-copy .eyebrow{ display:block; margin-bottom:10px; }
+.td-copy .td-title{ font-size:clamp(1.8rem,4vw,3rem); line-height:1.05; margin:0 0 12px; }
+.td-copy .td-lede{ color:var(--ink-soft); max-width:52ch; margin:0 auto; font-size:clamp(.95rem,1.5vw,1.12rem); }
+.td-foot{ position:absolute; left:0; right:0; bottom:3.4vh; text-align:center; z-index:5; color:var(--ink-mute);
+  font-style:italic; font-size:.95rem; min-height:1.4em; pointer-events:none; padding:0 24px; }
+.td-foot span{ transition:opacity .2s ease; }
+
+/* ---- static fallback (no WebGL): un-pin and show flat CAD-render strands in flow ---- */
+.td-section.td-no3d{ height:auto; }
+.td-no3d .td-pin{ position:static; height:auto; overflow:visible; padding:clamp(64px,9vw,110px) 0; }
+.td-no3d .td-stage-root{ position:static; }
+.td-no3d .td-copy{ position:static; opacity:1; margin:0 auto 36px; }
+.td-no3d .td-foot{ position:static; margin-top:30px; }
+.td-stack.td-flat{ display:flex; flex-direction:column; gap:26px; max-width:560px; margin:0 auto; }
+.td-car-flat .td-name{ display:block; margin:0 0 8px 6px; font-family:var(--sans); font-size:.7rem; letter-spacing:.18em; text-transform:uppercase; color:var(--ink-mute); }
+.td-flatstrand{ display:flex; justify-content:space-between; gap:8px; }
+.td-flatcell{ display:flex; flex-direction:column; align-items:center; gap:6px; flex:1 1 0; min-width:0; }
+.td-flatcell img{ width:clamp(40px,11vw,56px); height:auto; filter:drop-shadow(0 4px 8px rgba(0,0,0,.5)); }
+.td-flatcell span{ font-family:var(--sans); font-size:.58rem; letter-spacing:.07em; text-transform:uppercase; color:var(--ink-mute); }

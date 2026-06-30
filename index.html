@@ -133,6 +133,7 @@
       <div class="hub-labels" id="beadLabels" aria-hidden="true"></div>
       <!-- words of "Everyone gets their own" pinned to the beads that spin past after the explosion -->
       <div class="bead-words" id="beadWords" aria-hidden="true"></div>
+      <!-- cluster names are now ENGRAVED into each bracelet's hub underside (hero3d.js), not a screen overlay -->
 
       <div class="hero-outro" id="heroOutro">
         <h2>Five people.<br/><span class="gold-ink">One quiet channel.</span></h2>
@@ -148,6 +149,8 @@
     <div class="hero-loader" id="heroLoader" aria-hidden="true"><i></i><span>Rendering the bracelet…</span></div>
   </div>
 </section>
+
+<!-- The hero→circle gather now lives INSIDE #hero (hero3d.js); the old separate touch-demo section is retired. -->
 
 <!-- ============ THE CIRCLE — bead carousel (merges Circle Mode + Echo/Pulse/Glow + Adinkra) ============ -->
 <section id="circle" class="car-section circle-merge" aria-labelledby="car-headline">
