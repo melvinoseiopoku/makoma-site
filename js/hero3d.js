@@ -34,7 +34,8 @@ const HERO_FRAC = 0.64;            // first 64% of the (taller) section = the ex
 const GATHER_END = 0.88;           // gather completes here; 0.88–1.0 is an interactive dwell (cluster held)
 const GATHER_N = 6;
 const GATHER_SCALE = 0.45;         // each bracelet shrinks to this in the cluster
-const GATHER_DIST = 5.0;           // camera pull-back at full gather (× modelR)
+const GATHER_DIST = 6.1;           // camera pull-back at full gather (× modelR) — pulled back to clear room for the guide text
+const GATHER_DROP = 0.12;          // shift the cluster DOWN by this fraction of the half-viewport, so the header clears its top
 const GATHER_COLX = 0.66;          // half horizontal gap between the two columns (× modelR)
 const GATHER_ROWY = 0.72;          // vertical spacing between the three rows (× modelR)
 const GATHER_TILT = -18 * DEG;     // the BOTTOM row pitches up by this (about screen-horizontal) so its beads angle up, not down
@@ -48,6 +49,9 @@ const GATHER_HUE = [0x48C9CB, 0xE0A52A, 0xB77AF4, 0xF0922C, 0x63CE88, 0x5C9CEB];
 const GATHER_NODE = [4, 0, 6, 7, 2, 3];   // bead node that represents each person (You·Mom·Dad·Priscilla·Sylvester·Phoebe)
 const GATHER_NAME = ["You", "Mom", "Dad", "Priscilla", "Sylvester", "Phoebe"];   // the name pinned under each bracelet
 const GATHER_SHAKE = 0.025;        // vibrate amplitude of the REACHED BEAD when pinged (× modelR, bracelet-local); decays over ~0.42s
+const ECHO_HOLD = 420;             // ms press-and-hold on a bracelet to start an ECHO (a quick tap stays a Pulse)
+const ECHO_DUR = 1.9;              // seconds the Echo waveform streams from the pressed bead to the receiving bead
+const GATHER_NOTE = [392.00, 440.00, 523.25, 587.33, 659.25, 783.99];   // each person's Echo pitch (G-pentatonic), like the carousel charm notes
 
 const section = $("#hero");
 const canvas = $("#heroCanvas");
@@ -116,13 +120,27 @@ function init() {
   const gSpin = [], gVel = [], gBuzz = [], gTarget = [], gSnapping = [], gPitch = [];   // spin · velocity · pulse · snap target · snapping · bottom-row upward tilt
   const frontAngleOf = {};                             // bead node → spin angle that faces it to the camera
   let gLast = 0, gDragging = -1, gDownX = 0, gMoved = false, gLastX = 0;   // interaction state
+  let gEcho = null, gHoldTimer = null, gHeld = false;                      // Echo (press-and-hold) state
+  let echoCanvas = null, echoCtx = null;                                   // 2-D overlay the waveform stream draws on
+  const beadGeomC = {};                                                    // node → bead geometry centre (shared local frame), for the bead's world position
+  const _ew1 = new THREE.Vector3(), _ew2 = new THREE.Vector3(), _ep = new THREE.Vector3();   // echo scratch
 
+  // distance that frames the WHOLE 2×3 cluster for the current viewport. On wide desktops GATHER_DIST wins; on
+  // narrow portrait phones the cluster would otherwise overflow the sides, so pull the camera back to fit the width.
+  function gatherFitDist() {
+    const vHalf = Math.tan(camera.fov * 0.5 * DEG);                          // tan(vertical FOV / 2)
+    const halfW = (GATHER_COLX + GATHER_SCALE) * modelR;                     // cluster half-width  (columns + a bracelet)
+    const halfH = (GATHER_ROWY + GATHER_SCALE * 0.62) * modelR;              // cluster half-height (rows + a bracelet)
+    const dW = halfW / (vHalf * Math.max(camera.aspect, 0.05) * 0.9);        // fit the width into 90% (side margins)
+    const dH = halfH / (vHalf * 0.56);                                       // fit the height into 56% → reserve top for the header + bottom for the legend
+    return Math.max(GATHER_DIST * modelR, dW, dH);
+  }
   function placeCamera(settle = 0, g = 0) {
     const az = (CAM_AZ + Math.sin(idle * 0.18) * 0.7 * (1 - settle) * (1 - g)) * DEG;   // idle sway fades out as we settle
     const el = (CAM_EL + (CAM_EL_END - CAM_EL) * settle) * DEG;               // rise toward the top-front edge
     let d = (3.15 + (CAM_DIST_END - 3.15) * settle) * modelR;                  // pull back to frame the whole bracelet
     let pan = CAM_PAN_END * modelR * settle;   // pan the framing DOWN so the bracelet rises into the upper frame
-    if (g > 0) { d = lerp(d, GATHER_DIST * modelR, g); pan = lerp(pan, 0, g); }  // gather: pull further back, recentre on the circle
+    if (g > 0) { d = lerp(d, gatherFitDist(), g); pan = lerp(pan, -GATHER_DROP * d * Math.tan(camera.fov * 0.5 * DEG), g); }   // gather: FRAME the whole cluster (viewport-aware) + drop it below the header
     const ce = Math.cos(el);
     camera.position.set(Math.cos(az) * ce * d, Math.sin(el) * d - pan, Math.sin(az) * ce * d);
     camera.lookAt(0, -pan, 0);
@@ -163,13 +181,14 @@ function init() {
       const mc = model.clone(true);
       // give EACH bead platform its OWN material, so a ping lights a single bead (one-to-one), never the whole bracelet;
       // and collect each bead's meshes (cap + base + symbol) by node so a ping can VIBRATE just that one bead.
-      const beadMat = {}, beadMeshes = {};
+      const beadMat = {}, beadMeshes = {}, platOf = {};
       mc.traverse((o) => {
         if (!o.isMesh) return;
         o.castShadow = o.receiveShadow = false;                 // no shadows on the clones
         const nm = o.name || ""; let node = NaN;
         if (nm.indexOf("PLATFORM") === 0) {
           node = nm === "PLATFORM" ? 0 : parseInt(nm.slice(8), 10);
+          platOf[node] = o;                                     // the symbol disc — used to locate the bead in world (for the echo endpoints)
           if (o.material === matGlow) { const m = matGlow.clone(); m.userData.lit = true; o.material = m; beadMat[node] = m; }       // a hero-glow bead: breathes, can flare brighter
           else if (o.material === matGold) { const m = matGold.clone(); m.userData.lit = false; o.material = m; beadMat[node] = m; } // a dark bead: gold at rest, lights only when pinged
         } else if (nm.indexOf("FB_CAP") === 0) { node = nm === "FB_CAP" ? 0 : parseInt(nm.slice(6), 10); }   // bead top half
@@ -182,8 +201,9 @@ function init() {
       const pivot = new THREE.Group(); pivot.add(sp); gatherGroup.add(pivot);
       gSpin[i] = gTarget[i] = endSpin; gVel[i] = 0; gBuzz[i] = null; gSnapping[i] = false;
       engraveHubName(mc, GATHER_NAME[i]);   // the name is etched into the hub's flat underside — part of the bracelet, turns with it
-      gatherInstances.push({ pivot, spin: sp, beadMat, beadMeshes, _shakeNode: -1 });
+      gatherInstances.push({ pivot, spin: sp, beadMat, beadMeshes, platOf, _shakeNode: -1 });
     }
+    makeEchoCanvas();
     // all bracelets keep the same (uniform) facing; the BOTTOM row alone pitches up so its beads angle up, not down.
     const slotU = [GATHER_ROWY, GATHER_ROWY, 0, 0, -GATHER_ROWY, -GATHER_ROWY];
     for (let i = 0; i < GATHER_N; i++) gPitch[i] = slotU[i] < 0 ? GATHER_TILT : 0;
@@ -197,6 +217,7 @@ function init() {
       const plat = ref.spin.getObjectByName("PLATFORM" + suf(node)); if (!plat) continue;
       plat.geometry.computeBoundingBox();
       const gcl = plat.geometry.boundingBox.getCenter(new THREE.Vector3());   // the disc's REAL centre (geometry, not the mesh origin)
+      beadGeomC[node] = gcl.clone();                                          // shared local centre → bead world pos = centre × platform.matrixWorld
       let best = Infinity, bestTh = 0;
       for (let k = 0; k < 360; k++) {
         const th = k / 360 * TAU; ref.spin.rotation.y = th; ref.spin.updateMatrixWorld(true);
@@ -226,12 +247,117 @@ function init() {
     setTimeout(() => { gBuzz[p] = { node: ownNode, t0: idle, hue: GATHER_HUE[owner] }; buzz(); }, 260);
   }
 
+  // ---- Echo audio: the same soft Web-Audio voice as the bead carousel — a sustained sine + 5.5 Hz vibrato
+  //      (the "transmission" hum), plus two-oscillator bell charms for the send + the landing. ----
+  let _actx = null;
+  function audioCtx() {
+    if (_actx) { if (_actx.state === "suspended") _actx.resume(); return _actx; }
+    try { const AC = window.AudioContext || window.webkitAudioContext; if (AC) _actx = new AC(); } catch (e) { _actx = null; }
+    return _actx;
+  }
+  function bell(freq, dur, vol) {
+    const c = audioCtx(); if (!c) return;
+    try {
+      const t = c.currentTime, o = c.createOscillator(), o2 = c.createOscillator(), g = c.createGain();
+      o.type = "sine"; o2.type = "sine"; o.frequency.value = freq; o2.frequency.value = freq * 2.005;   // shimmer
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(vol || 0.12, t + 0.012);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + (dur || 0.5));
+      o.connect(g); o2.connect(g); g.connect(c.destination);
+      o.start(t); o2.start(t); o.stop(t + (dur || 0.5) + 0.02); o2.stop(t + (dur || 0.5) + 0.02);
+    } catch (e) {}
+  }
+  let _echoOsc = null, _echoGain = null, _echoLfo = null;
+  function echoSoundStart(freq) {
+    const c = audioCtx(); if (!c) return;
+    try {
+      const t = c.currentTime; _echoOsc = c.createOscillator(); _echoGain = c.createGain(); _echoLfo = c.createOscillator();
+      const lfoGain = c.createGain();
+      _echoOsc.type = "sine"; _echoOsc.frequency.value = freq;
+      _echoLfo.type = "sine"; _echoLfo.frequency.value = 5.5; lfoGain.gain.value = 4;   // gentle vibrato → "voice"
+      _echoLfo.connect(lfoGain); lfoGain.connect(_echoOsc.frequency);
+      _echoGain.gain.setValueAtTime(0.0001, t);
+      _echoGain.gain.exponentialRampToValueAtTime(0.07, t + 0.1);
+      _echoOsc.connect(_echoGain); _echoGain.connect(c.destination);
+      _echoOsc.start(t); _echoLfo.start(t);
+    } catch (e) {}
+  }
+  function echoSoundStop() {
+    const c = audioCtx(); if (!c || !_echoOsc) return;
+    try {
+      const t = c.currentTime;
+      _echoGain.gain.cancelScheduledValues(t); _echoGain.gain.setValueAtTime(_echoGain.gain.value, t);
+      _echoGain.gain.exponentialRampToValueAtTime(0.0001, t + 0.3);
+      _echoOsc.stop(t + 0.33); _echoLfo.stop(t + 0.33);
+    } catch (e) {}
+    _echoOsc = null; _echoGain = null; _echoLfo = null;
+  }
+
+  // ECHO (press-and-hold): an audio waveform streams from the pressed bead across to the receiving bead.
+  // Sender bead = the one at the front of the held bracelet (whom you selected); receiver bead = your bead
+  // on THAT person's bracelet (it turns to receive, then lights when the stream lands).
+  function startEcho(owner) {
+    const p = frontPerson(gSpin[owner]); if (p < 0) return;
+    const sNode = GATHER_NODE[p], rNode = GATHER_NODE[owner], note = GATHER_NOTE[owner];
+    echoSoundStop();                                                                                          // cut any echo voice still ringing
+    if (p === owner) { gBuzz[owner] = { node: rNode, t0: idle, hue: GATHER_HUE[owner] }; buzz(); bell(note, 0.5, 0.1); return; }   // reaching yourself → just a pulse + chime
+    gTarget[p] = gSpin[p] + angDelta(gSpin[p], frontAngleOf[rNode]); gSnapping[p] = true;                    // receiver turns to face you
+    gEcho = { from: owner, to: p, sNode, rNode, t0: idle, hue: GATHER_HUE[owner], note, arrived: false };
+    bell(note, 0.4, 0.07);                                                                                    // soft "send" chime as it leaves
+    echoSoundStart(note);                                                                                     // the transmission hums across
+    try { if (navigator.vibrate) navigator.vibrate(30); } catch (e) {}                                       // a soft "sending" cue
+  }
+  // a bead's world position: its geometry centre (shared local) through that instance's live platform matrix
+  function beadWorld(inst, node, out) { const plat = inst.platOf[node], c = beadGeomC[node]; if (!plat || !c) return null; return out.copy(c).applyMatrix4(plat.matrixWorld); }
+  function drawEcho(g) {
+    if (!echoCtx) return;
+    echoCtx.setTransform(1, 0, 0, 1, 0, 0); echoCtx.clearRect(0, 0, echoCanvas.width, echoCanvas.height);
+    if (!gEcho) return;
+    const e = (idle - gEcho.t0) / ECHO_DUR;
+    if (g < 0.9 || e >= 1) { echoSoundStop(); gEcho = null; return; }
+    gatherGroup.updateMatrixWorld(true);
+    const W = echoCanvas.clientWidth || 1, H = echoCanvas.clientHeight || 1;
+    if (!beadWorld(gatherInstances[gEcho.from], gEcho.sNode, _ew1) || !beadWorld(gatherInstances[gEcho.to], gEcho.rNode, _ew2)) return;
+    _ep.copy(_ew1).project(camera); if (_ep.z >= 1) return; const sx = (_ep.x * 0.5 + 0.5) * W, sy = (-_ep.y * 0.5 + 0.5) * H;
+    _ep.copy(_ew2).project(camera); if (_ep.z >= 1) return; const rx = (_ep.x * 0.5 + 0.5) * W, ry = (-_ep.y * 0.5 + 0.5) * H;
+    echoCtx.setTransform(echoCanvas.width / W, 0, 0, echoCanvas.width / W, 0, 0);   // draw in CSS px (square dpr)
+    drawWaveStream(echoCtx, sx, sy, rx, ry, e, gEcho.hue);
+    if (!gEcho.arrived && e > 0.34) { gEcho.arrived = true; gBuzz[gEcho.to] = { node: gEcho.rNode, t0: idle, hue: gEcho.hue }; bell(gEcho.note * 1.5, 0.55, 0.1); try { if (navigator.vibrate) navigator.vibrate(22); } catch (e2) {} }   // landed: resolve a fifth up on the receiver
+  }
+  // the waveform itself: a gently bowed channel from sender→receiver with audio-style bars; the stream first
+  // REACHES across (front advancing s→r), then bright bands keep FLOWING toward the receiver for the duration.
+  function drawWaveStream(ctx, sx, sy, rx, ry, e, hue) {
+    const colour = "#" + (hue >>> 0).toString(16).padStart(6, "0");
+    const dx = rx - sx, dy = ry - sy, len = Math.hypot(dx, dy) || 1, nx = -dy / len, ny = dx / len;
+    const bow = Math.min(len * 0.14, 64), cx = (sx + rx) / 2 + nx * bow, cy = (sy + ry) / 2 + ny * bow;
+    const bez = (t) => { const o = 1 - t; return [o * o * sx + 2 * o * t * cx + t * t * rx, o * o * sy + 2 * o * t * cy + t * t * ry]; };
+    const tan = (t) => [2 * (1 - t) * (cx - sx) + 2 * t * (rx - cx), 2 * (1 - t) * (cy - sy) + 2 * t * (ry - cy)];
+    const reach = Math.min(1, e * 3), gEnv = Math.sin(Math.min(e, 1) * Math.PI), N = Math.max(22, Math.floor(len / 8));
+    ctx.save(); ctx.lineCap = "round"; ctx.shadowColor = colour; ctx.shadowBlur = 8;
+    ctx.globalAlpha = 0.16 * gEnv; ctx.strokeStyle = colour; ctx.lineWidth = 1.3; ctx.beginPath();   // faint channel
+    for (let k = 0; k <= N; k++) { const [bx, by] = bez((k / N) * reach); k ? ctx.lineTo(bx, by) : ctx.moveTo(bx, by); }
+    ctx.stroke();
+    for (let k = 0; k <= N; k++) {                                                                   // audio bars
+      const t = k / N; if (t > reach) break;
+      const [bx, by] = bez(t), [tgx, tgy] = tan(t), tl = Math.hypot(tgx, tgy) || 1, pnx = -tgy / tl, pny = tgx / tl;
+      const voice = Math.abs(Math.sin(t * 41.3) * 0.55 + Math.sin(t * 83.7 + 1.1) * 0.45);            // irregular → reads as audio
+      const ends = Math.sin(t * Math.PI), front = Math.min(1, (reach - t) * 10);                      // taper at both beads + at the advancing front
+      const flow = 0.5 + 0.5 * Math.sin((t - e * 1.7) * TAU * 2.6);                                   // bright bands travel toward the receiver
+      const amp = (2.5 + 13 * voice) * ends * front * gEnv;
+      if (amp < 0.6) continue;
+      ctx.globalAlpha = (0.2 + 0.6 * flow) * gEnv * front; ctx.lineWidth = 2.4;
+      ctx.beginPath(); ctx.moveTo(bx - pnx * amp, by - pny * amp); ctx.lineTo(bx + pnx * amp, by + pny * amp); ctx.stroke();
+    }
+    ctx.restore();
+  }
+
   // the gather choreography: the main bracelet shrinks from centre, the copies slide IN FROM THE SIDES into a
   // compact 2×3 cluster, then each floats on its own gentle (unsynchronised) bob. Hero text fades.
   function updateGather(g) {
     if (!gatherGroup) return;
     renderer.toneMappingExposure = 1.12 + 0.62 * g;   // lift the matte beads out of the dark as they cluster
     if (g > 0.0015 && outro) { const oo = clamp(1 - smooth(0.0, 0.18, g), 0, 1); outro.style.opacity = String(oo); outro.style.pointerEvents = oo > 0.5 ? "auto" : "none"; }
+    if (gatherGuideEl) gatherGuideEl.style.opacity = String(clamp(smooth(0.42, 0.8, g), 0, 1));   // guide fades in as the bracelets settle (outro fades out first)
     const show = g > 0.0015;
     gatherGroup.visible = show; spin.visible = !show;          // hand off from the hero original to the clones
     for (const id of ["#hubLabels", "#beadLabels", "#beadWords"]) { const h = $(id); if (h) h.style.opacity = show ? "0" : ""; }
@@ -288,6 +414,7 @@ function init() {
         else { m.emissiveIntensity = 0; }
       }
     }
+    drawEcho(g);
     canvas.style.cursor = g > 0.92 ? "grab" : "default";
   }
 
@@ -310,6 +437,7 @@ function init() {
 
   // ---- overlay ----
   const intro = $("#heroIntro"), outro = $("#heroOutro"), cue = $("#heroCue"), bar = $("#heroProgress span");
+  const gatherGuideEl = $("#gatherGuide");
   const capWrap = $("#heroCaption"), capK = capWrap?.querySelector(".hc-kicker"), capT = capWrap?.querySelector(".hc-title"), capL = capWrap?.querySelector(".hc-line");
   // Scene-tied hero narrative — captions are PINNED to what the bracelet is doing (not spread evenly), so each
   // idea lands while the visual proves it: the bead opens → "alive / you touch it, it answers"; the spin →
@@ -353,6 +481,22 @@ function init() {
     const h = canvas.clientHeight || window.innerHeight || 800;
     renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix();
     composer.setSize(w, h);
+    sizeEchoCanvas();
+  }
+  // a 2-D overlay (over the WebGL canvas) the Echo waveform stream is drawn onto, sized to the same displayed box
+  function makeEchoCanvas() {
+    if (echoCanvas) return;
+    echoCanvas = document.createElement("canvas"); echoCanvas.setAttribute("aria-hidden", "true");
+    echoCanvas.style.cssText = "position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:4;";
+    (canvas.parentElement || document.body).appendChild(echoCanvas);
+    echoCtx = echoCanvas.getContext("2d");
+    sizeEchoCanvas();
+  }
+  function sizeEchoCanvas() {
+    if (!echoCanvas) return;
+    const w = echoCanvas.clientWidth || canvas.clientWidth || 1, h = echoCanvas.clientHeight || canvas.clientHeight || 1;
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    echoCanvas.width = Math.round(w * dpr); echoCanvas.height = Math.round(h * dpr);
   }
 
   const composer = new EffectComposer(renderer);
@@ -447,22 +591,28 @@ function init() {
     let o = hits[0].object; while (o && o.parent !== gatherGroup) o = o.parent;
     return gatherInstances.findIndex((g) => g.pivot === o);
   }
+  const clearHold = () => { if (gHoldTimer) { clearTimeout(gHoldTimer); gHoldTimer = null; } };
   canvas.addEventListener("pointerdown", (ev) => {
     if (gLast < 0.92) return;
     const i = gPick(ev); if (i < 0) return;
+    audioCtx();   // wake the AudioContext inside this gesture so the hold-fired Echo is allowed to sound
     gDragging = i; gDownX = gLastX = ev.clientX; gMoved = false; gVel[i] = 0;
+    gHeld = false; clearHold();
+    gHoldTimer = setTimeout(() => { gHoldTimer = null; if (gDragging === i && !gMoved) { gHeld = true; startEcho(i); } }, ECHO_HOLD);   // hold → Echo
     try { canvas.setPointerCapture(ev.pointerId); } catch (e) {}
   });
   canvas.addEventListener("pointermove", (ev) => {
     if (gDragging < 0) return;
-    if (Math.abs(ev.clientX - gDownX) > 4) gMoved = true;
+    if (Math.abs(ev.clientX - gDownX) > 4) { gMoved = true; clearHold(); }   // a drag cancels the pending Echo
     const d = (ev.clientX - gLastX) * 0.012;
     gSpin[gDragging] += d; gVel[gDragging] = d; gLastX = ev.clientX;
   });
   const gEnd = (ev) => {
     if (gDragging < 0) return; const i = gDragging; gDragging = -1;
+    clearHold();
     try { canvas.releasePointerCapture(ev.pointerId); } catch (e) {}
-    if (!gMoved) gReach(i);                              // tap → directed ping to the front person's bracelet
+    if (gHeld) { gHeld = false; }                        // the Echo already fired on the long press — no tap
+    else if (!gMoved) gReach(i);                         // quick tap → directed Pulse to the front person's bracelet
     else if (Math.abs(gVel[i]) < 0.006) gSnapTo(i);     // slow release → snap now; else momentum carries, then snaps
   };
   canvas.addEventListener("pointerup", gEnd);
