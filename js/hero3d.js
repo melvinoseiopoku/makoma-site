@@ -36,6 +36,7 @@ const GATHER_N = 6;
 const GATHER_SCALE = 0.45;         // each bracelet shrinks to this in the cluster
 const GATHER_DIST = 6.1;           // camera pull-back at full gather (× modelR) — pulled back to clear room for the guide text
 const GATHER_DROP = 0.12;          // shift the cluster DOWN by this fraction of the half-viewport, so the header clears its top
+const GATHER_RING = 1.25;          // radius of the ring of 5 bracelets around the centre "You" bracelet (× modelR)
 const GATHER_COLX = 0.66;          // half horizontal gap between the two columns (× modelR)
 const GATHER_ROWY = 0.72;          // vertical spacing between the three rows (× modelR)
 const GATHER_TILT = -18 * DEG;     // the BOTTOM row pitches up by this (about screen-horizontal) so its beads angle up, not down
@@ -129,10 +130,10 @@ function init() {
   // narrow portrait phones the cluster would otherwise overflow the sides, so pull the camera back to fit the width.
   function gatherFitDist() {
     const vHalf = Math.tan(camera.fov * 0.5 * DEG);                          // tan(vertical FOV / 2)
-    const halfW = (GATHER_COLX + GATHER_SCALE) * modelR;                     // cluster half-width  (columns + a bracelet)
-    const halfH = (GATHER_ROWY + GATHER_SCALE * 0.62) * modelR;              // cluster half-height (rows + a bracelet)
+    const halfW = (0.951 * GATHER_RING + GATHER_SCALE) * modelR;             // widest ring bracelet (sin 72°) + its half-width
+    const halfH = (GATHER_RING + GATHER_SCALE * 0.62) * modelR;              // top ring bracelet + its half-height
     const dW = halfW / (vHalf * Math.max(camera.aspect, 0.05) * 0.9);        // fit the width into 90% (side margins)
-    const dH = halfH / (vHalf * 0.56);                                       // fit the height into 56% → reserve top for the header + bottom for the legend
+    const dH = halfH / (vHalf * 0.6);                                        // fit the height into 60% → reserve top for the header + bottom for the legend
     return Math.max(GATHER_DIST * modelR, dW, dH);
   }
   function placeCamera(settle = 0, g = 0) {
@@ -365,22 +366,22 @@ function init() {
     camera.updateMatrixWorld(true);
     const right = new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 0);   // screen-right
     const up = new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 1);      // screen-up
-    const COLX = GATHER_COLX * modelR, ROWY = GATHER_ROWY * modelR, SIDE = GATHER_SIDE * modelR;
-    // 2 columns × 3 rows, in (up,right) screen coords: [u, r]
-    const slots = [[ROWY, -COLX], [ROWY, COLX], [0, -COLX], [0, COLX], [-ROWY, -COLX], [-ROWY, COLX]];
+    // YOU (bracelet 0) sits at the centre; the other five form a ring around it — "your circle"
+    const RING = GATHER_RING * modelR, RN = GATHER_N - 1, SIDE = GATHER_SIDE * modelR;
+    const slots = [[0, 0]];
+    for (let k = 0; k < RN; k++) { const th = k * (TAU / RN); slots.push([Math.cos(th) * RING, Math.sin(th) * RING]); }   // θ from screen-up, so slot 1 is at 12 o'clock
     const breathe = matGlow.emissiveIntensity;
     for (let i = 0; i < GATHER_N; i++) {
       const inst = gatherInstances[i];
       const su = slots[i][0], sr = slots[i][1];
       const t0 = 0.04 + i * 0.07;
       const e = smooth(t0, t0 + 0.5, g), ee = e * e * (3 - 2 * e);
-      // start: bracelet 0 from the centre (full size); the copies slide in from their column's side
-      const startU = i === 0 ? 0 : su, startR = i === 0 ? 0 : Math.sign(sr) * SIDE;
-      let u = lerp(startU, su, ee), r = lerp(startR, sr, ee);
+      // the ring copies SLIDE IN FROM THE SIDES (right half from the right, left half from the left) at their final height; YOU stays centred
+      let u = su, r = lerp(i === 0 ? 0 : (sr >= 0 ? 1 : -1) * SIDE, sr, ee);
       const amp = GATHER_FLOAT * modelR * ee;                                          // subtle, multi-directional drift
       u += Math.sin(idle * GATHER_FSPEED[i] + GATHER_FPHASE[i]) * amp;                 // vertical component
       r += Math.sin(idle * GATHER_FSPEED2[i] + GATHER_FPHASE2[i]) * amp;               // horizontal component
-      const scaleNow = lerp(i === 0 ? 1 : GATHER_SCALE, GATHER_SCALE, ee);
+      const scaleNow = lerp(i === 0 ? 1 : GATHER_SCALE, i === 0 ? GATHER_SCALE * 1.18 : GATHER_SCALE, ee);   // YOU a touch larger — the heart of the circle
       // ping envelope, computed UP FRONT so the vibrate can ride it: expire at 0.7s, half-sine pulse meanwhile
       const b = gBuzz[i];
       if (b && (idle - b.t0) / 0.7 >= 1) gBuzz[i] = null;
@@ -388,7 +389,7 @@ function init() {
       const pl = bb ? Math.sin(Math.min((idle - bb.t0) / 0.7, 1) * Math.PI) : 0;
       inst.pivot.position.set(up.x * u + right.x * r, up.y * u + right.y * r, up.z * u + right.z * r);
       inst.pivot.scale.setScalar(scaleNow);
-      inst.pivot.quaternion.setFromAxisAngle(right, gPitch[i] * ee);   // bottom row pitches up about the screen-horizontal axis
+      inst.pivot.quaternion.identity();   // uniform facing across the ring
       // VIBRATE: a ping shakes ONLY the reached bead (its cap + base + symbol meshes), not the whole bracelet
       const shakeNode = bb ? bb.node : -1;
       if (inst._shakeNode !== shakeNode && inst._shakeNode >= 0) {   // a bead was shaking and no longer is → settle it back to rest

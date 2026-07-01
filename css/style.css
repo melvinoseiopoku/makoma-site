@@ -206,7 +206,7 @@ h1,h2,h3{ font-family:var(--serif); font-weight:500; line-height:1.04; letter-sp
 
 /* interactive-cluster guidance — head at top, gesture legend at the bottom; opacity is driven per-frame by hero3d.js */
 .gather-guide{ position:absolute; inset:0; z-index:5; display:flex; flex-direction:column; justify-content:space-between;
-  align-items:center; text-align:center; padding:6vh 24px 4.6vh; pointer-events:none; opacity:0; }
+  align-items:center; text-align:center; padding:10.5vh 24px 4.6vh; pointer-events:none; opacity:0; }
 .gg-head{ max-width:600px; }
 .gg-head .eyebrow{ display:block; margin-bottom:10px; }
 .gg-title{ font-size:clamp(1.4rem,3vw,2.15rem); line-height:1.06; margin:0 0 .5rem; text-shadow:0 2px 22px rgba(0,0,0,.72); }
