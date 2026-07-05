@@ -85,7 +85,7 @@
     <span class="brand-mark">M'AKOMA<span class="tm">™</span></span>
   </a>
   <nav class="nav-links" id="navLinks">
-    <a href="#circle">Why M&rsquo;akoma</a>
+    <a href="#hero">Why M&rsquo;akoma</a>
     <a href="#position">Where</a>
     <a href="#adoption">How it begins</a>
     <a href="#launch">The Road</a>
@@ -138,8 +138,7 @@
       <div class="hero-outro" id="heroOutro">
         <h2>Five people.<br/><span class="gold-ink">One quiet channel.</span></h2>
         <div class="hero-actions">
-          <a href="#circle" class="btn btn-gold">See the circle</a>
-          <a href="#join" class="btn btn-line">Reserve a place</a>
+          <a href="#join" class="btn btn-gold">Reserve a place</a>
         </div>
       </div>
 
@@ -149,121 +148,47 @@
           <p class="eyebrow">How it works</p>
           <h2 class="gg-title">Touch a bead.<br/><span class="gold-ink">They feel it.</span></h2>
         </div>
-        <ul class="gg-hints">
-          <li><span class="gg-key">Tap</span><span class="gg-act">Pulse</span><span class="gg-desc">a gentle buzz — <i>thinking of you</i></span></li>
-          <li><span class="gg-key">Hold</span><span class="gg-act">Echo</span><span class="gg-desc">a voice that streams down the cord</span></li>
-          <li><span class="gg-key">Drag</span><span class="gg-act">Turn</span><span class="gg-desc">choose who you reach</span></li>
-        </ul>
       </div>
+
+      <!-- THE OPENING: a phone buried in noise quiets to five pinned people, who fly out and land as the
+           REAL beads of the bracelet (hero3d.js drives data-phase / departed / landed from scroll) -->
+      <!-- the OPENING phone story is now a REAL 3-D object (built in hero3d.js): a phone drowning in notifications,
+           the five pinned people popping out of the live screen as the actual beads. This node is the a11y description. -->
+      <div class="why-stage" id="whyStage" role="img"
+           aria-label="A phone buried in notifications quiets down to five pinned people, who pop out of the screen and land as the real beads of the M'AKOMA bracelet."></div>
+
+      <!-- the payoff line — rises as the five convert, gone as the phone is knocked away -->
+      <p class="hero-cap" id="wpCaption" aria-hidden="true">Only the few you carry.</p>
+      <!-- the invitation to act — a scroll CTA that fades the moment they start -->
+      <p class="wp-prompt" id="wpPrompt" aria-hidden="true"><span>Scroll to lift your people out of the noise</span><i class="wp-arrow"></i></p>
     </div>
 
     <div class="hero-progress" id="heroProgress" aria-hidden="true"><span></span></div>
     <div class="scroll-cue" id="heroCue" aria-hidden="true"><span></span></div>
     <div class="hero-loader" id="heroLoader" aria-hidden="true"><i></i><span>Rendering the bracelet…</span></div>
+
+    <!-- first-run coach marks: freeze-frame the cluster and walk a newcomer through the gestures (js/coach.js).
+         Shows once, dims the scene, points at the beads; a Skip lets anyone who already gets it out immediately. -->
+    <div class="coach" id="coach" hidden>
+      <div class="coach-scrim"></div>
+      <!-- a halo that lands on the ACTUAL bead in the scene (positioned each frame by hero3d.js) -->
+      <div class="coach-halo" id="coachHalo" aria-hidden="true"><i></i><i></i><b></b></div>
+      <div class="coach-card" role="dialog" aria-modal="false" aria-labelledby="coachTitle">
+        <span class="coach-check" id="coachCheck" aria-hidden="true"></span>
+        <h3 class="coach-title" id="coachTitle">Tap a bead</h3>
+        <p class="coach-hint" id="coachHint">sends a pulse</p>
+        <div class="coach-nav">
+          <button class="coach-skip" id="coachSkip" type="button">Skip</button>
+          <div class="coach-dots" id="coachDots" aria-hidden="true"></div>
+        </div>
+      </div>
+    </div>
   </div>
 </section>
 
 <!-- The hero→circle gather now lives INSIDE #hero (hero3d.js); the old separate touch-demo section is retired. -->
 
-<!-- ============ THE CIRCLE — bead carousel (merges Circle Mode + Echo/Pulse/Glow + Adinkra) ============ -->
-<section id="circle" class="car-section circle-merge" aria-labelledby="car-headline">
-  <div class="circle-sticky" id="circleSticky">
-    <div class="why-stage" id="whyStage" data-phase="0" role="img"
-         aria-label="A phone buried in notifications quiets down to five pinned people, who lift out of the screen and become the beads of a bracelet.">
-      <div class="wp-phone" aria-hidden="true">
-        <div class="wp-screen">
-          <span class="wp-island"></span>
-          <div class="wp-bar"><span>9:41</span><span class="wp-bar-i"><i></i><i></i><i></i></span></div>
-
-          <!-- lock screen + the pile of noise -->
-          <div class="wp-lock">
-            <div class="wp-clock"><div class="wp-t">9:41</div><div class="wp-d">Tuesday, June 24</div></div>
-            <div class="wp-notifs">
-              <div class="wp-notif" style="--k:0"><b>Trends</b><span>47 people are posting about this</span></div>
-              <div class="wp-notif" style="--k:1"><b>The Squad</b><span>142 new messages</span></div>
-              <div class="wp-notif" style="--k:2"><b>Headlines</b><span>BREAKING — you have to see this</span></div>
-              <div class="wp-notif" style="--k:3"><b>Likes</b><span>+318 reactions on your photo</span></div>
-              <div class="wp-notif" style="--k:4"><b>Screen Time</b><span>4h 12m scrolling today</span></div>
-              <div class="wp-notif" style="--k:5"><b>Don’t miss out</b><span>Flash sale ends in 09:59</span></div>
-            </div>
-          </div>
-
-          <!-- Messages: header + a pinned-chats grid (the avatars themselves live in .wp-people) + threads + search -->
-          <div class="wp-msgs">
-            <div class="wp-msgs-top">
-              <span class="wp-edit">Edit</span>
-              <span class="wp-mtitle">Messages</span>
-              <span class="wp-filter"><i></i><i></i><i></i></span>
-            </div>
-            <div class="wp-pingrid"></div>
-            <div class="wp-threads">
-              <div class="wp-thread"><span class="wp-th-av wp-th-g"></span><span class="wp-th-tx"><b>The Squad</b><i>142 new messages</i></span></div>
-              <div class="wp-thread"><span class="wp-th-av"></span><span class="wp-th-tx"><b>+1 (844) 997-0963</b><i>Summer Sale — 30% off, today only…</i></span></div>
-              <div class="wp-thread"><span class="wp-th-av"></span><span class="wp-th-tx"><b>72524</b><i>DHL: your parcel info was received…</i></span></div>
-            </div>
-            <div class="wp-search"><span class="wp-search-mag"></span>Search</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- the five pinned chats: avatars laid out in the 3+2 grid, that lift out one-by-one and become Adinkra beads -->
-      <div class="wp-people" aria-hidden="true">
-        <div class="wp-person" style="--i:0;--hue:#B77AF4"><img class="wp-face" src="assets/avatars/maya.png"  alt=""><img class="wp-bead" src="assets/beads/sankofa.png"   alt=""><span class="wp-udot"></span><b>Maya</b></div>
-        <div class="wp-person" style="--i:1;--hue:#D6A84F"><img class="wp-face" src="assets/avatars/ama.png"   alt=""><img class="wp-bead" src="assets/beads/akoma.png"     alt=""><b>Ava</b></div>
-        <div class="wp-person" style="--i:2;--hue:#63CE88"><img class="wp-face" src="assets/avatars/kwame.png" alt=""><img class="wp-bead" src="assets/beads/aya.png"       alt=""><b>Leo</b></div>
-        <div class="wp-person" style="--i:3;--hue:#E7A94E"><img class="wp-face" src="assets/avatars/nana.png"  alt=""><img class="wp-bead" src="assets/beads/gye_nyame.png" alt=""><b>Mia</b></div>
-        <div class="wp-person" style="--i:4;--hue:#5C9CEB"><img class="wp-face" src="assets/avatars/kofi.png"  alt=""><img class="wp-bead" src="assets/beads/nkyinkyim.png" alt=""><span class="wp-udot"></span><b>Noah</b></div>
-      </div>
-
-      <p class="wp-cap"><span class="wp-cap-a">Everyone, all at once.</span><span class="wp-cap-b">Only the few you carry.</span></p>
-    </div>
-
-  <div class="car-wrap">
-    <header class="car-head">
-      <p class="car-eyebrow">Why M&rsquo;akoma?</p>
-      <h2 id="car-headline" class="car-headline">From buried contacts to beads you can <span class="gold-ink">touch</span>.</h2>
-    </header>
-
-    <div class="car-identity" aria-live="polite">
-      <div class="car-avatarwrap"><img id="car-avatar" class="car-avatar" src="assets/avatars/maya.png" alt="Maya" /></div>
-      <h3 class="car-name" id="car-name">Maya</h3>
-      <button type="button" class="car-presence" id="car-presence" aria-label="Presence colour">
-        <span class="car-presence-dot" id="car-presence-dot"></span>
-        <span class="car-presence-label" id="car-presence-label">Quiet Violet</span>
-      </button>
-    </div>
-
-    <div class="car-stage" id="car-stage" role="group" aria-roledescription="carousel"
-         aria-label="Bead carousel. Use arrow keys to move between people.">
-      <ul class="car-track" id="car-track"><!-- beads injected by JS --></ul>
-      <div class="car-focusglow" id="car-focusglow" aria-hidden="true"></div>
-    </div>
-
-    <div class="car-meaning" aria-live="polite">
-      <p class="car-symbolname" id="car-symbolname">Sankofa</p>
-      <p class="car-meaningline" id="car-meaningline">Return &amp; retrieve — it is not wrong to go back for what you forgot.</p>
-      <p class="car-phrase" id="car-phrase">Comes back around</p>
-    </div>
-
-    <div class="car-dots" id="car-dots" role="tablist" aria-label="Choose a person"></div>
-
-    <div class="car-actions" role="group" aria-label="Bead actions">
-      <button type="button" class="car-btn" id="car-echo" aria-label="Echo — hold to leave a voice">
-        <span class="car-btn-label">Echo</span>
-        <span class="car-btn-hint">hold to leave a voice</span>
-      </button>
-      <button type="button" class="car-btn" id="car-pulse" aria-label="Pulse — tap to send a pulse">
-        <span class="car-btn-label">Pulse</span>
-        <span class="car-btn-hint">tap to send a pulse</span>
-      </button>
-      <button type="button" class="car-btn" id="car-glow" aria-label="Glow — set their colour">
-        <span class="car-btn-label">Glow</span>
-        <span class="car-btn-hint">set their colour</span>
-      </button>
-    </div>
-  </div>
-  </div>
-</section>
+<!-- The Why-M'AKOMA phone story now OPENS the hero (see #whyStage inside #hero); the old phone+carousel section is retired. -->
 
 <!-- ============ WHERE WE LIVE — interactive 2D→3D positioning ============ -->
 <section id="position" class="wl-section" aria-labelledby="wl-eyebrow">
@@ -510,9 +435,10 @@
 <script src="js/glyphs.js"></script>
 <script src="js/main.js"></script>
 <script type="module" src="js/hero3d.js"></script>
-<script src="js/carousel.js"></script>
 <script src="js/positioning.js"></script>
-<script src="js/circle.js" defer></script>
+<script src="js/coach.js"></script>
+<!-- carousel.js + circle.js retired: the phone story opens the hero (hero3d.js) and the gather cluster IS the circle -->
+
 <script>
   /* Safety net: if the 3D module never runs (parse/load error), collapse the
      pinned anatomy hero to the static render rather than show empty scroll. */
