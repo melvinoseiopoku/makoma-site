@@ -44,6 +44,7 @@ const GATHER_SCALE = 0.45;         // each bracelet shrinks to this in the clust
 const GATHER_DIST = 6.1;           // camera pull-back at full gather (× modelR) — pulled back to clear room for the guide text
 const GATHER_DROP = 0.12;          // shift the cluster DOWN by this fraction of the half-viewport, so the header clears its top
 const GATHER_RING = 1.25;          // radius of the ring of 5 bracelets around the centre "You" bracelet (× modelR)
+const GATHER_VSTRETCH = 1.22;      // portrait only: stretch the ring vertically into a gentle tall ellipse so a tall phone's height is used (beads stay big, sides don't clip more)
 const GATHER_COLX = 0.66;          // half horizontal gap between the two columns (× modelR)
 const GATHER_ROWY = 0.72;          // vertical spacing between the three rows (× modelR)
 const GATHER_TILT = -18 * DEG;     // the BOTTOM row pitches up by this (about screen-horizontal) so its beads angle up, not down
@@ -171,10 +172,16 @@ function init() {
   // narrow portrait phones the cluster would otherwise overflow the sides, so pull the camera back to fit the width.
   function gatherFitDist() {
     const vHalf = Math.tan(camera.fov * 0.5 * DEG);                          // tan(vertical FOV / 2)
+    const aspect = Math.max(camera.aspect, 0.05), portrait = aspect < 1;
+    const vStretch = portrait ? GATHER_VSTRETCH : 1;                         // portrait: the ring is stretched into a tall ellipse to use the height
     const halfW = (0.951 * GATHER_RING + GATHER_SCALE) * modelR;             // widest ring bracelet (sin 72°) + its half-width
-    const halfH = (GATHER_RING + GATHER_SCALE * 0.62) * modelR;              // top ring bracelet + its half-height
-    const dW = halfW / (vHalf * Math.max(camera.aspect, 0.05) * 0.9);        // fit the width into 90% (side margins)
-    const dH = halfH / (vHalf * 0.6);                                        // fit the height into 60% → reserve top for the header + bottom for the legend
+    const halfH = (GATHER_RING * vStretch + GATHER_SCALE * 0.62) * modelR;   // top ring bracelet (stretched) + its half-height
+    // Portrait phones have loads of vertical room, so a width-fit cluster looked tiny + hard to tap. Let the side
+    // bracelets run to (a touch past) the edges so the BEADS get big; the vertical stretch fills the height.
+    const wFill = portrait ? 1.12 : 0.9;    // landscape unchanged from before (desktop was fine)
+    const hFill = portrait ? 0.96 : 0.6;
+    const dW = halfW / (vHalf * aspect * wFill);
+    const dH = halfH / (vHalf * hFill);
     return Math.max(GATHER_DIST * modelR, dW, dH);
   }
   function placeCamera(settle = 0, g = 0) {
@@ -677,8 +684,9 @@ function init() {
     const up = new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 1);      // screen-up
     // YOU (bracelet 0) sits at the centre; the other five form a ring around it — "your circle"
     const RING = GATHER_RING * modelR, RN = GATHER_N - 1, SIDE = GATHER_SIDE * modelR;
+    const vStretch = ((canvas.clientWidth || 1) < (canvas.clientHeight || 1)) ? GATHER_VSTRETCH : 1;   // tall ellipse on portrait
     const slots = [[0, 0]];
-    for (let k = 0; k < RN; k++) { const th = k * (TAU / RN); slots.push([Math.cos(th) * RING, Math.sin(th) * RING]); }   // θ from screen-up, so slot 1 is at 12 o'clock
+    for (let k = 0; k < RN; k++) { const th = k * (TAU / RN); slots.push([Math.cos(th) * RING * vStretch, Math.sin(th) * RING]); }   // θ from screen-up; up-component stretched to fill a tall phone
     const breathe = matGlow.emissiveIntensity;
     for (let i = 0; i < GATHER_N; i++) {
       const inst = gatherInstances[i];
