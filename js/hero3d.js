@@ -45,6 +45,18 @@ const GATHER_DIST = 6.1;           // camera pull-back at full gather (× modelR
 const GATHER_DROP = 0.12;          // shift the cluster DOWN by this fraction of the half-viewport, so the header clears its top
 const GATHER_RING = 1.25;          // radius of the ring of 5 bracelets around the centre "You" bracelet (× modelR)
 const GATHER_VSTRETCH = 1.22;      // portrait only: stretch the ring vertically into a gentle tall ellipse so a tall phone's height is used (beads stay big, sides don't clip more)
+// ---- YOU-centric stage: the "You" bracelet is the big, central interaction target; the other five wait in the
+//      background (small + dim) and only the RECEIVER steps forward, glowing + vibrating, when you reach them. ----
+const GATHER_YOU_SCALE = 0.86;     // the big central YOU bracelet (× modelR, applied to the clone)
+const GATHER_BG_SCALE = 0.3;       // the backgrounded others: small
+const GATHER_BG_DIM = 0.16;        // their lit beads are dimmed right down while backgrounded
+const GATHER_BG_RING = 1.15;       // radius of the faint background cluster tucked behind YOU (× modelR)
+const GATHER_BG_FWD = 2.6;         // how far the background sits BEHIND YOU (× modelR, pushed from the camera → small + dim)
+const GATHER_RECV_SCALE = 0.86;    // a called bracelet grows to EXACTLY YOU's size — the two meet as equals (== GATHER_YOU_SCALE)
+const GATHER_RECV_UP = 1.12;       // the receiver settles above YOU (× modelR); the frame opens so both SHARE it, neither dominant
+const GATHER_RECV_FWD = 0.0;       // same depth as YOU — an equal beside you, not looming in front
+const GATHER_RECV_GAPFILL = 0.86;  // camera looks toward the mid-point of the pair (× RECV_UP) so YOU + receiver are balanced
+const PRESENCE_IN = 0.5, PRESENCE_HOLD = 1.6, PRESENCE_OUT = 0.95;   // receiver: rise → hold (glow/buzz) → recede (seconds)
 const GATHER_COLX = 0.66;          // half horizontal gap between the two columns (× modelR)
 const GATHER_ROWY = 0.72;          // vertical spacing between the three rows (× modelR)
 const GATHER_TILT = -18 * DEG;     // the BOTTOM row pitches up by this (about screen-horizontal) so its beads angle up, not down
@@ -56,9 +68,11 @@ const GATHER_FSPEED2 = [0.19, 0.27, 0.33, 0.22, 0.29, 0.25];  // horizontal-drif
 const GATHER_FPHASE2 = [2.1, 0.4, 3.9, 1.5, 2.8, 0.9];        // horizontal-drift phase
 const GATHER_HUE = [0x48C9CB, 0xE0A52A, 0xB77AF4, 0xF0922C, 0x63CE88, 0x5C9CEB];   // tap-glow colour per person
 const GATHER_NODE = [4, 0, 6, 7, 2, 3];   // bead node that represents each person (You·Mom·Dad·Priscilla·Sylvester·Phoebe)
+const PERSON_OF_NODE = {};   // reverse of GATHER_NODE: bead node → the person it stands for, so a tap on a SPECIFIC bead reaches THAT person (not just the front one)
+GATHER_NODE.forEach((n, p) => { PERSON_OF_NODE[n] = p; });
 const GATHER_NAME = ["You", "Mom", "Dad", "Priscilla", "Sylvester", "Phoebe"];   // the name pinned under each bracelet
 const GATHER_SHAKE = 0.025;        // vibrate amplitude of the REACHED BEAD when pinged (× modelR, bracelet-local); decays over ~0.42s
-const ECHO_HOLD = 420;             // ms press-and-hold on a bracelet to start an ECHO (a quick tap stays a Pulse)
+const ECHO_HOLD = 340;             // ms press-and-hold on a bracelet to start an ECHO (a quick tap stays a Pulse) — shortened so finger drift is less likely to cancel it
 const ECHO_DUR = 1.9;              // seconds the Echo waveform streams from the pressed bead to the receiving bead
 const GATHER_NOTE = [392.00, 440.00, 523.25, 587.33, 659.25, 783.99];   // each person's Echo pitch (G-pentatonic), like the carousel charm notes
 
@@ -127,8 +141,19 @@ function init() {
   let modelR = 10;
   let gatherGroup = null; const gatherInstances = [];   // the 6 bracelet clones for the gather cluster
   const gSpin = [], gVel = [], gBuzz = [], gTarget = [], gSnapping = [], gPitch = [];   // spin · velocity · pulse · snap target · snapping · bottom-row upward tilt
+  const gCalled = new Array(GATHER_N).fill(-99);       // idle-time each background bracelet was last summoned to receive (drives its step-forward)
+  let gRecvPres = 0;                                    // strongest receiver step-forward this frame → the camera opens the frame to share it with YOU
+  let gConn = null;                                     // the live bond: { p, sNode (their bead on YOUR wrist), rNode (your bead on THEIRS), sHue, rHue, pres } — both ends glow while together
+  const _gfwd = new THREE.Vector3();                   // scratch: camera-forward, for pushing bracelets back/forward in depth
+  // receiver step-forward envelope: 0 in the background → 1 fully up-front (glowing/buzzing) → back to 0
+  const presenceEnv = (age) => {
+    if (age < 0 || age > PRESENCE_IN + PRESENCE_HOLD + PRESENCE_OUT) return 0;
+    if (age < PRESENCE_IN) { const t = age / PRESENCE_IN; return t * t * (3 - 2 * t); }
+    if (age < PRESENCE_IN + PRESENCE_HOLD) return 1;
+    const t = (age - PRESENCE_IN - PRESENCE_HOLD) / PRESENCE_OUT; return 1 - t * t * (3 - 2 * t);
+  };
   const frontAngleOf = {};                             // bead node → spin angle that faces it to the camera
-  let gLast = 0, gDragging = -1, gDownX = 0, gMoved = false, gLastX = 0;   // interaction state
+  let gLast = 0, gDragging = -1, gDownX = 0, gDownY = 0, gDownNode = -1, gMoved = false, gVertScroll = false, gLastX = 0;   // interaction state (gDownNode: the bead under the finger at press; gDownY: radial tap-slop origin; gVertScroll: a vertical gesture handed to the page)
   let gEcho = null, gHoldTimer = null, gHeld = false;                      // Echo (press-and-hold) state
   // ---- opening phone story state ----
   let wpPromptEl = null, wpCaptionEl = null;                               // the gold scroll invitation + the "Only the few you carry" payoff (DOM overlays; the phone itself is real 3-D)
@@ -168,28 +193,28 @@ function init() {
   const _ew1 = new THREE.Vector3(), _ew2 = new THREE.Vector3(), _ep = new THREE.Vector3();   // echo scratch
   const _cw = new THREE.Vector3(), _cw2 = new THREE.Vector3();   // scratch: project the coach's target bead to screen
 
-  // distance that frames the WHOLE 2×3 cluster for the current viewport. On wide desktops GATHER_DIST wins; on
-  // narrow portrait phones the cluster would otherwise overflow the sides, so pull the camera back to fit the width.
+  // frame YOU big + central when solo; OPEN the frame to fit YOU + the receiver (as equals) when one steps up.
   function gatherFitDist() {
     const vHalf = Math.tan(camera.fov * 0.5 * DEG);                          // tan(vertical FOV / 2)
     const aspect = Math.max(camera.aspect, 0.05), portrait = aspect < 1;
-    const vStretch = portrait ? GATHER_VSTRETCH : 1;                         // portrait: the ring is stretched into a tall ellipse to use the height
-    const halfW = (0.951 * GATHER_RING + GATHER_SCALE) * modelR;             // widest ring bracelet (sin 72°) + its half-width
-    const halfH = (GATHER_RING * vStretch + GATHER_SCALE * 0.62) * modelR;   // top ring bracelet (stretched) + its half-height
-    // Portrait phones have loads of vertical room, so a width-fit cluster looked tiny + hard to tap. Let the side
-    // bracelets run to (a touch past) the edges so the BEADS get big; the vertical stretch fills the height.
-    const wFill = portrait ? 1.12 : 0.9;    // landscape unchanged from before (desktop was fine)
-    const hFill = portrait ? 0.96 : 0.6;
+    const bHalfV = GATHER_YOU_SCALE * 0.62 * modelR;                         // a bracelet's on-screen half-HEIGHT (wide + short)
+    const halfW = GATHER_YOU_SCALE * modelR * 1.08;                         // YOU is the widest thing in frame (+ a little margin)
+    // STATIC frame (issue #3): permanently reserve room for ONE receiver beside YOU, so YOU stays DEAD-CENTRE and
+    // never shifts or shrinks when a receiver steps in. The receiver settles at ±GATHER_RECV_UP; its far edge sits
+    // RECV_UP + bHalfV from centre = the frame half-height. Symmetric → fits a receiver whether it comes top or bottom.
+    const halfH = GATHER_RECV_UP * modelR + bHalfV;
+    const wFill = portrait ? 0.94 : 0.62;                                    // portrait: YOU fills most of the width
+    const hFill = portrait ? 0.9 : 0.86;
     const dW = halfW / (vHalf * aspect * wFill);
     const dH = halfH / (vHalf * hFill);
-    return Math.max(GATHER_DIST * modelR, dW, dH);
+    return Math.max(dW, dH);
   }
   function placeCamera(settle = 0, g = 0) {
     const az = (CAM_AZ + Math.sin(idle * 0.18) * 0.7 * (1 - settle) * (1 - g)) * DEG;   // idle sway fades out as we settle
     const el = (CAM_EL + (CAM_EL_END - CAM_EL) * settle) * DEG;               // rise toward the top-front edge
     let d = (3.15 + (CAM_DIST_END - 3.15) * settle) * modelR;                  // pull back to frame the whole bracelet
     let pan = CAM_PAN_END * modelR * settle;   // pan the framing DOWN so the bracelet rises into the upper frame
-    if (g > 0) { d = lerp(d, gatherFitDist(), g); pan = lerp(pan, -GATHER_DROP * d * Math.tan(camera.fov * 0.5 * DEG), g); }   // gather: FRAME the whole cluster (viewport-aware) + drop it below the header
+    if (g > 0) { d = lerp(d, gatherFitDist(), g); pan = lerp(pan, 0, g); }   // gather: aim dead-centre on YOU; the frame is STATIC (never chases a receiver), so YOU never moves (#3)
     const ce = Math.cos(el);
     camera.position.set(Math.cos(az) * ce * d, Math.sin(el) * d - pan, Math.sin(az) * ce * d);
     camera.lookAt(0, -pan, 0);
@@ -230,6 +255,7 @@ function init() {
     plane.rotation.y = Math.PI;                     // face outward from the underside
     plane.renderOrder = 3;
     base.add(plane);
+    return mat;
   }
 
   // build 6 clones of the FINISHED hero bracelet (shared geometry) into one group — the gather cluster
@@ -239,28 +265,40 @@ function init() {
       const mc = model.clone(true);
       // give EACH bead platform its OWN material, so a ping lights a single bead (one-to-one), never the whole bracelet;
       // and collect each bead's meshes (cap + base + symbol) by node so a ping can VIBRATE just that one bead.
-      const beadMat = {}, beadMeshes = {}, platOf = {};
+      // EVERY material is cloned per-bracelet + made transparent, so each bracelet can fade in/out on its own
+      // (the background five are invisible until summoned). `mats` = every material to drive opacity from.
+      const beadMat = {}, beadMeshes = {}, platOf = {}, mats = [];
+      const matMap = new Map();                                 // original → this bracelet's shared clone (black resin / hub / cord)
+      const cloneShared = (orig) => { let c = matMap.get(orig); if (!c) { c = orig.clone(); c.transparent = true; matMap.set(orig, c); mats.push(c); } return c; };
+      const isInternal = (o) => { for (let a = o; a && a !== mc; a = a.parent) if (a.userData && a.userData.internal) return true; return false; };
       mc.traverse((o) => {
         if (!o.isMesh) return;
+        if (isInternal(o)) { o.visible = false; return; }       // sealed-hub/bead internals: hidden in the cluster so a fading shell never shows them
         o.castShadow = o.receiveShadow = false;                 // no shadows on the clones
         o.visible = true;                                       // the MAIN model starts hidden for the phone story — clones must not inherit that
-        const nm = o.name || ""; let node = NaN;
+        const orig = o.material, nm = o.name || ""; let node = NaN;
         if (nm.indexOf("PLATFORM") === 0) {
           node = nm === "PLATFORM" ? 0 : parseInt(nm.slice(8), 10);
           platOf[node] = o;                                     // the symbol disc — used to locate the bead in world (for the echo endpoints)
-          if (o.material === matGlow) { const m = matGlow.clone(); m.userData.lit = true; o.material = m; beadMat[node] = m; }       // a hero-glow bead: breathes, can flare brighter
-          else if (o.material === matGold) { const m = matGold.clone(); m.userData.lit = false; o.material = m; beadMat[node] = m; } // a dark bead: gold at rest, lights only when pinged
-        } else if (nm.indexOf("FB_CAP") === 0) { node = nm === "FB_CAP" ? 0 : parseInt(nm.slice(6), 10); }   // bead top half
-        else if (nm.indexOf("FB_BASE") === 0) { node = nm === "FB_BASE" ? 0 : parseInt(nm.slice(7), 10); }  // bead bottom half
-        else return;
+          const m = orig.clone(); m.transparent = true; o.material = m; mats.push(m);   // UNIQUE per platform (one-to-one glow)
+          if (orig === matGlow) { m.userData.lit = true; beadMat[node] = m; }           // a hero-glow bead: breathes, can flare brighter
+          else if (orig === matGold) { m.userData.lit = false; beadMat[node] = m; }     // a dark bead: gold at rest, lights only when pinged
+        } else if (nm === "BASIN_SWITCH") {
+          o.material = cloneShared(matBlack);   // the button remaps to GOLD but sits behind the hub face; a fading shell would reveal it as a gold disc — force matte-black so a fading hub stays a clean silhouette (#2)
+        } else {
+          o.material = Array.isArray(orig) ? orig.map((x) => cloneShared(x)) : cloneShared(orig);   // black resin / hub / cord: shared per bracelet
+          if (nm.indexOf("FB_CAP") === 0) node = nm === "FB_CAP" ? 0 : parseInt(nm.slice(6), 10);   // bead top half
+          else if (nm.indexOf("FB_BASE") === 0) node = nm === "FB_BASE" ? 0 : parseInt(nm.slice(7), 10);  // bead bottom half
+        }
         if (!isNaN(node)) (beadMeshes[node] || (beadMeshes[node] = [])).push({ mesh: o, base: o.position.clone() });
       });
       const ori = new THREE.Group(); ori.rotation.x = FLIP_X; ori.add(mc);
       const sp = new THREE.Group(); sp.add(ori);
       const pivot = new THREE.Group(); pivot.add(sp); gatherGroup.add(pivot);
       gSpin[i] = gTarget[i] = endSpin; gVel[i] = 0; gBuzz[i] = null; gSnapping[i] = false;
-      engraveHubName(mc, GATHER_NAME[i]);   // the name is etched into the hub's flat underside — part of the bracelet, turns with it
-      gatherInstances.push({ pivot, spin: sp, beadMat, beadMeshes, platOf, _shakeNode: -1 });
+      const engMat = engraveHubName(mc, GATHER_NAME[i]);   // the name is etched into the hub's flat underside — part of the bracelet, turns with it
+      if (engMat) mats.push(engMat);                      // …and fades with it
+      gatherInstances.push({ pivot, spin: sp, beadMat, beadMeshes, platOf, mats, _shakeNode: -1 });
     }
     makeEchoCanvas();
     // all bracelets keep the same (uniform) facing; the BOTTOM row alone pitches up so its beads angle up, not down.
@@ -295,16 +333,33 @@ function init() {
     for (let pi = 0; pi < GATHER_N; pi++) { const d = angDelta(spinVal, frontAngleOf[GATHER_NODE[pi]]); if (Math.abs(d) < Math.abs(bd)) { bd = d; best = pi; } }
     return best;
   }
+  // the FRIEND (never YOU) whose bead is nearest the front — the graceful fallback when a tap lands on a non-friend
+  // bead (the "You" bead or the two symbolic beads) or between beads, so every tap still reaches a receiver.
+  function frontFriend() {
+    let best = 1, bd = TAU;
+    for (let p = 1; p < GATHER_N; p++) { const d = Math.abs(angDelta(gSpin[0], frontAngleOf[GATHER_NODE[p]])); if (d < bd) { bd = d; best = p; } }
+    return best;
+  }
   function gSnapTo(i) { gTarget[i] = gSpin[i] + angDelta(gSpin[i], frontAngleOf[GATHER_NODE[frontPerson(gSpin[i])]]); gSnapping[i] = true; }
   const buzz = () => { try { if (navigator.vibrate) navigator.vibrate([0, 55, 35, 55]); } catch (e) {} };   // a clear two-pulse haptic on the bead that's reached
-  // the directed ping: tap bracelet `owner` → on the FRONT person's bracelet, spin to YOUR bead, light ONLY that bead, vibrate + buzz
-  function gReach(owner) {
+  // summon person p's bracelet forward from the background to receive — one at a time (any other up-front bracelet recedes)
+  function callReceiver(p) {
+    if (p <= 0) return;
+    for (let j = 1; j < GATHER_N; j++) if (j !== p && presenceEnv(idle - gCalled[j]) > 0.02) gCalled[j] = idle - (PRESENCE_IN + PRESENCE_HOLD);   // send others into recede
+    gCalled[p] = idle;   // p steps up now
+  }
+  // the directed ping: tap a bead on YOUR bracelet → THAT bead's person steps forward, spins to YOUR bead, lights + vibrates it.
+  // pTarget is the person the tapped bead stands for; if omitted (e.g. a non-bead tap) fall back to the front person.
+  function gReach(owner, pTarget) {
     if (window.__coach) window.__coach.done("tap");   // coach: a real tap completes the Tap step
-    const p = frontPerson(gSpin[owner]); if (p < 0) return;
+    const p = (pTarget != null && pTarget >= 0) ? pTarget : frontPerson(gSpin[owner]); if (p < 0) return;
     const ownNode = GATHER_NODE[owner];   // the sender's own bead — the single bead that lights on the other bracelet
     if (p === owner) { gBuzz[owner] = { node: ownNode, t0: idle, hue: GATHER_HUE[owner] }; buzz(); return; }
+    callReceiver(p);
+    gConn = { p, sNode: GATHER_NODE[p], rNode: ownNode, sHue: GATHER_HUE[p], rHue: GATHER_HUE[owner], pres: 0 };   // the bond glows at BOTH ends while together
+    gBuzz[owner] = { node: GATHER_NODE[p], t0: idle, hue: GATHER_HUE[p] };   // YOUR bead for THEM lights, in their colour — the near end of the bond
     gTarget[p] = gSpin[p] + angDelta(gSpin[p], frontAngleOf[ownNode]); gSnapping[p] = true;
-    setTimeout(() => { gBuzz[p] = { node: ownNode, t0: idle, hue: GATHER_HUE[owner] }; buzz(); }, 260);
+    setTimeout(() => { gBuzz[p] = { node: ownNode, t0: idle, hue: GATHER_HUE[owner] }; buzz(); }, PRESENCE_IN * 1000 * 0.75);   // the far end: YOUR bead lights on THEIR wrist as it arrives up-front
   }
 
   // ---- Echo audio: the same soft Web-Audio voice as the bead carousel — a sustained sine + 5.5 Hz vibrato
@@ -356,12 +411,15 @@ function init() {
   // ECHO (press-and-hold): an audio waveform streams from the pressed bead across to the receiving bead.
   // Sender bead = the one at the front of the held bracelet (whom you selected); receiver bead = your bead
   // on THAT person's bracelet (it turns to receive, then lights when the stream lands).
-  function startEcho(owner) {
+  function startEcho(owner, pTarget) {
     if (window.__coach) window.__coach.done("hold");   // coach: a real hold completes the Hold step
-    const p = frontPerson(gSpin[owner]); if (p < 0) return;
+    const p = (pTarget != null && pTarget >= 0) ? pTarget : frontPerson(gSpin[owner]); if (p < 0) return;
     const sNode = GATHER_NODE[p], rNode = GATHER_NODE[owner], note = GATHER_NOTE[owner];
     echoSoundStop();                                                                                          // cut any echo voice still ringing
     if (p === owner) { gBuzz[owner] = { node: rNode, t0: idle, hue: GATHER_HUE[owner] }; buzz(); bell(note, 0.5, 0.1); return; }   // reaching yourself → just a pulse + chime
+    callReceiver(p);                                                                                          // step p forward from the background to receive
+    gConn = { p, sNode, rNode, sHue: GATHER_HUE[p], rHue: GATHER_HUE[owner], pres: 0 };                       // the bond glows at BOTH ends while together
+    gBuzz[owner] = { node: sNode, t0: idle, hue: GATHER_HUE[p] };                                            // YOUR bead for THEM lights, in their colour — the near end of the bond
     gTarget[p] = gSpin[p] + angDelta(gSpin[p], frontAngleOf[rNode]); gSnapping[p] = true;                    // receiver turns to face you
     gEcho = { from: owner, to: p, sNode, rNode, t0: idle, hue: GATHER_HUE[owner], note, arrived: false };
     bell(note, 0.4, 0.07);                                                                                    // soft "send" chime as it leaves
@@ -673,7 +731,11 @@ function init() {
     if (!gatherGroup) return;
     renderer.toneMappingExposure = 1.12 + 0.62 * g;   // lift the matte beads out of the dark as they cluster
     if (g > 0.0015 && outro) { const oo = clamp(1 - smooth(0.0, 0.18, g), 0, 1); outro.style.opacity = String(oo); outro.style.pointerEvents = oo > 0.5 ? "auto" : "none"; }
-    if (gatherGuideEl) gatherGuideEl.style.opacity = String(clamp(smooth(0.42, 0.8, g), 0, 1));   // guide fades in as the bracelets settle (outro fades out first)
+    let recvPres = 0;   // the strongest step-forward among the five receivers → the header yields + the frame opens
+    for (let j = 1; j < GATHER_N; j++) recvPres = Math.max(recvPres, presenceEnv(idle - gCalled[j]));
+    gRecvPres = recvPres;
+    if (gConn) { gConn.pres = presenceEnv(idle - gCalled[gConn.p]); if (gConn.pres <= 0.001) gConn = null; }   // the bond lives while they're together
+    if (gatherGuideEl) gatherGuideEl.style.opacity = String(clamp(smooth(0.42, 0.8, g) * (1 - recvPres), 0, 1));   // guide fades in as the bracelets settle, and yields when a receiver steps up top
     if (window.__coach) window.__coach.setGather(g);   // first-run coach marks: freeze-frame + walk the gestures once
     const show = g > 0.0015;
     gatherGroup.visible = show; spin.visible = !show;          // hand off from the hero original to the clones
@@ -682,40 +744,56 @@ function init() {
     camera.updateMatrixWorld(true);
     const right = new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 0);   // screen-right
     const up = new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 1);      // screen-up
-    // YOU (bracelet 0) sits at the centre; the other five form a ring around it — "your circle"
-    const RING = GATHER_RING * modelR, RN = GATHER_N - 1, SIDE = GATHER_SIDE * modelR;
+    // YOU (bracelet 0) is the big central stage. The other five wait small + dim in a ring BEHIND it; only the one
+    // you REACH steps forward (glowing + buzzing) to receive, then recedes back into the background.
+    const RN = GATHER_N - 1;
     const vStretch = ((canvas.clientWidth || 1) < (canvas.clientHeight || 1)) ? GATHER_VSTRETCH : 1;   // tall ellipse on portrait
-    const slots = [[0, 0]];
-    for (let k = 0; k < RN; k++) { const th = k * (TAU / RN); slots.push([Math.cos(th) * RING * vStretch, Math.sin(th) * RING]); }   // θ from screen-up; up-component stretched to fill a tall phone
+    camera.getWorldDirection(_gfwd);                                                    // into the scene (away from camera) — depth axis
+    const eIn = smooth(0.06, 0.7, g), entr = eIn * eIn * (3 - 2 * eIn);                 // the whole stage blooms in as g→1
     const breathe = matGlow.emissiveIntensity;
     for (let i = 0; i < GATHER_N; i++) {
       const inst = gatherInstances[i];
-      const su = slots[i][0], sr = slots[i][1];
-      const t0 = 0.04 + i * 0.07;
-      const e = smooth(t0, t0 + 0.5, g), ee = e * e * (3 - 2 * e);
-      // the ring copies SLIDE IN FROM THE SIDES (right half from the right, left half from the left) at their final height; YOU stays centred
-      let u = su, r = lerp(i === 0 ? 0 : (sr >= 0 ? 1 : -1) * SIDE, sr, ee);
-      const amp = GATHER_FLOAT * modelR * ee;                                          // subtle, multi-directional drift
-      u += Math.sin(idle * GATHER_FSPEED[i] + GATHER_FPHASE[i]) * amp;                 // vertical component
-      r += Math.sin(idle * GATHER_FSPEED2[i] + GATHER_FPHASE2[i]) * amp;               // horizontal component
-      const scaleNow = lerp(i === 0 ? 1 : GATHER_SCALE, i === 0 ? GATHER_SCALE * 1.18 : GATHER_SCALE, ee);   // YOU a touch larger — the heart of the circle
-      // ping envelope, computed UP FRONT so the vibrate can ride it: expire at 0.7s, half-sine pulse meanwhile
+      // ping envelope, up front so the vibrate rides it: expire at 0.7s, half-sine pulse meanwhile
       const b = gBuzz[i];
       if (b && (idle - b.t0) / 0.7 >= 1) gBuzz[i] = null;
       const bb = gBuzz[i];
       const pl = bb ? Math.sin(Math.min((idle - bb.t0) / 0.7, 1) * Math.PI) : 0;
-      inst.pivot.position.set(up.x * u + right.x * r, up.y * u + right.y * r, up.z * u + right.z * r);
-      inst.pivot.scale.setScalar(scaleNow);
-      inst.pivot.quaternion.identity();   // uniform facing across the ring
-      // VIBRATE: a ping shakes ONLY the reached bead (its cap + base + symbol meshes), not the whole bracelet
+      // ---- POSE + FADE: YOU is always here; the others are INVISIBLE in the background and fade in only as they
+      //      step forward to receive (opacity == presence), then fade back out and vanish. ----
+      const pres = (i === 0) ? 1 : presenceEnv(idle - gCalled[i]);   // 0 = gone, 1 = up-front receiving
+      inst.pivot.visible = pres > 0.004;
+      if (!inst.pivot.visible) { inst._shakeNode = -1; continue; }   // fully faded out → skip (nothing to draw)
+      for (const m of inst.mats) m.opacity = pres;                   // the whole bracelet fades with its step-forward
+      let U, R, F, dim, pivScale;
+      if (i === 0) {
+        U = 0; R = 0; F = 0; dim = 1;                                                    // YOU stays dead-centre + bright
+        pivScale = lerp(1, GATHER_YOU_SCALE, entr);                                       // SEAMLESS hand-off (#4): enters at the hero bracelet's EXACT size (1), eases to YOU's cluster size — no pop-in
+      } else {
+        const th = (i - 1) * (TAU / RN) + Math.PI / RN;                                  // its resting slot around YOU
+        const bgU = Math.cos(th) * GATHER_BG_RING - 0.15, bgR = Math.sin(th) * GATHER_BG_RING;   // it fades in FROM here as it approaches
+        const side = bgU >= 0 ? 1 : -1;                                                  // came from the upper half → returns on TOP; lower half → BOTTOM (#3)
+        U = lerp(bgU, side * GATHER_RECV_UP, pres);
+        R = lerp(bgR, 0, pres);                                                          // slides in to sit directly above/below YOU
+        F = lerp(GATHER_BG_FWD, -GATHER_RECV_FWD, pres);                                 // starts behind YOU; ends level, up front
+        dim = lerp(GATHER_BG_DIM, 1, pres);
+        pivScale = lerp(GATHER_BG_SCALE, GATHER_RECV_SCALE, pres) * entr;
+      }
+      const amp = GATHER_FLOAT * modelR * entr;                                          // barely-there float
+      const uu = U * modelR * entr + Math.sin(idle * GATHER_FSPEED[i] + GATHER_FPHASE[i]) * amp;
+      const rr = R * modelR * entr + Math.sin(idle * GATHER_FSPEED2[i] + GATHER_FPHASE2[i]) * amp;
+      const ff = F * modelR * entr;
+      inst.pivot.position.set(up.x * uu + right.x * rr + _gfwd.x * ff, up.y * uu + right.y * rr + _gfwd.y * ff, up.z * uu + right.z * rr + _gfwd.z * ff);
+      inst.pivot.scale.setScalar(pivScale);
+      inst.pivot.quaternion.identity();
+      // VIBRATE: a ping shakes ONLY the reached bead (its cap + base + symbol meshes)
       const shakeNode = bb ? bb.node : -1;
-      if (inst._shakeNode !== shakeNode && inst._shakeNode >= 0) {   // a bead was shaking and no longer is → settle it back to rest
+      if (inst._shakeNode !== shakeNode && inst._shakeNode >= 0) {
         const prev = inst.beadMeshes[inst._shakeNode]; if (prev) for (const bm of prev) bm.mesh.position.copy(bm.base);
       }
       inst._shakeNode = shakeNode;
       if (bb) {
         const sd = Math.max(0, 1 - (idle - bb.t0) / 0.42), k = GATHER_SHAKE * modelR * sd * sd;   // strongest at the hit, gone by ~0.42s
-        const dx = Math.sin(idle * 88.0) * k, dy = Math.sin(idle * 97.0 + 1.3) * k, dz = Math.sin(idle * 105.0 + 2.6) * k;   // 3 axes → a visible tremor at any spin
+        const dx = Math.sin(idle * 88.0) * k, dy = Math.sin(idle * 97.0 + 1.3) * k, dz = Math.sin(idle * 105.0 + 2.6) * k;
         const meshes = inst.beadMeshes[bb.node];
         if (meshes) for (const bm of meshes) bm.mesh.position.set(bm.base.x + dx, bm.base.y + dy, bm.base.z + dz);
       }
@@ -724,11 +802,16 @@ function init() {
       else if (gSnapping[i]) { const d = angDelta(gSpin[i], gTarget[i]); gSpin[i] += d * 0.2; if (Math.abs(d) < 0.003) { gSpin[i] = gTarget[i]; gSnapping[i] = false; } }
       else if (Math.abs(gVel[i]) > 0.0004) { gSpin[i] += gVel[i]; gVel[i] *= 0.92; if (Math.abs(gVel[i]) < 0.006) { gVel[i] = 0; gSnapTo(i); } }
       inst.spin.rotation.y = gSpin[i];
-      // glow: every lit bead breathes like the hero; a ping flares ONLY the sender's bead (one-to-one), in their hue
+      // which of THIS bracelet's beads is a live bond end (their bead on YOUR wrist, or your bead on THEIRS)?
+      const connNode = gConn ? (i === 0 ? gConn.sNode : (i === gConn.p ? gConn.rNode : -1)) : -1;
+      const connHue = gConn ? (i === 0 ? gConn.sHue : gConn.rHue) : 0;
+      // glow: lit beads breathe; a ping flares the reached bead; a live bond keeps BOTH ends glowing; bg is DIMMED
       for (const node in inst.beadMat) {
         const m = inst.beadMat[node];
-        if (bb && +node === bb.node) { m.emissive.setHex(bb.hue); m.emissiveIntensity = (m.userData.lit ? breathe : 0) + 7 * pl; }
-        else if (m.userData.lit) { m.emissive.setHex(0xffb247); m.emissiveIntensity = breathe * (1 - 0.82 * pl); }   // the others dim away so the single reached bead stands alone
+        const n = +node;
+        if (bb && n === bb.node) { m.emissive.setHex(bb.hue); m.emissiveIntensity = (m.userData.lit ? breathe : 0) + 7 * pl; }
+        else if (n === connNode) { m.emissive.setHex(connHue); m.emissiveIntensity = (m.userData.lit ? breathe : 0) + 3.4 * gConn.pres; }   // the bond: steady glow while together
+        else if (m.userData.lit) { m.emissive.setHex(0xffb247); m.emissiveIntensity = breathe * (1 - 0.82 * pl) * dim; }
         else { m.emissiveIntensity = 0; }
       }
     }
@@ -916,28 +999,64 @@ function init() {
 
   // ---- gather interaction: drag a bracelet to spin it; tap it to light up + buzz (only once gathered) ----
   const gRay = new THREE.Raycaster();
-  function gPick(ev) {
-    if (!gatherGroup || !gatherGroup.visible) return -1;
+  // a fat fingertip rarely lands pixel-perfect on YOU's mesh; sample a small cross so a near-miss still registers.
+  // which bead node a mesh belongs to (its cap / base / symbol-disc are all named "<part><node>", node 0 unsuffixed)
+  const beadNodeOf = (o) => {
+    const nm = o.name || "";
+    if (nm.indexOf("PLATFORM") === 0) return nm === "PLATFORM" ? 0 : parseInt(nm.slice(8), 10);
+    if (nm.indexOf("FB_CAP") === 0)  return nm === "FB_CAP"  ? 0 : parseInt(nm.slice(6), 10);
+    if (nm.indexOf("FB_BASE") === 0) return nm === "FB_BASE" ? 0 : parseInt(nm.slice(7), 10);
+    return -1;
+  };
+  // the person a tapped bead reaches: a friend bead → that friend; the "You"/symbolic beads or a between-beads tap → nearest friend
+  const personForTap = (node) => { const p = (node >= 0) ? PERSON_OF_NODE[node] : undefined; return (p != null && p > 0) ? p : frontFriend(); };
+  // Ray-pick the SPECIFIC bead tapped on YOU (so every exposed bead is independently pressable, not just the front one).
+  // A 5-point cross gives fat-finger tolerance (centre first); hidden internals are skipped; a sample whose nearest
+  // surface is another bracelet is discarded so a background bracelet can't hijack the tap.
+  function gPickBead(ev) {
+    const you = gatherInstances[0];
+    if (!gatherGroup || !gatherGroup.visible || !you) return { i: -1, node: -1 };
     const rect = canvas.getBoundingClientRect();
-    gRay.setFromCamera(new THREE.Vector2(((ev.clientX - rect.left) / rect.width) * 2 - 1, -((ev.clientY - rect.top) / rect.height) * 2 + 1), camera);
-    const hits = gRay.intersectObject(gatherGroup, true);
-    if (!hits.length) return -1;
-    let o = hits[0].object; while (o && o.parent !== gatherGroup) o = o.parent;
-    return gatherInstances.findIndex((g) => g.pivot === o);
+    const R = 16, offs = [[0, 0], [R, 0], [-R, 0], [0, R], [0, -R]];
+    let youHit = false;
+    for (const off of offs) {
+      const nx = ((ev.clientX - rect.left + off[0]) / rect.width) * 2 - 1;
+      const ny = -((ev.clientY - rect.top + off[1]) / rect.height) * 2 + 1;
+      gRay.setFromCamera(new THREE.Vector2(nx, ny), camera);
+      // ONLY raycast YOU: the background bracelets are opacity-0/invisible but their meshes are still raycast-hittable
+      // (the raycaster ignores the pivot's visible flag), and they'd otherwise sit in front and block taps on YOU's beads.
+      const hits = gRay.intersectObject(you.pivot, true);
+      let hit = null; for (const h of hits) { if (h.object.visible) { hit = h; break; } }   // skip the hidden internals
+      if (!hit) continue;
+      youHit = true;
+      const node = beadNodeOf(hit.object);
+      if (node >= 0) return { i: 0, node };   // landed on a specific bead of YOU
+    }
+    return { i: youHit ? 0 : -1, node: -1 };   // on YOU but between beads (hub/cord) → node -1
   }
   const clearHold = () => { if (gHoldTimer) { clearTimeout(gHoldTimer); gHoldTimer = null; } };
   canvas.addEventListener("pointerdown", (ev) => {
-    if (gLast < 0.92) return;
-    const i = gPick(ev); if (i < 0) return;
+    if (gLast < 0.90) return;                    // interactive across the whole dwell (gather is pinned at 1 from 0.90)
+    const pick = gPickBead(ev); if (pick.i !== 0) return;   // only the big central YOU bracelet is interactive; the others are backgrounded
+    const i = 0;
     audioCtx();   // wake the AudioContext inside this gesture so the hold-fired Echo is allowed to sound
-    gDragging = i; gDownX = gLastX = ev.clientX; gMoved = false; gVel[i] = 0;
+    gDragging = i; gDownNode = pick.node; gDownX = gLastX = ev.clientX; gDownY = ev.clientY; gMoved = false; gVertScroll = false; gVel[i] = 0;
     gHeld = false; clearHold();
-    gHoldTimer = setTimeout(() => { gHoldTimer = null; if (gDragging === i && !gMoved) { gHeld = true; startEcho(i); } }, ECHO_HOLD);   // hold → Echo
-    try { canvas.setPointerCapture(ev.pointerId); } catch (e) {}
+    gHoldTimer = setTimeout(() => { gHoldTimer = null; if (gDragging === i && !gMoved) { gHeld = true; startEcho(i, personForTap(gDownNode)); } }, ECHO_HOLD);   // hold → Echo to the pressed bead's person
+    // NOTE: no setPointerCapture here — capture only once a horizontal drag is confirmed (below), so a tap or a
+    // vertical scroll gesture that begins on YOU is left to the browser (touch-action:pan-y keeps the page scrolling).
   });
   canvas.addEventListener("pointermove", (ev) => {
     if (gDragging < 0) return;
-    if (!gMoved && Math.abs(ev.clientX - gDownX) > 4) { gMoved = true; clearHold(); if (window.__coach) window.__coach.done("drag"); }   // a drag cancels the pending Echo (+ completes the coach's Drag step)
+    if (gVertScroll) return;                                // committed to a vertical scroll → never spin
+    if (!gMoved) {
+      const dx = ev.clientX - gDownX, dy = ev.clientY - gDownY;
+      if (Math.hypot(dx, dy) <= 10) return;                 // still inside platform tap-slop → keep the tap/hold alive
+      gMoved = true; clearHold();                           // moved beyond the slop → no longer a tap/hold, either way
+      if (Math.abs(dx) <= Math.abs(dy)) { gVertScroll = true; return; }   // vertical-dominant → hand it to the page scroll (no spin, no pulse)
+      try { canvas.setPointerCapture(ev.pointerId); } catch (e) {}   // horizontal-dominant → it's a spin; grab the gesture only now
+      if (window.__coach) window.__coach.done("drag");      // completes the coach's Drag step
+    }
     const d = (ev.clientX - gLastX) * 0.012;
     gSpin[gDragging] += d; gVel[gDragging] = d; gLastX = ev.clientX;
   });
@@ -945,9 +1064,9 @@ function init() {
     if (gDragging < 0) return; const i = gDragging; gDragging = -1;
     clearHold();
     try { canvas.releasePointerCapture(ev.pointerId); } catch (e) {}
-    if (gHeld) { gHeld = false; }                        // the Echo already fired on the long press — no tap
-    else if (!gMoved) gReach(i);                         // quick tap → directed Pulse to the front person's bracelet
-    else if (Math.abs(gVel[i]) < 0.006) gSnapTo(i);     // slow release → snap now; else momentum carries, then snaps
+    if (gHeld) { gHeld = false; }                                        // the Echo already fired on the long press — no tap
+    else if (!gMoved && ev.type === "pointerup") gReach(i, personForTap(gDownNode));   // a real tap (not a scroll-stolen cancel) → directed Pulse to the pressed bead's person
+    else if (gMoved && !gVertScroll && Math.abs(gVel[i]) < 0.006) gSnapTo(i);   // slow horizontal-drag release → snap now; else momentum carries, then snaps
   };
   canvas.addEventListener("pointerup", gEnd);
   canvas.addEventListener("pointercancel", gEnd);
@@ -1241,6 +1360,10 @@ function init() {
     setupBeadReveal();
     setupHubReveal();
     setupBeadWords();
+    // Tag the sealed internals (bead PCB + motor, hub board + battery + speaker) so the gather CLONES can hide them.
+    // In the cluster the hub/bead are CLOSED; a fading (semi-transparent) shell would otherwise reveal these parts
+    // through it, which reads as unfinished. The tag rides clone(true) via userData; buildGather skips tagged meshes.
+    for (const asm of [beadAsm, hubAsm]) if (asm) for (const g of asm.internals) if (g) g.userData.internal = true;
     // subtle gold halo through the MIDDLE 5 beads' symbols (cord order pos 3-7); NOT the first (Akoma),
     // second (akoma_ntoaso, the exploded bead) or last (sankofa).
     for (const n of [2, 3, 4, 5, 6]) { const o = model.getObjectByName('PLATFORM' + n); if (o) o.material = matGlow; }
