@@ -36,12 +36,12 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
 <script>
-  /* set saved/preferred theme before paint to avoid a flash */
+  /* set the theme before paint to avoid a flash. DARK is the default — the brand's gold-on-black — for every
+     first-time visitor regardless of OS preference; a returning visitor keeps whatever they toggled to. */
   (function(){ try{
-    var t = localStorage.getItem('makoma-theme');
-    if(!t) t = (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) ? 'light' : 'dark';
+    var t = localStorage.getItem('makoma-theme') || 'dark';
     document.documentElement.setAttribute('data-theme', t);
-  }catch(e){} })();
+  }catch(e){ document.documentElement.setAttribute('data-theme','dark'); } })();
 </script>
 <link rel="stylesheet" href="css/style.css" />
 <script type="importmap">
