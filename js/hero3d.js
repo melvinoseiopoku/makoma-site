@@ -268,6 +268,7 @@ function init() {
       // EVERY material is cloned per-bracelet + made transparent, so each bracelet can fade in/out on its own
       // (the background five are invisible until summoned). `mats` = every material to drive opacity from.
       const beadMat = {}, beadMeshes = {}, platOf = {}, mats = [];
+      let basinMat = null;                                      // the hub's gold button — faded on its OWN steep curve (see the pose loop)
       const matMap = new Map();                                 // original → this bracelet's shared clone (black resin / hub / cord)
       const cloneShared = (orig) => { let c = matMap.get(orig); if (!c) { c = orig.clone(); c.transparent = true; matMap.set(orig, c); mats.push(c); } return c; };
       const isInternal = (o) => { for (let a = o; a && a !== mc; a = a.parent) if (a.userData && a.userData.internal) return true; return false; };
@@ -284,7 +285,10 @@ function init() {
           if (orig === matGlow) { m.userData.lit = true; beadMat[node] = m; }           // a hero-glow bead: breathes, can flare brighter
           else if (orig === matGold) { m.userData.lit = false; beadMat[node] = m; }     // a dark bead: gold at rest, lights only when pinged
         } else if (nm === "BASIN_SWITCH") {
-          o.material = cloneShared(matBlack);   // the button remaps to GOLD but sits behind the hub face; a fading shell would reveal it as a gold disc — force matte-black so a fading hub stays a clean silhouette (#2)
+          // the gold hub button. It sits behind the hub face, so if it faded at the shell's rate it would ghost
+          // through as a gold disc mid-fade (#2). Give it its OWN gold material, driven on a steep curve (pose loop)
+          // so it only appears once the shell is already near-opaque — gold when settled, invisible while fading.
+          const m = matGold.clone(); m.transparent = true; o.material = m; basinMat = m;
         } else {
           o.material = Array.isArray(orig) ? orig.map((x) => cloneShared(x)) : cloneShared(orig);   // black resin / hub / cord: shared per bracelet
           if (nm.indexOf("FB_CAP") === 0) node = nm === "FB_CAP" ? 0 : parseInt(nm.slice(6), 10);   // bead top half
@@ -298,7 +302,7 @@ function init() {
       gSpin[i] = gTarget[i] = endSpin; gVel[i] = 0; gBuzz[i] = null; gSnapping[i] = false;
       const engMat = engraveHubName(mc, GATHER_NAME[i]);   // the name is etched into the hub's flat underside — part of the bracelet, turns with it
       if (engMat) mats.push(engMat);                      // …and fades with it
-      gatherInstances.push({ pivot, spin: sp, beadMat, beadMeshes, platOf, mats, _shakeNode: -1 });
+      gatherInstances.push({ pivot, spin: sp, beadMat, beadMeshes, platOf, mats, basinMat, _shakeNode: -1 });
     }
     makeEchoCanvas();
     // all bracelets keep the same (uniform) facing; the BOTTOM row alone pitches up so its beads angle up, not down.
@@ -346,7 +350,10 @@ function init() {
   function callReceiver(p) {
     if (p <= 0) return;
     for (let j = 1; j < GATHER_N; j++) if (j !== p && presenceEnv(idle - gCalled[j]) > 0.02) gCalled[j] = idle - (PRESENCE_IN + PRESENCE_HOLD);   // send others into recede
-    gCalled[p] = idle;   // p steps up now
+    // If p is ALREADY up in frame, don't yank it away and bring it back — just REFRESH its hold (hold it at full
+    // presence and restart the dwell countdown). A re-tap then re-fires the ping/glow on the bracelet already here,
+    // instead of a jarring fade-out/fade-in. Only a p that has faded (or nearly) steps up fresh from the background.
+    gCalled[p] = (presenceEnv(idle - gCalled[p]) > 0.5) ? (idle - PRESENCE_IN) : idle;
   }
   // the directed ping: tap a bead on YOUR bracelet → THAT bead's person steps forward, spins to YOUR bead, lights + vibrates it.
   // pTarget is the person the tapped bead stands for; if omitted (e.g. a non-bead tap) fall back to the front person.
@@ -764,6 +771,7 @@ function init() {
       inst.pivot.visible = pres > 0.004;
       if (!inst.pivot.visible) { inst._shakeNode = -1; continue; }   // fully faded out → skip (nothing to draw)
       for (const m of inst.mats) m.opacity = pres;                   // the whole bracelet fades with its step-forward
+      if (inst.basinMat) inst.basinMat.opacity = smooth(0.8, 0.98, pres);   // the gold button materialises only once the shell is near-opaque, so it never ghosts through mid-fade
       let U, R, F, dim, pivScale;
       if (i === 0) {
         U = 0; R = 0; F = 0; dim = 1;                                                    // YOU stays dead-centre + bright
