@@ -1290,9 +1290,17 @@ function init() {
     get ready() { return ready; },
   };
 
-  // wake the AudioContext on the first user gesture so the scroll-triggered drop SFX (and bead buzzes) are allowed to sound
-  const _primeAudio = () => { audioCtx(); ["pointerdown", "touchstart", "keydown", "wheel"].forEach((ev) => window.removeEventListener(ev, _primeAudio)); };
-  ["pointerdown", "touchstart", "keydown", "wheel"].forEach((ev) => window.addEventListener(ev, _primeAudio, { passive: true }));
+  // Wake the AudioContext on the user's FIRST real interaction so sound starts as early as possible (not only after a bead
+  // tap). Browsers only allow audio to resume from an ACTIVATION gesture (click/tap/key — NOT scroll/wheel), and a failed
+  // resume must NOT consume the primer — so keep listening across ALL gestures until the context is actually running.
+  const _AUDIO_EV = ["pointerdown", "touchstart", "touchend", "mousedown", "keydown", "click", "wheel"];
+  const _primeAudio = () => {
+    const c = audioCtx(); if (!c) return;                                   // audioCtx() creates + attempts a resume
+    const done = () => { if (c.state === "running") _AUDIO_EV.forEach((ev) => window.removeEventListener(ev, _primeAudio)); };
+    if (c.state === "running") done();
+    else if (c.resume) c.resume().then(done).catch(done);                   // resolve when the gesture actually unlocks it
+  };
+  _AUDIO_EV.forEach((ev) => window.addEventListener(ev, _primeAudio, { passive: true }));
   window.addEventListener("scroll", onScroll, { passive: true });
   window.addEventListener("resize", resize);
   if (window.visualViewport) window.visualViewport.addEventListener("resize", resize);   // mobile URL-bar show/hide resizes the canvas box
