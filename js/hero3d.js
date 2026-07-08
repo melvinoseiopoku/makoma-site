@@ -31,14 +31,28 @@ const SPIN_PHASE = 169.6 * DEG;    // start rotation: the Akoma (heart) bead fac
 // ---- OPENING phone story: the site opens on a phone buried in notifications; the five pinned people
 //      peel off and land on the REAL CAD beads (which pop in as each lands), the remaining beads + hub
 //      fade in, and THEN the threading begins. Scroll-driven; DOM lives in #whyStage inside the hero. ----
-const PHONE_FRAC = 0.16;           // first 16% of the (taller) section = the phone → contacts → beads story
+const PHONE_FRAC = 0.20;           // first 20% of the section = the phone → contacts → beads story
 const PHONE_NODE = [0, 6, 7, 2, 3];   // bead node each pinned contact becomes (Mom·Dad·Priscilla·Sylvester·Phoebe = GATHER_NODE[1..5])
 const PHONE_OTHERS = [1, 4, 5];    // the remaining beads, fading into the picture after the five land
 
 // ---- GATHER phase: after the hero settles, more scroll fades the text and brings in 5 clones of the
 //      bracelet around the centre one — all in the SAME scene (no viewports). ----
-const HERO_FRAC = 0.70;            // the hero anim (threading→settle) runs from PHONE_FRAC to here; the rest gathers
-const GATHER_END = 0.90;           // gather completes here; 0.90–1.0 is an interactive dwell (cluster held)
+const HERO_FRAC = 0.87;            // the hero anim (threading→settle) runs from PHONE_FRAC to here; a TINY scroll past it triggers the drop
+const GATHER_END = 1.0;            // the short remaining scroll (HERO_FRAC→1) is the interactive dwell — not a scrubbed gather anymore
+// ---- the GRAVITY DROP: the instant you scroll past "Five people. One quiet channel." the "table" under the bracelet
+//      is pulled, it free-falls into the how-it-works section and lands with a firm, WEIGHTY thud + one small rebound.
+//      Beads + hub rebound slightly out of sync; the loose clasp thread whips down and slaps. (feel: weighty & subtle) ----
+const DROP_FALL = 0.48;            // fraction of the DROP that is free fall — the rest is the bounce + settle (a smooth, watchable fall)
+const DROP_DIST = 2.7;             // how far the bracelet falls (× modelR) — hero "table" down to the how-it-works one
+const DROP_BOUNCE = 0.11;          // height of the single rebound (× modelR) — one small weighty hop, then rest
+const DROP_CAMLAG = 0.5;           // the camera reaches the landing framing by this drop fraction (lags the fall so it reads)
+const DROP_IMPACT = 0.14;          // per-element rebound amplitude at impact (× modelR); beads/hub/thread jiggle out of sync
+const DROP_WHIP = 0.42;            // clasp-thread whip amplitude at the free end (× modelR) — the rope BENDS + curls on impact
+const DROP_LASH = 0.34;            // clasp-thread SIDEWAYS lash amplitude at the free end (× modelR) — the tail also whips laterally
+const DROP_TRIGGER = 0.02;         // a TINY scroll past "Five people" (this much gather) flips the drop TARGET (down = fall, back = rise)
+const DROP_TIME = 1.2;             // the forward drop (hold → fall → bounce) eases in over this long, on the idle clock
+const DROP_REV = 0.6;              // reverse-scroll rewinds the drop over this long — the bracelet rises back up (no still-frame jump)
+const DROP_HOLD_F = 0.3;           // the first 30% of the drop HOLDS the bracelet up (still showing "Five people") before it falls
 const GATHER_N = 6;
 const GATHER_SCALE = 0.45;         // each bracelet shrinks to this in the cluster
 const GATHER_DIST = 6.1;           // camera pull-back at full gather (× modelR) — pulled back to clear room for the guide text
@@ -53,7 +67,11 @@ const GATHER_BG_DIM = 0.16;        // their lit beads are dimmed right down whil
 const GATHER_BG_RING = 1.15;       // radius of the faint background cluster tucked behind YOU (× modelR)
 const GATHER_BG_FWD = 2.6;         // how far the background sits BEHIND YOU (× modelR, pushed from the camera → small + dim)
 const GATHER_RECV_SCALE = 0.86;    // a called bracelet grows to EXACTLY YOU's size — the two meet as equals (== GATHER_YOU_SCALE)
-const GATHER_RECV_UP = 1.12;       // the receiver settles above YOU (× modelR); the frame opens so both SHARE it, neither dominant
+const GATHER_RECV_LIFT = 0;        // (disabled) a warm emissive self-glow on receiver beads over-tinted them brown/washed — DAD's beads already match YOU under the scene lights, so no fake glow.
+const GATHER_RECV_UP = 1.12;       // PORTRAIT/mobile: the receiver settles directly above/below YOU (× modelR)
+// DESKTOP/landscape: the receiver settles AROUND YOU on a wide ring (out to the sides), not just top/bottom.
+const GATHER_RECV_V = 1.12;        // ring vertical radius (× modelR)
+const GATHER_RECV_H = 1.9;         // ring horizontal radius (× modelR) — wider, so receivers come in from the sides
 const GATHER_RECV_FWD = 0.0;       // same depth as YOU — an equal beside you, not looming in front
 const GATHER_RECV_GAPFILL = 0.86;  // camera looks toward the mid-point of the pair (× RECV_UP) so YOU + receiver are balanced
 const PRESENCE_IN = 0.5, PRESENCE_HOLD = 1.6, PRESENCE_OUT = 0.95;   // receiver: rise → hold (glow/buzz) → recede (seconds)
@@ -143,8 +161,11 @@ function init() {
   const gSpin = [], gVel = [], gBuzz = [], gTarget = [], gSnapping = [], gPitch = [];   // spin · velocity · pulse · snap target · snapping · bottom-row upward tilt
   const gCalled = new Array(GATHER_N).fill(-99);       // idle-time each background bracelet was last summoned to receive (drives its step-forward)
   let gRecvPres = 0;                                    // strongest receiver step-forward this frame → the camera opens the frame to share it with YOU
+  let dropClusterY = 0;                                 // the gravity-drop's current world-Y offset of the cluster (0 = hero table, −DROP_DIST·modelR = landed)
+  let dropGd = 0, _dropPrevIdle = 0, _prevFg = 0;       // bidirectional time-based drop: gd eases toward a scroll-set target (0 = up on the hero table ↔ 1 = fully landed); _prevFg tracks the fall for one-shot SFX
   let gConn = null;                                     // the live bond: { p, sNode (their bead on YOUR wrist), rNode (your bead on THEIRS), sHue, rHue, pres } — both ends glow while together
   const _gfwd = new THREE.Vector3();                   // scratch: camera-forward, for pushing bracelets back/forward in depth
+  const _dropUp = new THREE.Vector3(), _dropSide = new THREE.Vector3(), _dropQ = new THREE.Quaternion();   // scratch: world-up + a lateral axis mapped into the bracelet's spun local frame, for the drop rebound + lash
   // receiver step-forward envelope: 0 in the background → 1 fully up-front (glowing/buzzing) → back to 0
   const presenceEnv = (age) => {
     if (age < 0 || age > PRESENCE_IN + PRESENCE_HOLD + PRESENCE_OUT) return 0;
@@ -164,9 +185,9 @@ function init() {
   let phLast = 0;                                                          // most-recent phP, read by the notification-flood loop
   const PHONE_FLY = 1.1;                                                   // seconds a converted bead leaps from the phone to its threading spot
   // the 3-D phone: a real WebGL object parented to the camera, its screen a live CanvasTexture
-  let phoneRig = null, phoneKnock = null, phoneObj = null, phoneScreen = null, phoneTex = null, phoneCv = null, phoneG = null;
-  let phoneBuzzT = -9, phoneDrawT = -9, floodTimer = 0, floodN = 0;         // buzz impulse time + screen-redraw throttle + the notification spawn loop
-  const phoneNotifs = [];                                                  // top-of-screen notification flood (each {title,sub,color,t0})
+  let phoneRig = null, phoneKnock = null, phoneObj = null, phoneScreen = null, phoneTex = null, phoneCv = null, phoneG = null, phoneTable = null;
+  let phoneBuzzT = -9, phoneDrawT = -9, floodN = 0, nextNotifAt = 0;        // buzz impulse time + screen-redraw throttle + banner spawn counter/clock (all in `idle` units)
+  let activeNotif = null;                                                  // ONE banner at a time: {title,sub,color,t0} — slides in, holds, slides out, then the next
   const contactCanvasPos = [{x:0,y:0},{x:0,y:0},{x:0,y:0},{x:0,y:0},{x:0,y:0}];   // where each pinned contact is drawn (canvas px) → the bead's launch point
   const avatarImg = [];                                                     // preloaded pinned-contact avatars
   // the pinned five + a churn of other chats whose unread counts flood upward (everyone trying to reach you)
@@ -177,14 +198,21 @@ function init() {
     { name: "Sylvester", av: "assets/avatars/kwame.png", hue: "#63CE88" },
     { name: "Phoebe",    av: "assets/avatars/esi.png",   hue: "#5C9CEB" },
   ];
+  // the churning "noise" list under the pinned five — anonymized group chats, spam, an unknown number, a 2FA code:
+  // everyone reaching for you at once. Each new message bumps a row to the top with a fresh preview + "now".
   const phoneChats = [
-    { name: "The Group",        pre: "Sarah: did you see this??",   hue: "#34C759", n: 12 },
-    { name: "Work",             pre: "9 people are typing…",        hue: "#0A66C2", n: 47 },
-    { name: "College Friends",  pre: "let's plan the reunion",      hue: "#F0922C", n: 8  },
-    { name: "Unknown",          pre: "Your package is waiting",     hue: "#8E8E93", n: 3  },
-    { name: "Family",           pre: "Auntie added 4 people",       hue: "#E4405F", n: 21 },
-    { name: "Neighborhood",     pre: "63 new messages",             hue: "#5C9CEB", n: 63 },
+    { name: "Nadia, Theo, Mason +4", pre: "did you see this?? 😭",         time: "1:32 PM",  hue: "#30D158", unread: true  },
+    { name: "Studio — Launch",       pre: "Priya: deck due Weds",          time: "12:35 PM", hue: "#0A84FF", unread: true  },
+    { name: "+1 (555) 240-1063",     pre: "I'll give you a call tmr",      time: "11:52 AM", hue: "#8E8E93", unread: true  },
+    { name: "24011",                 pre: "Your code is ••••••  Don't share it", time: "8:36 AM", hue: "#30D158", unread: false },
+    { name: "Deliveries",            pre: "Your package is out for delivery", time: "Yesterday", hue: "#FF9F0A", unread: false },
+    { name: "Rec League",            pre: "pickup at the marina tn! 🎾",   time: "Yesterday", hue: "#5C9CEB", unread: false },
+    { name: "Neighborhood",          pre: "63 new messages",               time: "Yesterday", hue: "#BF5AF2", unread: false },
   ];
+  // fresh previews rotated into a chat each time a new message "arrives" (keeps the list feeling live)
+  const CHAT_PINGS = ["did you see this?? 😭", "call me when you're free", "you up?", "wait this is huge",
+    "where are you rn", "sending it now", "can you cover my shift?", "reply when you can", "we still on for tmr?",
+    "reminder: payment due", "lol look at this", "5 new photos", "🔥🔥🔥", "check your email"];
   const _phV = new THREE.Vector3(), _pv1 = new THREE.Vector3(), _pv2 = new THREE.Vector3(), _pv3 = new THREE.Vector3(), _pv4 = new THREE.Vector3();
   const _psv = new THREE.Vector3();                                         // scratch: a contact's launch point on the 3-D screen
   const _pm1 = new THREE.Matrix4(), _pm2 = new THREE.Matrix4();
@@ -198,26 +226,28 @@ function init() {
     const vHalf = Math.tan(camera.fov * 0.5 * DEG);                          // tan(vertical FOV / 2)
     const aspect = Math.max(camera.aspect, 0.05), portrait = aspect < 1;
     const bHalfV = GATHER_YOU_SCALE * 0.62 * modelR;                         // a bracelet's on-screen half-HEIGHT (wide + short)
-    const halfW = GATHER_YOU_SCALE * modelR * 1.08;                         // YOU is the widest thing in frame (+ a little margin)
-    // STATIC frame (issue #3): permanently reserve room for ONE receiver beside YOU, so YOU stays DEAD-CENTRE and
-    // never shifts or shrinks when a receiver steps in. The receiver settles at ±GATHER_RECV_UP; its far edge sits
-    // RECV_UP + bHalfV from centre = the frame half-height. Symmetric → fits a receiver whether it comes top or bottom.
-    const halfH = GATHER_RECV_UP * modelR + bHalfV;
-    const wFill = portrait ? 0.94 : 0.62;                                    // portrait: YOU fills most of the width
-    const hFill = portrait ? 0.9 : 0.86;
+    const bHalfW = GATHER_YOU_SCALE * modelR * 1.08;                         // a bracelet's on-screen half-WIDTH
+    // STATIC frame (issue #3): permanently reserve room for ONE receiver, so YOU stays DEAD-CENTRE and never shifts
+    // or shrinks when a receiver steps in. PORTRAIT: receiver goes top/bottom → reserve vertical room only. LANDSCAPE:
+    // receiver rings AROUND YOU (out to the sides) → reserve room on BOTH axes so a side receiver never clips.
+    let halfW, halfH;
+    if (portrait) { halfW = bHalfW; halfH = GATHER_RECV_UP * modelR + bHalfV; }
+    else { halfW = GATHER_RECV_H * modelR + bHalfW; halfH = GATHER_RECV_V * modelR + bHalfV; }
+    const wFill = portrait ? 0.94 : 0.9;
+    const hFill = portrait ? 0.9 : 0.88;
     const dW = halfW / (vHalf * aspect * wFill);
     const dH = halfH / (vHalf * hFill);
     return Math.max(dW, dH);
   }
-  function placeCamera(settle = 0, g = 0) {
+  function placeCamera(settle = 0, g = 0, dropY = 0) {
     const az = (CAM_AZ + Math.sin(idle * 0.18) * 0.7 * (1 - settle) * (1 - g)) * DEG;   // idle sway fades out as we settle
     const el = (CAM_EL + (CAM_EL_END - CAM_EL) * settle) * DEG;               // rise toward the top-front edge
     let d = (3.15 + (CAM_DIST_END - 3.15) * settle) * modelR;                  // pull back to frame the whole bracelet
     let pan = CAM_PAN_END * modelR * settle;   // pan the framing DOWN so the bracelet rises into the upper frame
     if (g > 0) { d = lerp(d, gatherFitDist(), g); pan = lerp(pan, 0, g); }   // gather: aim dead-centre on YOU; the frame is STATIC (never chases a receiver), so YOU never moves (#3)
     const ce = Math.cos(el);
-    camera.position.set(Math.cos(az) * ce * d, Math.sin(el) * d - pan, Math.sin(az) * ce * d);
-    camera.lookAt(0, -pan, 0);
+    camera.position.set(Math.cos(az) * ce * d, Math.sin(el) * d - pan + dropY, Math.sin(az) * ce * d);
+    camera.lookAt(0, -pan + dropY, 0);   // dropY: the camera follows the falling bracelet DOWN into the how-it-works frame
     // during the phone story, translate the camera (keeping its aim) so the bracelet sits CLEAR of the phone:
     // landscape → scene shifts left (phone owns the right); portrait → scene shifts up (phone owns the bottom)
     if (phoneShiftK > 0) {
@@ -248,7 +278,7 @@ function init() {
     stroke(0, 0, "#e3c074");                       // warm-gold inlay
     stroke(-1, -1.5, "rgba(255,244,216,0.20)");    // faint top highlight (catch-light on the engraving)
     const tex = new THREE.CanvasTexture(cv); tex.anisotropy = 4; tex.colorSpace = THREE.SRGBColorSpace;
-    const mat = new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false });
+    const mat = new THREE.MeshBasicMaterial({ map: tex, alphaToCoverage: true });   // hashed alpha → the name dissolves as part of the one-unit fade (matches the clone materials)
     const pw = s.x * 0.82, ph = pw * (H / W);      // a band across the flat underside, with margin
     const plane = new THREE.Mesh(new THREE.PlaneGeometry(pw, ph), mat);
     plane.position.set(0, 0, -(s.z / 2) - 0.02);   // sit on the −Z underside flat, just proud of the surface
@@ -267,10 +297,15 @@ function init() {
       // and collect each bead's meshes (cap + base + symbol) by node so a ping can VIBRATE just that one bead.
       // EVERY material is cloned per-bracelet + made transparent, so each bracelet can fade in/out on its own
       // (the background five are invisible until summoned). `mats` = every material to drive opacity from.
-      const beadMat = {}, beadMeshes = {}, platOf = {}, mats = [];
-      let basinMat = null;                                      // the hub's gold button — faded on its OWN steep curve (see the pose loop)
+      const beadMat = {}, beadMeshes = {}, platOf = {}, mats = [], hubMeshes = [], threadMeshes = [];   // hub + clasp-thread meshes → the gravity-drop's per-element rebound
+      let basinMat = null;
       const matMap = new Map();                                 // original → this bracelet's shared clone (black resin / hub / cord)
-      const cloneShared = (orig) => { let c = matMap.get(orig); if (!c) { c = orig.clone(); c.transparent = true; matMap.set(orig, c); mats.push(c); } return c; };
+      // FADE AS ONE UNIT: every clone material fades via alphaToCoverage (opacity → MSAA sample coverage), not blended
+      // transparency. It renders in the OPAQUE queue (each kept sample is opaque + writes depth), so a half-faded
+      // bracelet is depth-culled to its own outer silhouette — no seeing the gold platforms / button / far beads
+      // THROUGH it, and every part crosses the same coverage together (no component lingering brighter). MSAA on the
+      // composer target resolves the coverage into a SMOOTH dissolve instead of a dither.
+      const cloneShared = (orig) => { let c = matMap.get(orig); if (!c) { c = orig.clone(); c.alphaToCoverage = true; c.transparent = false; matMap.set(orig, c); mats.push(c); } return c; };
       const isInternal = (o) => { for (let a = o; a && a !== mc; a = a.parent) if (a.userData && a.userData.internal) return true; return false; };
       mc.traverse((o) => {
         if (!o.isMesh) return;
@@ -281,28 +316,47 @@ function init() {
         if (nm.indexOf("PLATFORM") === 0) {
           node = nm === "PLATFORM" ? 0 : parseInt(nm.slice(8), 10);
           platOf[node] = o;                                     // the symbol disc — used to locate the bead in world (for the echo endpoints)
-          const m = orig.clone(); m.transparent = true; o.material = m; mats.push(m);   // UNIQUE per platform (one-to-one glow)
+          const m = orig.clone(); m.alphaToCoverage = true; m.transparent = false; o.material = m; mats.push(m);   // UNIQUE per platform (one-to-one glow)
           if (orig === matGlow) { m.userData.lit = true; beadMat[node] = m; }           // a hero-glow bead: breathes, can flare brighter
           else if (orig === matGold) { m.userData.lit = false; beadMat[node] = m; }     // a dark bead: gold at rest, lights only when pinged
         } else if (nm === "BASIN_SWITCH") {
-          // the gold hub button. It sits behind the hub face, so if it faded at the shell's rate it would ghost
-          // through as a gold disc mid-fade (#2). Give it its OWN gold material, driven on a steep curve (pose loop)
-          // so it only appears once the shell is already near-opaque — gold when settled, invisible while fading.
-          const m = matGold.clone(); m.transparent = true; o.material = m; basinMat = m;
+          // the gold hub button — its own gold material, hashed-alpha like the rest so it dissolves as part of the
+          // one-unit fade (the hub shell's opaque fragments depth-cull it, so it never ghosts through mid-fade).
+          const m = matGold.clone(); m.alphaToCoverage = true; m.transparent = false; o.material = m; basinMat = m;
         } else {
           o.material = Array.isArray(orig) ? orig.map((x) => cloneShared(x)) : cloneShared(orig);   // black resin / hub / cord: shared per bracelet
           if (nm.indexOf("FB_CAP") === 0) node = nm === "FB_CAP" ? 0 : parseInt(nm.slice(6), 10);   // bead top half
           else if (nm.indexOf("FB_BASE") === 0) node = nm === "FB_BASE" ? 0 : parseInt(nm.slice(7), 10);  // bead bottom half
         }
         if (!isNaN(node)) (beadMeshes[node] || (beadMeshes[node] = [])).push({ mesh: o, base: o.position.clone() });
+        if (nm.indexOf("HUB_") === 0 || nm === "BASIN_SWITCH") hubMeshes.push({ mesh: o, base: o.position.clone() });   // hub assembly → its own weighty settle bob on landing
+        else if (o.userData.adjuster) threadMeshes.push({ mesh: o, base: o.position.clone() });                         // loose clasp thread → flops down + jiggles longer
       });
+      // ONLY YOU (i===0) drops → give its clasp rope its OWN geometry so the drop can BEND it (a real whip) without
+      // touching the shared strands. Each strand vertex gets a t = position along the tail (0 = hub root, 1 = free tip).
+      let threadStrands = null, threadBeads = null;
+      if (i === 0) {
+        threadStrands = []; threadBeads = [];
+        for (const tm of threadMeshes) {
+          const geo = tm.mesh.geometry;
+          if (geo.type === "TubeGeometry") {
+            const cg = geo.clone(); tm.mesh.geometry = cg;
+            const pos = cg.attributes.position, base = new Float32Array(pos.array), tArr = new Float32Array(pos.count);
+            for (let v = 0; v < pos.count; v++) tArr[v] = Math.min(1, Math.max(0, (base[v * 3 + 1] - 0.30) / 1.42));   // tail spans model-Y 0.30 (root) → 1.72 (tip)
+            threadStrands.push({ mesh: tm.mesh, geo: cg, base, tArr });
+          } else {
+            const r = geo.parameters ? geo.parameters.radius : 0.2;
+            threadBeads.push({ mesh: tm.mesh, base: tm.mesh.position.clone(), t: r > 0.17 ? 0.82 : 1.0 });   // quartz slider (0.22) mid-tail, end knot (0.13) at the tip
+          }
+        }
+      }
       const ori = new THREE.Group(); ori.rotation.x = FLIP_X; ori.add(mc);
       const sp = new THREE.Group(); sp.add(ori);
       const pivot = new THREE.Group(); pivot.add(sp); gatherGroup.add(pivot);
       gSpin[i] = gTarget[i] = endSpin; gVel[i] = 0; gBuzz[i] = null; gSnapping[i] = false;
       const engMat = engraveHubName(mc, GATHER_NAME[i]);   // the name is etched into the hub's flat underside — part of the bracelet, turns with it
       if (engMat) mats.push(engMat);                      // …and fades with it
-      gatherInstances.push({ pivot, spin: sp, beadMat, beadMeshes, platOf, mats, basinMat, _shakeNode: -1 });
+      gatherInstances.push({ pivot, spin: sp, mc, beadMat, beadMeshes, platOf, mats, basinMat, hubMeshes, threadMeshes, threadStrands, threadBeads, bodyMat: matMap.get(matBlack) || null, _shakeNode: -1, _whipped: false });
     }
     makeEchoCanvas();
     // all bracelets keep the same (uniform) facing; the BOTTOM row alone pitches up so its beads angle up, not down.
@@ -345,7 +399,7 @@ function init() {
     return best;
   }
   function gSnapTo(i) { gTarget[i] = gSpin[i] + angDelta(gSpin[i], frontAngleOf[GATHER_NODE[frontPerson(gSpin[i])]]); gSnapping[i] = true; }
-  const buzz = () => { try { if (navigator.vibrate) navigator.vibrate([0, 55, 35, 55]); } catch (e) {} };   // a clear two-pulse haptic on the bead that's reached
+  const buzz = () => { try { if (navigator.vibrate) navigator.vibrate([0, 48, 110, 26]); } catch (e) {} };   // a heartbeat haptic (lub-dub) on the bead that's reached
   // summon person p's bracelet forward from the background to receive — one at a time (any other up-front bracelet recedes)
   function callReceiver(p) {
     if (p <= 0) return;
@@ -361,12 +415,13 @@ function init() {
     if (window.__coach) window.__coach.done("tap");   // coach: a real tap completes the Tap step
     const p = (pTarget != null && pTarget >= 0) ? pTarget : frontPerson(gSpin[owner]); if (p < 0) return;
     const ownNode = GATHER_NODE[owner];   // the sender's own bead — the single bead that lights on the other bracelet
-    if (p === owner) { gBuzz[owner] = { node: ownNode, t0: idle, hue: GATHER_HUE[owner] }; buzz(); return; }
+    if (p === owner) { gBuzz[owner] = { node: ownNode, t0: idle, hue: GATHER_HUE[owner] }; buzz(); buzzSound(GATHER_NOTE[owner], 0.09); return; }
     callReceiver(p);
+    buzzSound(GATHER_NOTE[p], 0.09);                                        // the touched bead answers with ITS person's distinct buzz
     gConn = { p, sNode: GATHER_NODE[p], rNode: ownNode, sHue: GATHER_HUE[p], rHue: GATHER_HUE[owner], pres: 0 };   // the bond glows at BOTH ends while together
     gBuzz[owner] = { node: GATHER_NODE[p], t0: idle, hue: GATHER_HUE[p] };   // YOUR bead for THEM lights, in their colour — the near end of the bond
     gTarget[p] = gSpin[p] + angDelta(gSpin[p], frontAngleOf[ownNode]); gSnapping[p] = true;
-    setTimeout(() => { gBuzz[p] = { node: ownNode, t0: idle, hue: GATHER_HUE[owner] }; buzz(); }, PRESENCE_IN * 1000 * 0.75);   // the far end: YOUR bead lights on THEIR wrist as it arrives up-front
+    setTimeout(() => { gBuzz[p] = { node: ownNode, t0: idle, hue: GATHER_HUE[owner] }; buzz(); buzzSound(GATHER_NOTE[owner] * 1.5, 0.07); }, PRESENCE_IN * 1000 * 0.75);   // the far end: YOUR bead lights on THEIR wrist as it arrives up-front
   }
 
   // ---- Echo audio: the same soft Web-Audio voice as the bead carousel — a sustained sine + 5.5 Hz vibrato
@@ -389,18 +444,124 @@ function init() {
       o.start(t); o2.start(t); o.stop(t + (dur || 0.5) + 0.02); o2.stop(t + (dur || 0.5) + 0.02);
     } catch (e) {}
   }
+  // the iPhone "ding" — a bright, quick two-tone bell for each phone notification
+  function notifDing() {
+    const c = audioCtx(); if (!c) return;
+    [[1318.5, 0, 0.05], [1760, 0.075, 0.045]].forEach(([f, dt, v]) => {
+      try {
+        const tt = c.currentTime + dt, o = c.createOscillator(), o2 = c.createOscillator(), g = c.createGain();
+        o.type = "sine"; o2.type = "sine"; o.frequency.value = f; o2.frequency.value = f * 2.01;   // a touch of shimmer
+        g.gain.setValueAtTime(0.0001, tt); g.gain.exponentialRampToValueAtTime(v, tt + 0.006); g.gain.exponentialRampToValueAtTime(0.0001, tt + 0.38);
+        o.connect(g); o2.connect(g); g.connect(c.destination); o.start(tt); o2.start(tt); o.stop(tt + 0.4); o2.stop(tt + 0.4);
+      } catch (e) {}
+    });
+  }
+  // BEAD TAP = a soft HEARTBEAT (lub-dub) at a per-bead pitch + rhythm, so each bead you touch feels DISTINCT.
+  function buzzSound(freq, vol) {
+    const c = audioCtx(); if (!c) return;
+    const V = vol || 0.18, f = freq || 440;
+    const base = 44 + (f % 130) * 0.045;                 // ~44–63 Hz thump body — distinct low pitch per bead
+    const gap = 0.13 + (f % 40) * 0.0016;                // slight per-bead rhythm variation between the two beats
+    const thump = (dt, pitch, amp, dur) => {
+      try {
+        const tt = c.currentTime + dt, o = c.createOscillator(), g = c.createGain();
+        o.type = "sine"; o.frequency.setValueAtTime(pitch * 1.7, tt); o.frequency.exponentialRampToValueAtTime(pitch, tt + 0.05);   // pitch drop = a soft body "thud"
+        g.gain.setValueAtTime(0.0001, tt); g.gain.exponentialRampToValueAtTime(amp, tt + 0.006); g.gain.exponentialRampToValueAtTime(0.0001, tt + dur);
+        o.connect(g); g.connect(c.destination); o.start(tt); o.stop(tt + dur + 0.03);
+      } catch (e) {}
+    };
+    thump(0, base, V, 0.14);                              // "lub" (S1) — the stronger first beat
+    thump(gap, base * 1.12, V * 0.68, 0.12);             // "dub" (S2) — softer, a touch higher, ~150 ms later
+  }
+  // filtered-noise whoosh (air) — the fall / lift
+  function noiseWhoosh(dur, f0, f1, vol) {
+    const c = audioCtx(); if (!c) return;
+    try {
+      const t = c.currentTime, n = Math.max(1, Math.floor(c.sampleRate * dur)), buf = c.createBuffer(1, n, c.sampleRate), d = buf.getChannelData(0);
+      for (let i = 0; i < n; i++) d[i] = Math.random() * 2 - 1;
+      const src = c.createBufferSource(); src.buffer = buf;
+      const flt = c.createBiquadFilter(); flt.type = "bandpass"; flt.Q.value = 0.9;
+      flt.frequency.setValueAtTime(f0, t); flt.frequency.exponentialRampToValueAtTime(f1, t + dur);
+      const g = c.createGain();
+      g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + dur * 0.35); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      src.connect(flt); flt.connect(g); g.connect(c.destination); src.start(t);
+    } catch (e) {}
+  }
+  const dropWhoosh = () => noiseWhoosh(0.5, 820, 150, 0.05);    // the bracelet lets go and falls through air
+  const dropRise = () => noiseWhoosh(0.34, 200, 620, 0.03);     // reverse-scroll: it lifts back up
+  function dropThud() {                                          // the landing: a deep body + a bright bead clack
+    const c = audioCtx(); if (!c) return;
+    try {
+      const t = c.currentTime, o = c.createOscillator(), g = c.createGain();
+      o.type = "sine"; o.frequency.setValueAtTime(125, t); o.frequency.exponentialRampToValueAtTime(46, t + 0.13);
+      g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.24, t + 0.006); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.3);
+      o.connect(g); g.connect(c.destination); o.start(t); o.stop(t + 0.32);
+    } catch (e) {}
+    noiseWhoosh(0.08, 2400, 600, 0.05);                          // the beads + clasp clack on impact
+  }
+  // a soft "pop" + warm upward bloop as a pinned person lifts out of the phone and becomes a bead
+  function popSound(freq) {
+    const c = audioCtx(); if (!c) return;
+    try {
+      const t = c.currentTime, o = c.createOscillator(), g = c.createGain();
+      o.type = "sine"; o.frequency.setValueAtTime((freq || 440) * 0.5, t); o.frequency.exponentialRampToValueAtTime(freq || 440, t + 0.05);
+      g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.085, t + 0.008); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.4);
+      o.connect(g); g.connect(c.destination); o.start(t); o.stop(t + 0.42);
+    } catch (e) {}
+  }
+  // a slight airy "reveal" whoosh + faint rising shimmer as a CAD assembly explodes open
+  function explodeSound() {
+    noiseWhoosh(0.55, 300, 1400, 0.03);
+    const c = audioCtx(); if (!c) return;
+    try {
+      const t = c.currentTime, o = c.createOscillator(), g = c.createGain();
+      o.type = "sine"; o.frequency.setValueAtTime(520, t); o.frequency.exponentialRampToValueAtTime(1250, t + 0.42);
+      g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.018, t + 0.06); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.5);
+      o.connect(g); g.connect(c.destination); o.start(t); o.stop(t + 0.52);
+    } catch (e) {}
+  }
+  // a very slight low ambient pad while the bracelet threads together (lazily built; gain follows the threading level)
+  let _amb = null;
+  function threadAmbient(level) {
+    const c = audioCtx(); if (!c) return;
+    if (!_amb) {
+      if (level <= 0.001) return;                                // don't spin it up until threading actually starts
+      try {
+        const t = c.currentTime, g = c.createGain(); g.gain.value = 0;
+        const lp = c.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 360; lp.Q.value = 0.4;
+        const o1 = c.createOscillator(), o2 = c.createOscillator();
+        o1.type = "triangle"; o1.frequency.value = 98; o2.type = "triangle"; o2.frequency.value = 147; o2.detune.value = 5;
+        const flfo = c.createOscillator(), flg = c.createGain(); flfo.type = "sine"; flfo.frequency.value = 0.08; flg.gain.value = 110;
+        flfo.connect(flg); flg.connect(lp.frequency);
+        o1.connect(lp); o2.connect(lp); lp.connect(g); g.connect(c.destination);
+        o1.start(t); o2.start(t); flfo.start(t); _amb = { g };
+      } catch (e) { _amb = null; return; }
+    }
+    try { _amb.g.gain.setTargetAtTime(Math.max(0, level) * 0.05, c.currentTime, 0.2); } catch (e) {}
+  }
   let _echoOsc = null, _echoGain = null, _echoLfo = null;
   function echoSoundStart(freq) {
     const c = audioCtx(); if (!c) return;
     try {
-      const t = c.currentTime; _echoOsc = c.createOscillator(); _echoGain = c.createGain(); _echoLfo = c.createOscillator();
-      const lfoGain = c.createGain();
-      _echoOsc.type = "sine"; _echoOsc.frequency.value = freq;
-      _echoLfo.type = "sine"; _echoLfo.frequency.value = 5.5; lfoGain.gain.value = 4;   // gentle vibrato → "voice"
-      _echoLfo.connect(lfoGain); lfoGain.connect(_echoOsc.frequency);
+      const t = c.currentTime;
+      _echoOsc = c.createOscillator(); _echoGain = c.createGain(); _echoLfo = c.createOscillator();
+      _echoOsc.type = "triangle"; _echoOsc.frequency.value = freq;                        // softer than a pure-sine beep
+      // gentle throb so the delay taps read as distinct ECHO repeats, not one flat tone
+      const tg = c.createGain(); _echoLfo.type = "sine"; _echoLfo.frequency.value = 4.2; tg.gain.value = 0.03;
+      _echoLfo.connect(tg); tg.connect(_echoGain.gain);
+      // a filter that OPENS as the echo leaves → it evolves, not a static beep
+      const lp = c.createBiquadFilter(); lp.type = "lowpass"; lp.Q.value = 4;
+      lp.frequency.setValueAtTime(500, t); lp.frequency.exponentialRampToValueAtTime(2400, t + 0.55);
+      // THE ECHO: a feedback delay — the tone repeats, fading + darkening, like it's ringing across the distance
+      const delay = c.createDelay(1.0); delay.delayTime.value = 0.3;
+      const fb = c.createGain(); fb.gain.value = 0.46;
+      const damp = c.createBiquadFilter(); damp.type = "lowpass"; damp.frequency.value = 1500;
       _echoGain.gain.setValueAtTime(0.0001, t);
-      _echoGain.gain.exponentialRampToValueAtTime(0.07, t + 0.1);
-      _echoOsc.connect(_echoGain); _echoGain.connect(c.destination);
+      _echoGain.gain.exponentialRampToValueAtTime(0.05, t + 0.09);
+      _echoOsc.connect(lp); lp.connect(_echoGain);
+      _echoGain.connect(c.destination);                                                   // dry
+      _echoGain.connect(delay); delay.connect(damp); damp.connect(fb); fb.connect(delay);  // feedback loop → the repeats
+      delay.connect(c.destination);                                                        // …fed to the output
       _echoOsc.start(t); _echoLfo.start(t);
     } catch (e) {}
   }
@@ -484,18 +645,16 @@ function init() {
   const PHONE_CW = 552, PHONE_CH = Math.round(PHONE_CW * PHONE_ASPECT);   // screen-canvas resolution
   let phoneScreenW = 1, phoneScreenH = 1;                       // the screen plane's local size (set in buildPhone3D)
   const FLOOD_MSGS = [
-    ["Instagram", "3 people liked your photo",   "#E4405F"],
-    ["The Squad",  "142 new messages",           "#34C759"],
-    ["Breaking",   "You have to see this",        "#FF3B30"],
-    ["TikTok",     "Your video is blowing up",    "#111318"],
-    ["LinkedIn",   "5 people viewed your profile","#0A66C2"],
-    ["Flash Sale", "30% off — ends in 04:59",     "#FF9500"],
-    ["X",          "18 new notifications",         "#1D9BF0"],
-    ["YouTube",    "New from 6 channels",          "#FF0000"],
-    ["Reddit",     "42 unread in r/all",           "#FF4500"],
-    ["Screen Time","4h 12m on your phone today",   "#8E8E93"],
+    ["Messages",   "Nadia: did you SEE this?? 😭", "#30D158"],
+    ["Instagram",  "3 people liked your photo",    "#E4405F"],
+    ["Studio — Launch", "Priya: deck due Weds",    "#0A84FF"],
+    ["Breaking",   "You have to see this",         "#FF3B30"],
+    ["Deliveries", "Your package is 2 stops away", "#FF9F0A"],
+    ["24011",      "Your code is ••••••  Don't share it", "#30D158"],
+    ["X",          "18 new notifications",          "#1D9BF0"],
+    ["Rec League", "game at the marina tn! 🎾",    "#5C9CEB"],
     ["News",       "Everyone is talking about this","#C21807"],
-    ["Mail",       "You’re behind on 89 threads",  "#1A73E8"],
+    ["Mail",       "You're behind on 89 threads",   "#1A73E8"],
   ];
 
   function roundedRectShape(w, h, r) {
@@ -537,12 +696,24 @@ function init() {
     phoneScreen = new THREE.Mesh(sg, new THREE.MeshBasicMaterial({ map: phoneTex, toneMapped: false }));
     phoneScreen.position.z = dp / 2 + 0.0165; phoneScreen.renderOrder = 2;   // just proud of the front cap (cap tops out at dp/2 + bevel)
     phoneObj = new THREE.Group(); phoneObj.add(body, phoneScreen); buttons.forEach((b) => phoneObj.add(b));
-    phoneKnock = new THREE.Group(); phoneKnock.add(phoneObj);
+    // a soft "table": screen-glow sheen + a dark contact shadow so the phone reads as RESTING on a surface, not floating
+    const tcv = document.createElement("canvas"); tcv.width = 512; tcv.height = 512; const tg2 = tcv.getContext("2d");
+    let gr = tg2.createRadialGradient(256, 250, 24, 256, 250, 250);
+    gr.addColorStop(0, "rgba(126,140,166,0.18)"); gr.addColorStop(0.5, "rgba(58,66,86,0.07)"); gr.addColorStop(1, "rgba(0,0,0,0)");
+    tg2.fillStyle = gr; tg2.fillRect(0, 0, 512, 512);
+    gr = tg2.createRadialGradient(256, 268, 8, 256, 268, 145);
+    gr.addColorStop(0, "rgba(0,0,0,0.5)"); gr.addColorStop(1, "rgba(0,0,0,0)");
+    tg2.fillStyle = gr; tg2.fillRect(0, 0, 512, 512);
+    const tableTex = new THREE.CanvasTexture(tcv); tableTex.colorSpace = THREE.SRGBColorSpace;
+    phoneTable = new THREE.Mesh(new THREE.PlaneGeometry(w * 3.2, h * 2.4),
+      new THREE.MeshBasicMaterial({ map: tableTex, transparent: true, toneMapped: false, depthWrite: false }));
+    phoneTable.renderOrder = -1;
+    phoneKnock = new THREE.Group(); phoneKnock.add(phoneTable, phoneObj);
     phoneRig = new THREE.Group(); phoneRig.add(phoneKnock); phoneRig.visible = false;
     scene.add(camera); camera.add(phoneRig);                       // the camera must be in the graph for its children to render
     PHONE_PEOPLE.forEach((p, i) => { const im = new Image(); im.onload = () => { avatarImg[i] = im; }; im.src = p.av; });
-    // seed the notification stack so the top is already flooded on the first frame (never an empty phone)
-    [0, 4, 8].forEach((mi, k) => { const m = FLOOD_MSGS[mi]; phoneNotifs.push({ title: m[0], sub: m[1], color: m[2], t0: -0.8 - k * 0.5 }); }); floodN = 1;
+    // seed ONE banner mid-slide so the first frame already shows a live notification (never a dead phone)
+    activeNotif = { title: FLOOD_MSGS[0][0], sub: FLOOD_MSGS[0][1], color: FLOOD_MSGS[0][2], t0: -0.12 }; floodN = 1;
     drawPhoneScreen(0);
   }
 
@@ -556,20 +727,28 @@ function init() {
     const hh = Dz * vHalf;                                             // world half-height of the viewport at that depth
     const fracH = land ? 0.82 : 0.62, fx = land ? 0.47 : 0.0, fy = land ? -0.02 : -0.24;
     phoneRig.scale.setScalar(fracH * 2 * hh);
-    const bz = Math.max(0, 1 - (idle - phoneBuzzT) / 0.42);           // decaying buzz jitter on each notification
-    const jx = bz ? (Math.sin(idle * 91.3) + Math.sin(idle * 57.7)) * 0.011 * bz : 0;
-    const jy = bz ? (Math.sin(idle * 83.1) + Math.sin(idle * 47.3)) * 0.011 * bz : 0;
-    phoneRig.position.set((fx + jx) * hh * Math.max(camera.aspect, 0.05), (fy + jy) * hh, -Dz);
+    phoneRig.position.set(fx * hh * Math.max(camera.aspect, 0.05), fy * hh, -Dz);   // buzz now rattles the PHONE on the (still) table, not the whole rig
     const kk = smooth(0.84, 1.0, phP);                                // knocked away: tumble off to the lower-right
     phoneKnock.position.set(kk * 1.9, -kk * 0.55, kk * 0.15);
     phoneKnock.rotation.set(kk * 0.25, kk * 1.15, -kk * 0.8);
     // resting orientation — a real device is held at an ANGLE. Off-centre landscape already reads as 3-D; a centred
     // portrait phone looks like a flat slab, so yaw it more there. A gentle hand-held float keeps it volumetric and
     // slides the screen's reflection across the glass. Killed as it's knocked away (kk), so the tumble reads clean.
-    const rest = 1 - kk, yaw = (land ? -0.16 : -0.24) * rest, pitch = 0.05 * rest;
-    phoneObj.rotation.set(pitch + Math.sin(idle * 0.42 + 1.2) * 0.02 * rest, yaw + Math.sin(idle * 0.55) * 0.045 * rest, Math.sin(idle * 0.31) * 0.012 * rest);
+    // RESTING ON A TABLE: laid back so we look DOWN the screen at an angle (top edge recedes), canted a touch like a
+    // phone set down not-square. A resting device barely drifts; a notification RATTLES it against the hard surface.
+    const rest = 1 - kk;
+    const bz = Math.max(0, 1 - (idle - phoneBuzzT) / 0.5), rattle = bz * bz;   // sharp attack, quick decay
+    const rx = rattle ? Math.sin(idle * 132) * 0.004 : 0, ry = rattle ? Math.sin(idle * 119 + 1.7) * 0.004 : 0, rrot = rattle ? Math.sin(idle * 150) * 0.006 : 0;
+    const pitch = -0.5 * rest, yaw = (land ? -0.13 : -0.10) * rest, roll = (land ? 0.03 : 0.055) * rest;
+    phoneObj.position.set(rx, ry, 0);
+    phoneObj.rotation.set(pitch + Math.sin(idle * 0.5) * 0.005 * rest + rrot, yaw + rrot * 0.6, roll + Math.sin(idle * 0.36) * 0.004 * rest + rrot);
     phoneObj.scale.setScalar(1 - 0.12 * kk);
-    phoneObj.visible = kk < 0.999;   // the knocked-away phone tumbles off-frame then vanishes — no fade needed (it's opaque)
+    phoneObj.visible = kk < 0.999;   // the knocked-away phone tumbles off-frame then vanishes
+    if (phoneTable) {                                          // the surface lies parallel under the phone, fading as it's knocked away
+      phoneTable.rotation.set(pitch, yaw, roll);
+      phoneTable.position.set(0, -0.03, -0.06);
+      phoneTable.material.opacity = rest; phoneTable.visible = rest > 0.02;
+    }
   }
 
   const _rr = (g, x, y, w, h, r) => { r = Math.min(r, w / 2, h / 2); g.beginPath(); g.moveTo(x + r, y); g.arcTo(x + w, y, x + w, y + h, r); g.arcTo(x + w, y + h, x, y + h, r); g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + w, y, r); g.closePath(); };
@@ -582,64 +761,92 @@ function init() {
     g.restore();
     g.lineWidth = 2; g.strokeStyle = "rgba(255,255,255,.14)"; g.beginPath(); g.arc(cx, cy, r, 0, TAU); g.stroke();
   }
-  // the live screen: notifications flood the TOP; the pinned five + a churn of flooding chats fill the BOTTOM.
+  // the live iOS-dark Messages screen: status bar → title → search → the pinned FIVE (photo avatars) → the churning
+  // noise list. ONE notification banner slides in over the top at a time (never a stack). A pure fn of idle/phP.
+  const BANNER_IN = 0.16, BANNER_HOLD = 0.62, BANNER_OUT = 0.2, BANNER_GAP = 0.1, BANNER_LIFE = BANNER_IN + BANNER_HOLD + BANNER_OUT;   // quick, like the live flood — a new one about every ~1s
+  const APP = "-apple-system, 'SF Pro Text', 'Helvetica Neue', Arial, sans-serif";
   function drawPhoneScreen(phP) {
     const g = phoneG; if (!g) return;
     const W = PHONE_CW, H = PHONE_CH;
-    g.clearRect(0, 0, W, H);
-    g.fillStyle = "#0a0a0c"; g.fillRect(0, 0, W, H);
-    // status bar + dynamic island
     g.textBaseline = "middle"; g.textAlign = "left";
-    g.fillStyle = "#f4efe3"; g.font = "600 27px -apple-system, 'Helvetica Neue', Arial, sans-serif"; g.fillText("9:41", 36, 42);
-    g.globalAlpha = .9; g.strokeStyle = "#f4efe3"; g.lineWidth = 2; _rr(g, W - 78, 30, 40, 18, 5); g.stroke();
-    g.fillStyle = "#f4efe3"; _rr(g, W - 75, 33, 30, 12, 3); g.fill(); g.fillRect(W - 36, 34, 3, 10); g.globalAlpha = 1;
-    g.fillStyle = "#000"; _rr(g, W / 2 - 72, 20, 144, 36, 18); g.fill();
+    g.fillStyle = "#000000"; g.fillRect(0, 0, W, H);                     // iOS dark Messages = true black
 
-    // ---- notification FLOOD (top) ----
-    const nX = 26, nW = W - 52, nH = 112, nGap = 14, y0 = 78, zoneBot = 556;
-    for (let i = phoneNotifs.length - 1; i >= 0; i--) {
-      const nf = phoneNotifs[i], age = idle - nf.t0, si = smooth(0, 0.34, age);
-      const y = y0 + i * (nH + nGap) - (1 - si) * 46;
-      if (y > zoneBot) continue;
-      let a = si; if (y + nH > zoneBot - 40) a *= clamp((zoneBot - y) / nH, 0, 1);
-      if (a <= 0.02) continue;
-      g.globalAlpha = a;
-      g.fillStyle = "rgba(30,29,34,.96)"; _rr(g, nX, y, nW, nH, 26); g.fill();
-      g.fillStyle = nf.color; _rr(g, nX + 18, y + 26, 60, 60, 15); g.fill();
-      g.fillStyle = "#f2ede1"; g.font = "700 25px -apple-system, Arial, sans-serif"; g.fillText(nf.title, nX + 96, y + 42);
-      g.fillStyle = "#b7b1a4"; g.font = "400 23px -apple-system, Arial, sans-serif"; g.fillText(_clip(g, nf.sub, nW - 116), nX + 96, y + 78);
-      g.globalAlpha = 1;
-    }
+    // ---- status bar ----
+    g.fillStyle = "#ffffff"; g.font = "600 27px " + APP; g.fillText("9:41", 40, 40);
+    let rx = W - 40;                                                     // battery
+    g.strokeStyle = "rgba(255,255,255,.55)"; g.lineWidth = 2; _rr(g, rx - 34, 30, 34, 18, 5); g.stroke();
+    g.fillStyle = "#ffffff"; _rr(g, rx - 31, 33, 25, 12, 3); g.fill(); g.globalAlpha = .55; g.fillRect(rx + 1, 34, 3, 10); g.globalAlpha = 1;
+    rx -= 50; g.fillStyle = "#ffffff";                                   // wifi glyph
+    g.beginPath(); g.arc(rx, 46, 15, Math.PI * 1.25, Math.PI * 1.75); g.arc(rx, 46, 0, Math.PI * 1.75, Math.PI * 1.25, true); g.fill();
+    rx -= 34; for (let i = 0; i < 4; i++) { const bh = 6 + i * 4; g.fillStyle = "#ffffff"; _rr(g, rx + i * 8, 46 - bh, 5, bh, 1.5); g.fill(); }   // signal
+    g.fillStyle = "#000000"; _rr(g, W / 2 - 62, 15, 124, 35, 17); g.fill();   // dynamic island
 
-    // ---- Messages (bottom): title + pinned five + a flooding chat list ----
-    g.textAlign = "left"; g.fillStyle = "#f4efe3"; g.font = "700 42px Georgia, 'Times New Roman', serif"; g.fillText("Messages", 30, 598);
-    g.fillStyle = "#cdb06a"; g.font = "400 26px -apple-system, Arial, sans-serif"; g.textAlign = "right"; g.fillText("Edit", W - 30, 598); g.textAlign = "left";
-    const pr = 42, py = 706, x0 = 70, step = 103;
-    for (let i = 0; i < PHONE_PEOPLE.length; i++) {
-      const cx = x0 + i * step; contactCanvasPos[i].x = cx; contactCanvasPos[i].y = py;
+    // ---- title + compose ----
+    g.fillStyle = "#ffffff"; g.font = "700 46px " + APP; g.fillText("Messages", 30, 150);
+    g.strokeStyle = "#0A84FF"; g.lineWidth = 4; g.lineCap = "round"; g.lineJoin = "round";   // compose glyph (pencil in square)
+    _rr(g, W - 82, 128, 44, 44, 12); g.stroke();
+    g.beginPath(); g.moveTo(W - 66, 158); g.lineTo(W - 50, 142); g.lineTo(W - 44, 148); g.lineTo(W - 60, 164); g.closePath();
+    g.fillStyle = "#0A84FF"; g.fill();
+
+    // ---- search field ----
+    const sbY = 178, sbH = 60, scy = sbY + sbH / 2;
+    g.fillStyle = "rgba(120,120,128,0.22)"; _rr(g, 26, sbY, W - 52, sbH, 20); g.fill();
+    g.strokeStyle = "rgba(235,235,245,0.5)"; g.lineWidth = 3;
+    g.beginPath(); g.arc(66, scy - 1, 9, 0, TAU); g.moveTo(73, scy + 6); g.lineTo(82, scy + 15); g.stroke();
+    g.fillStyle = "rgba(235,235,245,0.5)"; g.font = "400 26px " + APP; g.fillText("Search", 96, scy);
+    g.fillStyle = "rgba(235,235,245,0.5)"; _rr(g, W - 58, scy - 12, 12, 22, 6); g.fill();          // mic body
+    g.fillRect(W - 53, scy + 10, 2, 6); g.beginPath(); g.arc(W - 52, scy + 8, 8, 0.15 * Math.PI, 0.85 * Math.PI); g.stroke();
+
+    // ---- pinned FIVE (photo-avatar grid): the people you actually carry ----
+    const grid = [[138, 322], [276, 322], [414, 322], [207, 470], [345, 470]], pr = 54;
+    for (let i = 0; i < PHONE_PEOPLE.length && i < grid.length; i++) {
+      const cx = grid[i][0], cy = grid[i][1]; contactCanvasPos[i].x = cx; contactCanvasPos[i].y = cy;
       const da = phoneDepT[i] ? clamp((idle - phoneDepT[i]) / 0.45, 0, 1) : 0;
-      if (da > 0 && da < 1) {                                          // conversion flash where the bead leaps out
+      if (da > 0 && da < 1) {                                            // conversion flash where the bead leaps out
         g.globalAlpha = (1 - da) * 0.9; g.strokeStyle = PHONE_PEOPLE[i].hue; g.lineWidth = 6;
-        g.beginPath(); g.arc(cx, py, pr + da * 48, 0, TAU); g.stroke(); g.globalAlpha = 1;
+        g.beginPath(); g.arc(cx, cy, pr + da * 54, 0, TAU); g.stroke(); g.globalAlpha = 1;
       }
       if (da < 1) {
-        g.globalAlpha = 1 - da; drawAvatar(g, i, cx, py, pr);
-        g.fillStyle = "#3b82f6"; g.beginPath(); g.arc(cx + pr - 5, py - pr + 5, 9, 0, TAU); g.fill();
+        g.globalAlpha = 1 - da; drawAvatar(g, i, cx, cy, pr);
+        if (i % 2 === 0) { g.fillStyle = "#0A84FF"; g.beginPath(); g.arc(cx + pr - 6, cy - pr + 8, 10, 0, TAU); g.fill(); }   // a couple have unread
         g.globalAlpha = 1;
-        g.fillStyle = "#c8c2b4"; g.font = "500 22px -apple-system, Arial, sans-serif"; g.textAlign = "center"; g.fillText(PHONE_PEOPLE[i].name, cx, py + pr + 26); g.textAlign = "left";
+        g.fillStyle = "#c8c2b4"; g.font = "500 22px " + APP; g.textAlign = "center"; g.fillText(PHONE_PEOPLE[i].name, cx, cy + pr + 26); g.textAlign = "left";
       }
     }
-    let cy = 828; const rowH = 96, ar = 34;
-    for (let i = 0; i < phoneChats.length && cy + rowH < H - 8; i++) {
-      const c = phoneChats[i];
-      g.fillStyle = c.hue; g.beginPath(); g.arc(58, cy + rowH / 2, ar, 0, TAU); g.fill();
-      g.fillStyle = "#0a0a0c"; g.font = "700 28px Georgia, serif"; g.textAlign = "center"; g.fillText(c.name[0], 58, cy + rowH / 2 + 2); g.textAlign = "left";
-      g.fillStyle = "#f0ebdf"; g.font = "600 27px -apple-system, Arial, sans-serif"; g.fillText(c.name, 108, cy + 36);
-      g.fillStyle = "#8f897d"; g.font = "400 23px -apple-system, Arial, sans-serif"; g.fillText(_clip(g, c.pre, W - 108 - 96), 108, cy + 70);
-      const cnt = String(c.n), bw = Math.max(46, 26 + cnt.length * 17);
-      g.fillStyle = "#ff3b30"; _rr(g, W - bw - 26, cy + rowH / 2 - 22, bw, 44, 22); g.fill();
-      g.fillStyle = "#fff"; g.font = "700 25px -apple-system, Arial, sans-serif"; g.textAlign = "center"; g.fillText(cnt, W - bw / 2 - 26, cy + rowH / 2 + 1); g.textAlign = "left";
+
+    // ---- the noise list (churning chats) ----
+    let cy = 590; const rowH = 92, ar = 35;
+    for (let i = 0; i < phoneChats.length && cy + rowH < H - 6; i++) {
+      const c = phoneChats[i], mid = cy + rowH / 2;
+      if (c.unread) { g.fillStyle = "#0A84FF"; g.beginPath(); g.arc(24, mid, 7, 0, TAU); g.fill(); }   // unread dot
+      g.fillStyle = c.hue; g.beginPath(); g.arc(66, mid, ar, 0, TAU); g.fill();                        // avatar
+      const init = (c.name.match(/[A-Za-z0-9]/) || ["#"])[0].toUpperCase();
+      g.fillStyle = "#ffffff"; g.font = "600 30px " + APP; g.textAlign = "center"; g.fillText(init, 66, mid + 1); g.textAlign = "left";
+      g.fillStyle = "#ffffff"; g.font = (c.unread ? "600 " : "500 ") + "28px " + APP; g.fillText(_clip(g, c.name, W - 112 - 130), 112, mid - 18);
+      g.fillStyle = "#8d8d93"; g.font = "400 24px " + APP; g.fillText(_clip(g, c.pre, W - 112 - 70), 112, mid + 20);
+      g.fillStyle = c.time === "now" ? "#0A84FF" : "#8d8d93"; g.font = "400 22px " + APP; g.textAlign = "right"; g.fillText(c.time, W - 54, mid - 22); g.textAlign = "left";
+      g.strokeStyle = "rgba(235,235,245,0.28)"; g.lineWidth = 3; g.lineCap = "round";                  // chevron
+      g.beginPath(); g.moveTo(W - 42, mid - 9); g.lineTo(W - 32, mid); g.lineTo(W - 42, mid + 9); g.stroke();
+      g.strokeStyle = "rgba(255,255,255,0.07)"; g.lineWidth = 1; g.beginPath(); g.moveTo(112, cy + rowH); g.lineTo(W, cy + rowH); g.stroke();
       cy += rowH;
+    }
+
+    // ---- ONE notification banner, sliding down over the very top ----
+    if (activeNotif) {
+      const age = idle - activeNotif.t0;
+      if (age >= 0 && age < BANNER_LIFE) {
+        let a = 1, hidden = 0;                                          // hidden 0 = down/visible, 1 = tucked up off-screen
+        if (age < BANNER_IN) { const t = smooth(0, 1, age / BANNER_IN); hidden = 1 - t; a = t; }
+        else if (age > BANNER_IN + BANNER_HOLD) { const t = smooth(0, 1, (age - BANNER_IN - BANNER_HOLD) / BANNER_OUT); hidden = t; a = 1 - t; }
+        const bx = 18, bw = W - 36, bh = 150, byRest = 20, by = byRest - hidden * (bh + byRest + 18);
+        g.globalAlpha = clamp(a, 0, 1);
+        g.fillStyle = "rgba(44,44,48,0.97)"; _rr(g, bx, by, bw, bh, 34); g.fill();
+        g.fillStyle = activeNotif.color; _rr(g, bx + 22, by + 30, 66, 66, 16); g.fill();
+        g.fillStyle = "#f5f5f7"; g.font = "600 27px " + APP; g.fillText(_clip(g, activeNotif.title, bw - 150), bx + 108, by + 52);
+        g.fillStyle = "#c7c7cc"; g.font = "400 25px " + APP; g.fillText(_clip(g, activeNotif.sub, bw - 128), bx + 108, by + 95);
+        g.fillStyle = "#9a9aa0"; g.font = "400 22px " + APP; g.textAlign = "right"; g.fillText("now", bx + bw - 24, by + 46); g.textAlign = "left";
+        g.globalAlpha = 1;
+      }
     }
   }
   // a contact's launch point: its avatar ON the 3-D screen, in world space
@@ -652,11 +859,11 @@ function init() {
   function initPhone() {
     wpPromptEl = $("#wpPrompt"); wpCaptionEl = $("#wpCaption");
     buildPhone3D();
-    startFlood();
     model.traverse((o) => {
       if (!o.isMesh) return;
       const nm = o.name || "";
       if (nm.indexOf("HUB_") === 0 || nm === "BASIN_SWITCH") { mainHub.push(o); return; }
+      if (o.userData.adjuster) { mainHub.push(o); return; }   // the clasp tails are knotted into the hub — they hide/reveal WITH it (else they float during the phone story)
       let node = NaN;
       if (nm.indexOf("PLATFORM") === 0) { node = nm === "PLATFORM" ? 0 : parseInt(nm.slice(8), 10); if (!isNaN(node)) { mainPlat[node] = o; mainPlatBase[node] = o.position.clone(); } }
       else if (nm.indexOf("FB_CAP") === 0) node = nm === "FB_CAP" ? 0 : parseInt(nm.slice(6), 10);
@@ -668,27 +875,31 @@ function init() {
 
   // THE NOISE — while the phone is prominent, keep dropping notifications into the top and flooding the chats'
   // unread counts (everyone reaching out), buzzing the phone with each. Winds down as the phone is knocked away.
-  function startFlood() {
-    clearTimeout(floodTimer);
-    const tick = () => {
-      const on = ready && inView && phLast < 0.86;
-      if (on) {
-        const m = FLOOD_MSGS[floodN++ % FLOOD_MSGS.length];
-        phoneNotifs.unshift({ title: m[0], sub: m[1], color: m[2], t0: idle });
-        if (phoneNotifs.length > 6) phoneNotifs.length = 6;
-        for (let k = 0; k < 2; k++) { const c = phoneChats[(floodN * 7 + k * 3) % phoneChats.length]; c.n += 1 + ((floodN + k) % 5); }   // messages flood INTO each chat
-        phoneBuzzT = idle;
-        try { if (navigator.vibrate && phLast > 0.0005) navigator.vibrate(15); } catch (e) {}
-      }
-      floodTimer = setTimeout(tick, on ? 620 + Math.random() * 260 : 460);
-    };
-    floodTimer = setTimeout(tick, 380);
+  // THE NOISE, on the SAME `idle` clock as the banner animation (a real-ms timer drifts vs. idle at high refresh):
+  // once the current banner has lived its full slide-in→hold→slide-out + a short gap, drop exactly ONE more.
+  function floodStep() {
+    if (!(ready && inView && phLast < 0.86)) return;   // wind down as the phone is knocked away / off-screen
+    if (idle < nextNotifAt) return;
+    const m = FLOOD_MSGS[floodN++ % FLOOD_MSGS.length];
+    activeNotif = { title: m[0], sub: m[1], color: m[2], t0: idle };                // exactly ONE banner drops in
+    notifDing();                                                                    // …with the iPhone notification ding
+    phoneBuzzT = idle;                                                              // …and it buzzes the phone
+    try { if (navigator.vibrate && phLast > 0.0005) navigator.vibrate([0, 16, 40, 12]); } catch (e) {}
+    // the list keeps receiving too: age the last "now", then bump a fresh chat to the top with a new preview
+    for (const c of phoneChats) if (c.time === "now") c.time = "1m ago";
+    const idx = 1 + (floodN * 7) % Math.max(1, phoneChats.length - 1);
+    const c = phoneChats.splice(idx, 1)[0];
+    c.pre = CHAT_PINGS[(floodN * 5) % CHAT_PINGS.length]; c.time = "now"; c.unread = true;
+    phoneChats.unshift(c);
+    if (phoneChats[3]) phoneChats[3].unread = true;                                 // a second row lights up unread
+    nextNotifAt = idle + BANNER_LIFE + BANNER_GAP + Math.random() * 0.12;           // schedule the next in idle units (tight → rapid flood)
   }
 
   // drives the caption/invitation, the 3-D phone, and the piece-by-piece bead reveal; a pure function of phP so
   // scrolling back re-hides. Each contact CONVERTS at the phone: it pops OUT of the live screen as its real CAD bead.
   function updatePhone(phP) {
     phLast = phP;
+    floodStep();                                                            // idle-clocked: drop the next banner when the current one has run its course
     if (wpPromptEl) wpPromptEl.style.opacity = String(clamp(1 - smooth(0.015, 0.09, phP), 0, 1));   // the invitation fades the instant they start
     if (wpCaptionEl) wpCaptionEl.style.opacity = String(clamp(smooth(0.5, 0.62, phP) * (1 - smooth(0.9, 1.0, phP)), 0, 1));   // the payoff line rises as the five convert, gone as the phone leaves
     if (!phoneRig) return;
@@ -702,7 +913,7 @@ function init() {
     for (let i = 0; i < n; i++) {
       const th = A + (B - A) * (i + 0.65) / n;
       const dep = phP >= th, node = PHONE_NODE[i];
-      if (dep && !phoneDepT[i]) { phoneDepT[i] = idle; phoneBuzzT = idle; }       // the pop-out gives the phone a kick
+      if (dep && !phoneDepT[i]) { phoneDepT[i] = idle; phoneBuzzT = idle; popSound(GATHER_NOTE[i % GATHER_NOTE.length]); }   // the pop-out kicks the phone + sounds a rising note
       if (!dep) { phoneDepT[i] = 0; setNode(node, false, true); continue; }
       const t = phP >= 0.999 ? 1 : clamp((idle - phoneDepT[i]) / PHONE_FLY, 0, 1);
       if (t >= 1) { setNode(node, true, true); continue; }
@@ -754,7 +965,7 @@ function init() {
     // YOU (bracelet 0) is the big central stage. The other five wait small + dim in a ring BEHIND it; only the one
     // you REACH steps forward (glowing + buzzing) to receive, then recedes back into the background.
     const RN = GATHER_N - 1;
-    const vStretch = ((canvas.clientWidth || 1) < (canvas.clientHeight || 1)) ? GATHER_VSTRETCH : 1;   // tall ellipse on portrait
+    const portrait = camera.aspect < 1;   // mobile → receivers top/bottom; desktop → receivers ring AROUND YOU (sides)
     camera.getWorldDirection(_gfwd);                                                    // into the scene (away from camera) — depth axis
     const eIn = smooth(0.06, 0.7, g), entr = eIn * eIn * (3 - 2 * eIn);                 // the whole stage blooms in as g→1
     const breathe = matGlow.emissiveIntensity;
@@ -770,21 +981,27 @@ function init() {
       const pres = (i === 0) ? 1 : presenceEnv(idle - gCalled[i]);   // 0 = gone, 1 = up-front receiving
       inst.pivot.visible = pres > 0.004;
       if (!inst.pivot.visible) { inst._shakeNode = -1; continue; }   // fully faded out → skip (nothing to draw)
-      for (const m of inst.mats) m.opacity = pres;                   // the whole bracelet fades with its step-forward
-      if (inst.basinMat) inst.basinMat.opacity = smooth(0.8, 0.98, pres);   // the gold button materialises only once the shell is near-opaque, so it never ghosts through mid-fade
-      let U, R, F, dim, pivScale;
+      for (const m of inst.mats) m.opacity = pres;                   // EVERY part crosses the same hashed-alpha coverage together → the bracelet dissolves in/out as ONE unit
+      if (inst.basinMat) inst.basinMat.opacity = pres;               // the button (not in `mats`) fades on the same uniform curve
+      // RECEIVER PARITY: lift ONLY a summoned receiver's bead bodies with a faint warm self-glow (× presence), so DAD
+      // reads as bright as YOU even sitting low in the dark. YOU (i===0) is exempt — it already basks in the warm pool.
+      if (inst.bodyMat) { inst.bodyMat.emissive.setHex(0x3a2a12); inst.bodyMat.emissiveIntensity = (i === 0 ? 0 : GATHER_RECV_LIFT) * pres; }
+      let U, R, F, pivScale;
       if (i === 0) {
-        U = 0; R = 0; F = 0; dim = 1;                                                    // YOU stays dead-centre + bright
+        U = 0; R = 0; F = 0;                                                             // YOU stays dead-centre + bright
         pivScale = lerp(1, GATHER_YOU_SCALE, entr);                                       // SEAMLESS hand-off (#4): enters at the hero bracelet's EXACT size (1), eases to YOU's cluster size — no pop-in
       } else {
-        const th = (i - 1) * (TAU / RN) + Math.PI / RN;                                  // its resting slot around YOU
-        const bgU = Math.cos(th) * GATHER_BG_RING - 0.15, bgR = Math.sin(th) * GATHER_BG_RING;   // it fades in FROM here as it approaches
-        const side = bgU >= 0 ? 1 : -1;                                                  // came from the upper half → returns on TOP; lower half → BOTTOM (#3)
-        U = lerp(bgU, side * GATHER_RECV_UP, pres);
-        R = lerp(bgR, 0, pres);                                                          // slides in to sit directly above/below YOU
-        F = lerp(GATHER_BG_FWD, -GATHER_RECV_FWD, pres);                                 // starts behind YOU; ends level, up front
-        dim = lerp(GATHER_BG_DIM, 1, pres);
-        pivScale = lerp(GATHER_BG_SCALE, GATHER_RECV_SCALE, pres) * entr;
+        const th = (i - 1) * (TAU / RN) + Math.PI / RN;                                  // its fixed slot on the ring
+        // WHERE it settles: PORTRAIT → directly above/below YOU (narrow screen); LANDSCAPE → around YOU, out to the
+        // SIDES at its own ring angle. Its slot never changes — it's simply revealed there.
+        let tU, tR;
+        if (portrait) { tU = (Math.cos(th) >= 0 ? 1 : -1) * GATHER_RECV_UP; tR = 0; }
+        else { tU = Math.cos(th) * GATHER_RECV_V; tR = Math.sin(th) * GATHER_RECV_H; }
+        // SUBTLE reveal — the bracelet was ALWAYS there; pressing just reveals it. NO travel: it holds its slot and
+        // fades in (opacity == pres), with only a whisper of scale + a hair of depth. Never dragged in from afar.
+        U = tU; R = tR;
+        F = lerp(0.16, -GATHER_RECV_FWD, pres);                                          // a hair back → settles level
+        pivScale = lerp(GATHER_RECV_SCALE * 0.93, GATHER_RECV_SCALE, pres) * entr;
       }
       const amp = GATHER_FLOAT * modelR * entr;                                          // barely-there float
       const uu = U * modelR * entr + Math.sin(idle * GATHER_FSPEED[i] + GATHER_FPHASE[i]) * amp;
@@ -810,17 +1027,62 @@ function init() {
       else if (gSnapping[i]) { const d = angDelta(gSpin[i], gTarget[i]); gSpin[i] += d * 0.2; if (Math.abs(d) < 0.003) { gSpin[i] = gTarget[i]; gSnapping[i] = false; } }
       else if (Math.abs(gVel[i]) > 0.0004) { gSpin[i] += gVel[i]; gVel[i] *= 0.92; if (Math.abs(gVel[i]) < 0.006) { gVel[i] = 0; gSnapTo(i); } }
       inst.spin.rotation.y = gSpin[i];
+      // GRAVITY-DROP REBOUND (YOU only, on landing): every bead + the hub + the loose thread settles with its OWN
+      // damped spring, staggered so they rebound slightly OUT OF SYNC like real loose beads. Weighty & subtle — small
+      // amplitudes, quick decay, one main compression. World-up is mapped into the bracelet's spun local frame.
+      if (i === 0) {
+        const itau = (gLast - DROP_FALL) / (1 - DROP_FALL);
+        if (gLast < 0.985 && itau > 0) {                                        // IMPACT: unsynchronized rebound + a real thread whip
+          inst.mc.updateWorldMatrix(true, false);
+          inst.mc.getWorldQuaternion(_dropQ); _dropQ.invert();
+          _dropUp.set(0, 1, 0).applyQuaternion(_dropQ);                         // world-up in the bracelet's spun local frame
+          const A = DROP_IMPACT * modelR;                                       // itau: 0 at impact → 1 by the settle; one compression + rebound, then rest
+          for (const node in inst.beadMeshes) {                                  // beads: staggered freq + phase per node → they settle OUT OF SYNC
+            const n = +node, off = -A * 0.5 * Math.exp(-3.2 * itau) * Math.sin((6.5 + (n % 4) * 0.8) * itau + n * 0.7);
+            for (const bm of inst.beadMeshes[node]) bm.mesh.position.copy(bm.base).addScaledVector(_dropUp, off);
+          }
+          const hubOff = -A * 0.55 * Math.exp(-2.8 * itau) * Math.sin(5.0 * itau + 0.4);   // hub: heavier, slower, its own phase
+          for (const bm of inst.hubMeshes) bm.mesh.position.copy(bm.base).addScaledVector(_dropUp, hubOff);
+          // THREAD WHIP: the clasp rope genuinely BENDS — a travelling wave runs down the tail (root barely moves, the
+          // free tip whips DOWN + curls, and LASHES sideways). Vertices displace along world-up (whip) + a lateral axis
+          // (lash), each weighted toward the free tip and phase-shifted so the tail curls in an arc, not a straight kick.
+          _dropSide.set(1, 0, 0).applyQuaternion(_dropQ);
+          const WA = DROP_WHIP * modelR, LA = DROP_LASH * modelR;
+          const wamp = (t) => -WA * Math.pow(t, 1.7) * Math.exp(-1.5 * itau) * Math.sin(6.2 * itau + 2.7 * t);
+          const lamp = (t) => LA * Math.pow(t, 2.0) * Math.exp(-1.3 * itau) * Math.sin(4.7 * itau + 3.4 * t + 0.9);   // lateral lash — lags the whip, curls to the side
+          for (const st of inst.threadStrands) {
+            const a = st.geo.attributes.position.array, base = st.base, tA = st.tArr;
+            for (let v = 0, nn = tA.length; v < nn; v++) { const t = tA[v], wo = wamp(t), lo = lamp(t), k = v * 3;
+              a[k] = base[k] + _dropUp.x * wo + _dropSide.x * lo; a[k + 1] = base[k + 1] + _dropUp.y * wo + _dropSide.y * lo; a[k + 2] = base[k + 2] + _dropUp.z * wo + _dropSide.z * lo; }
+            st.geo.attributes.position.needsUpdate = true;
+          }
+          for (const bd of inst.threadBeads) bd.mesh.position.copy(bd.base).addScaledVector(_dropUp, wamp(bd.t)).addScaledVector(_dropSide, lamp(bd.t));
+          inst._whipped = true;
+        } else {                                                                // falling (rigid) OR dwell (rest): beads + hub to base; un-bend the rope ONCE
+          if (gLast < 0.985) for (const node in inst.beadMeshes) for (const bm of inst.beadMeshes[node]) bm.mesh.position.copy(bm.base);
+          for (const bm of inst.hubMeshes) bm.mesh.position.copy(bm.base);
+          if (inst._whipped) {
+            for (const st of inst.threadStrands) { st.geo.attributes.position.array.set(st.base); st.geo.attributes.position.needsUpdate = true; }
+            for (const bd of inst.threadBeads) bd.mesh.position.copy(bd.base);
+            inst._whipped = false;
+          }
+        }
+      }
       // which of THIS bracelet's beads is a live bond end (their bead on YOUR wrist, or your bead on THEIRS)?
       const connNode = gConn ? (i === 0 ? gConn.sNode : (i === gConn.p ? gConn.rNode : -1)) : -1;
       const connHue = gConn ? (i === 0 ? gConn.sHue : gConn.rHue) : 0;
-      // glow: lit beads breathe; a ping flares the reached bead; a live bond keeps BOTH ends glowing; bg is DIMMED
+      // glow: lit beads breathe; a ping flares the reached bead; a live bond keeps BOTH ends glowing. EVERY glow is
+      // scaled by `pres` so it dims out in lock-step with the shell's opacity — the bracelet fades as ONE unit and no
+      // lit bead (or the platform behind it) ever lingers bright / blooms through a half-faded shell.
       for (const node in inst.beadMat) {
         const m = inst.beadMat[node];
         const n = +node;
-        if (bb && n === bb.node) { m.emissive.setHex(bb.hue); m.emissiveIntensity = (m.userData.lit ? breathe : 0) + 7 * pl; }
-        else if (n === connNode) { m.emissive.setHex(connHue); m.emissiveIntensity = (m.userData.lit ? breathe : 0) + 3.4 * gConn.pres; }   // the bond: steady glow while together
-        else if (m.userData.lit) { m.emissive.setHex(0xffb247); m.emissiveIntensity = breathe * (1 - 0.82 * pl) * dim; }
-        else { m.emissiveIntensity = 0; }
+        let ei;
+        if (bb && n === bb.node) { m.emissive.setHex(bb.hue); ei = (m.userData.lit ? breathe : 0) + 7 * pl; }
+        else if (n === connNode) { m.emissive.setHex(connHue); ei = (m.userData.lit ? breathe : 0) + 3.4 * gConn.pres; }   // the bond: steady glow while together
+        else if (m.userData.lit) { m.emissive.setHex(0xffb247); ei = breathe * (1 - 0.82 * pl); }
+        else { ei = 0; }
+        m.emissiveIntensity = ei * pres;
       }
     }
     // point the coach at the ACTUAL front bead of the YOU bracelet (only while it's asking) — a halo lands right on it
@@ -872,7 +1134,7 @@ function init() {
     symbols: { k: "Adinkra",              t: "Every symbol means something.", l: "Each bead is engraved with an Adinkra symbol — endurance, return, the bonds that hold people together." },
     hub:     { k: "The core",             t: "Everything, quietly inside.",   l: "The battery, the sound, the mic, the brains — sealed into a hub small enough to forget you're wearing." },
   };
-  function overlay(p, rawP) {            // p == anim (de-dwelled); rawP == raw scroll (keeps advancing through dwells)
+  function overlay(p, rawP, gd = 0) {    // p == anim (de-dwelled); rawP == raw scroll (keeps advancing through dwells); gd == drop progress
     // Fade the intro on RAW scroll, not anim. The bead explodes at its natural front (early), and anim
     // FREEZES during that dwell — so an anim-based fade would leave the intro frozen on top of the
     // explosion. Raw scroll keeps moving, so the copy clears before the bead opens.
@@ -880,7 +1142,7 @@ function init() {
     if (intro) intro.style.opacity = introOp;
     if (cue) cue.style.opacity = introOp;
     section.style.setProperty("--intro-op", String(introOp));   // light-mode hero veil fades WITH the intro copy
-    const outOp = smooth(0.9, 0.99, p);
+    const outOp = smooth(0.9, 0.99, p) * (1 - smooth(0.04, 0.34, gd));   // "Five people" rises at the settle, then fades as the drop plays
     // the touch-demo takes over the outro fade once you scroll into it (suppressOutro); default off = unchanged
     if (outro && !(window.__hero && window.__hero._suppressOutro)) { outro.style.opacity = outOp; outro.style.pointerEvents = outOp > 0.5 ? "auto" : "none"; }
     if (bar) bar.style.transform = `scaleX(${p})`;
@@ -921,7 +1183,8 @@ function init() {
     echoCanvas.width = Math.round(w * dpr); echoCanvas.height = Math.round(h * dpr);
   }
 
-  const composer = new EffectComposer(renderer);
+  // MSAA render target so alphaToCoverage (the one-unit bracelet fade) resolves to a SMOOTH dissolve, not a dither.
+  const composer = new EffectComposer(renderer, new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType, samples: coarse ? 4 : 8 }));   // HalfFloat = HDR, matching the default composer live uses → ACES desaturates the bright emissive to white (not clamped amber); samples = MSAA for the alphaToCoverage fade
   composer.addPass(new RenderPass(scene, camera));
   const bloom = new UnrealBloomPass(new THREE.Vector2(1, 1), 0.22, 0.7, 0.86); // soft gold glints
   composer.addPass(bloom);
@@ -933,8 +1196,23 @@ function init() {
     const phP = Math.min(1, rawP / PHONE_FRAC);
     phoneShiftK = phoneRig ? clamp(1 - smooth(0.82, 0.98, phP), 0, 1) : 0;   // hold the bracelet clear of the phone, recentring as it fades
     const p = clamp((rawP - PHONE_FRAC) / (HERO_FRAC - PHONE_FRAC), 0, 1);
-    const gather = Math.max(0, Math.min(1, (rawP - HERO_FRAC) / (GATHER_END - HERO_FRAC)));   // reaches 1 before the end → an interactive dwell
-    gLast = gather;
+    const gather = Math.max(0, Math.min(1, (rawP - HERO_FRAC) / (GATHER_END - HERO_FRAC)));   // scroll into the gather zone — now only ARMS/triggers the drop
+    // TIME-BASED DROP: a tiny scroll past "Five people" TRIGGERS the fall, which then plays out on its OWN clock (idle)
+    // as one sudden motion — instead of the fall being scroll-scrubbed frame-by-frame (which read as a "frozen" drop).
+    // BIDIRECTIONAL TIME-BASED DROP: a tiny scroll past the caption sets the target (past → 1 fall, back → 0 rise); gd
+    // eases there on its OWN clock, so the fall plays as one sudden motion AND reverse-scroll smoothly REWINDS it.
+    const dTgt = gather > DROP_TRIGGER ? 1 : 0;
+    const ddt = Math.min(0.1, Math.max(0, idle - _dropPrevIdle)); _dropPrevIdle = idle;        // per-frame idle delta (clamped for tab-switch safety)
+    if (dropGd < dTgt) dropGd = Math.min(1, dropGd + ddt / DROP_TIME);
+    else if (dropGd > dTgt) dropGd = Math.max(0, dropGd - ddt / DROP_REV);
+    const gd = dropGd;                                                                         // 0 = up on the hero table → 1 = fully landed
+    const fg = Math.max(0, (gd - DROP_HOLD_F) / (1 - DROP_HOLD_F));                             // fall+bounce progress (stays 0 through the hold)
+    gLast = fg;
+    if (fg > _prevFg) {                                                                         // forward drop → whoosh as it lets go, thud when it lands
+      if (_prevFg < 0.02 && fg >= 0.02) dropWhoosh();
+      if (_prevFg < DROP_FALL && fg >= DROP_FALL) dropThud();
+    } else if (fg < _prevFg && _prevFg >= 0.02 && fg < 0.02) dropRise();                        // reverse-scroll → a soft lift whoosh
+    _prevFg = fg;
     // each reveal "steals" a dwell of scroll where spin + threading FREEZE while it opens & reassembles. Walk the
     // dwells (sorted by pE) to map raw scroll p -> animation progress + each reveal's local explode phase e.
     let anim = p;
@@ -968,8 +1246,21 @@ function init() {
     if (braidB) { const n = Math.floor(braidTotal * f); braidB.geometry.setDrawRange(0, n); braidC.geometry.setDrawRange(0, n); }
     matGlow.emissiveIntensity = 2.0 + 0.45 * (0.5 + 0.5 * Math.sin(idle * 0.55));   // LED breathing, toned down (2.0..2.45)
     matLED.emissiveIntensity = 3.4 + 0.7 * (0.5 + 0.5 * Math.sin(idle * 0.6));      // the exploded bead's small PCB LED breathes (3.4..4.1)
-    placeCamera(settle, gather);
-    for (const rv of reveals) updateExplode(rv, rv._e);
+    // GRAVITY DROP: the cluster free-falls from the hero "table" (y=0) to the how-it-works one (y=-DROP_DIST), then one
+    // weighty rebound. The camera follows DOWN but LAGS, so the fall reads on screen before it settles centred.
+    let dFall, dBounce = 0;
+    if (fg < DROP_FALL) { const t = fg / DROP_FALL; dFall = t * t; }               // smooth gravity accel (t²) — a fluid fall, not an abrupt snap
+    else { dFall = 1; const s = (fg - DROP_FALL) / (1 - DROP_FALL); dBounce = DROP_BOUNCE * 4 * s * (1 - s); }   // one arch rebound
+    dropClusterY = (-DROP_DIST * dFall + dBounce) * modelR;
+    const camY = -DROP_DIST * smooth(0, DROP_CAMLAG, fg) * modelR;
+    if (gatherGroup) gatherGroup.position.set(0, dropClusterY, 0);
+    placeCamera(settle, fg, camY);
+    threadAmbient(smooth(0.04, 0.16, anim) * (1 - smooth(0.86, 1.0, anim)) * (1 - Math.min(1, fg * 3)));   // slight ambient pad while the bracelet threads (off during phone / drop)
+    for (const rv of reveals) {
+      if (rv._e > 0.06 && (rv._prevE || 0) <= 0.06) explodeSound();   // the CAD assembly opens → a slight airy reveal whoosh
+      rv._prevE = rv._e;
+      updateExplode(rv, rv._e);
+    }
     updateHubLabels(hubAsm ? hubAsm._e : 0);
     updateBeadLabels(beadAsm ? beadAsm._e : 0);
     updateBeadWords(anim);
@@ -977,9 +1268,9 @@ function init() {
     // bracelet plane — but the cord and every bead's bus holes lie in one plane, so the hub must
     // stay in that plane too (exactly where it's threaded). It keeps its natural threaded
     // orientation through the settle, coplanar with the beads, so the cord stays in the bus holes.
-    overlay(anim, Math.min(1, rawP / HERO_FRAC));   // intro/cue fade on RAW scroll (early in the phone story), as before
+    overlay(anim, Math.min(1, rawP / HERO_FRAC), fg);   // intro/cue fade on RAW scroll; the "Five people" outro fades as the FALL starts (held through DROP_HOLD_F)
     updatePhone(phP);
-    updateGather(gather);
+    updateGather(fg);
   }
 
   let raf = 0;
@@ -999,6 +1290,9 @@ function init() {
     get ready() { return ready; },
   };
 
+  // wake the AudioContext on the first user gesture so the scroll-triggered drop SFX (and bead buzzes) are allowed to sound
+  const _primeAudio = () => { audioCtx(); ["pointerdown", "touchstart", "keydown", "wheel"].forEach((ev) => window.removeEventListener(ev, _primeAudio)); };
+  ["pointerdown", "touchstart", "keydown", "wheel"].forEach((ev) => window.addEventListener(ev, _primeAudio, { passive: true }));
   window.addEventListener("scroll", onScroll, { passive: true });
   window.addEventListener("resize", resize);
   if (window.visualViewport) window.visualViewport.addEventListener("resize", resize);   // mobile URL-bar show/hide resizes the canvas box
@@ -1170,6 +1464,54 @@ function init() {
     cordStart.position.copy(curve.getPointAt(0)); model.add(cordStart);   // cap the hub end too
   }
   window.__rebuild = (R) => { if (R !== undefined) CORD_RAD = R; buildCord(); };
+
+  // ---- adjustable macramé closure: the real Shamballa sliding clasp — two cord tails leaving the BACK of the hub,
+  //      each cinched by a wrapped sennit knot, then a smoky-quartz bead, ending in a small knot bead. Built INTO
+  //      `model` (children) so it clones into the gather cluster and rides every spin/settle like the rest. ----
+  // smoky-quartz accent bead: a SUBTLE dark-amber frosted bead. Kept dim (barely any emissive) + small so it reads as
+  // a quiet detail on the tail, not a glowing orb the bloom pass turns into a distracting halo.
+  const matQuartz = new THREE.MeshStandardMaterial({ color: 0x7c5f34, roughness: 0.44, metalness: 0.05, emissive: 0x140d04, emissiveIntensity: 0.18, envMapIntensity: 0.75 });
+  let adjusters = null;
+  function buildAdjusters() {
+    if (adjusters) { model.remove(adjusters); adjusters = null; }
+    adjusters = new THREE.Group(); adjusters.name = "ADJUSTERS";
+    const V = (x, y, z) => new THREE.Vector3(x, y, z);
+    // a 3-strand twisted rope along `curve` — reads as a braided macramé cord (a smooth tube reads as plastic).
+    // Strands are offset tubes revolving around the centreline via the curve's own Frenet frames.
+    const rope = (curve, segs, strandR, offR, turns) => {
+      const g = new THREE.Group();
+      const frames = curve.computeFrenetFrames(segs, false);
+      for (let s = 0; s < 3; s++) {
+        const phase = s * TAU / 3, pts = [];
+        for (let i = 0; i <= segs; i++) {
+          const t = i / segs, ang = phase + t * turns * TAU;
+          const p = curve.getPointAt(t);
+          pts.push(p.addScaledVector(frames.normals[i], Math.cos(ang) * offR).addScaledVector(frames.binormals[i], Math.sin(ang) * offR));
+        }
+        g.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts, false, "catmullrom"), segs, strandR, 8, false), matCord));
+      }
+      g.traverse((o) => { if (o.isMesh) { o.castShadow = o.receiveShadow = true; } });
+      return g;
+    };
+    // Each tail is the SAME cord continuing: it threads out of the hub right BELOW the main bus cord, at the SAME Z
+    // (in line), embedded through the side wall like the main cord, then hangs straight down (+Y = world-down),
+    // drifting only slightly outward to clear the hub. A dark end bead caps the free tip.
+    for (const sign of [-1, 1]) {
+      const main = (sign < 0 ? cordEndL : cordEndR);   // this side's main bus-cord hub entry
+      const z0 = main.z;                               // IN LINE with the main cord in Z
+      const embed = V(sign * 1.12, 0.30, z0);          // starts INSIDE the hub (occluded) — threaded through the wall
+      const mouth = V(sign * 1.50, 0.36, z0);          // emerges from the side wall, right below the main cord
+      const p1 = V(sign * 1.70, 0.82, z0);             // hangs down, drifting a touch outward to clear the hub
+      const pq = V(sign * 1.86, 1.30, z0);             // smoky-quartz slider
+      const pe = V(sign * 1.95, 1.72, z0);             // end knot bead at the tip
+      const curve = new THREE.CatmullRomCurve3([embed, mouth, p1, pq, pe], false, "centripetal");
+      adjusters.add(rope(curve, 100, 0.062, 0.055, 4));
+      const q = new THREE.Mesh(new THREE.SphereGeometry(0.22, 20, 16), matQuartz); q.position.copy(pq); q.castShadow = true; adjusters.add(q);
+      const e = new THREE.Mesh(new THREE.SphereGeometry(0.13, 14, 10), matBlack); e.position.copy(pe); e.castShadow = e.receiveShadow = true; adjusters.add(e);
+    }
+    adjusters.traverse((o) => { if (o.isMesh) o.userData.adjuster = true; });   // initPhone folds these into mainHub → hidden until the hub reveals
+    model.add(adjusters);
+  }
 
   // ---- second cord: the Shamballa macramé braid (two working cords B & C) wrapping the main cord,
   //      weaving over the top / under the bottom belt grooves of the beads. Traced in sync with the main cord. ----
@@ -1613,6 +1955,7 @@ function init() {
     });
     buildCord();
     buildBraid();
+    buildAdjusters();   // the sliding macramé clasp tails (part of `model` → clones into the gather cluster)
     initPhone();        // collect the main model's bead/hub meshes BEFORE the first render, so frame 1 starts hidden
     build();
     setupExplode();

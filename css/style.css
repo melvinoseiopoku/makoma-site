@@ -139,7 +139,7 @@ h1,h2,h3{ font-family:var(--serif); font-weight:500; line-height:1.04; letter-sp
 }
 
 /* ============ HERO — scroll-driven 3D ============ */
-.hero3d{ position:relative; height:1050vh; background:var(--black); }   /* taller: the phone story now opens the hero */
+.hero3d{ position:relative; height:850vh; background:var(--black); }   /* phone story + threading + a SHORT interactive dwell (the drop is time-based now, so the gather needs little scroll) */
 .hero3d.no3d{ height:100svh; }
 .hero3d-sticky{ position:sticky; top:0; height:100svh; height:100dvh; overflow:hidden;
   /* a focused warm POOL behind the bracelet + a darker vignette frame, so the bracelet pops off the page
