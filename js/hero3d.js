@@ -1927,26 +1927,9 @@ function init() {
     }
   }
 
-  window.addEventListener("keydown", (e) => {            // q/a belt · w/s window · e/d smooth-core · r/f sennit-gap · b=toggle bead-wrap
-    const k = e.key; let h = true;
-    if (k === "1") BRAID_R = Math.max(0.1, BRAID_R - 0.03);
-    else if (k === "2") BRAID_R += 0.03;
-    else if (k === "3") BRAID_FREQ = Math.max(2, BRAID_FREQ - 1);
-    else if (k === "4") BRAID_FREQ += 1;
-    else if (k === "5") BRAID_RAD = Math.max(0.02, BRAID_RAD - 0.008);
-    else if (k === "6") BRAID_RAD += 0.008;
-    else if (k === "7") BRAID_OVER = Math.max(0.14, BRAID_OVER - 0.02);
-    else if (k === "8") BRAID_OVER += 0.02;
-    else if (k === "g") BEAD_RGROW += 0.01;          // grow wrap radius (sit prouder out of the groove)
-    else if (k === "f") BEAD_RGROW -= 0.01;
-    else if (k === "e") BEAD_BLEND = Math.min(0.9, BEAD_BLEND + 0.03);   // wider arc->sennit blend near the side
-    else if (k === "d") BEAD_BLEND = Math.max(0.05, BEAD_BLEND - 0.03);
-    else if (k === "b") BEAD_ON = BEAD_ON ? 0 : 1;   // toggle the groove wrap
-    else h = false;
-    if (!h) return; e.preventDefault(); buildBraid();
-    if (ready) { update(progress); composer.render(); }
-    console.log(`[braid] R ${BRAID_R.toFixed(2)} freq ${BRAID_FREQ} rad ${BRAID_RAD.toFixed(3)} over ${BRAID_OVER.toFixed(2)} rgrow ${BEAD_RGROW.toFixed(2)} blend ${BEAD_BLEND.toFixed(2)} on ${BEAD_ON}`);
-  });
+  // NOTE: a dev-only keydown handler used to live here to tune the braid params live (keys 1-8/g/f/e/d/b).
+  // It called e.preventDefault() on those keys at the window level, which swallowed them everywhere on the
+  // page — including the waitlist email field (you couldn't type an 'e', 'd', 'b', etc.). Removed for good.
 
   let model = null;
   if (loaderEl) loaderEl.classList.remove("hide");
