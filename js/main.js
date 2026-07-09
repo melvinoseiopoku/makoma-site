@@ -369,7 +369,7 @@
 
   function setupForm() {
     const form = $("#joinForm"), status = $("#joinStatus"),
-          email = $("#joinEmail"), submit = $("#joinSubmit");
+          email = $("#joinEmail"), submit = $("#joinSubmit"), sugg = $("#joinSuggestion");
     if (!form) return;
 
     // intent toggle (For me / As a gift) — keep the visual pill in sync with the radio
@@ -394,20 +394,23 @@
         return;
       }
       const giving = intent() === "gift";
+      const sug = ((sugg && sugg.value) || "").trim();
 
       // always keep a local copy so a submission is never silently lost
       try {
         const k = "makoma_waitlist";
         const list = JSON.parse(localStorage.getItem(k) || "[]");
-        list.push({ email: v, intent: intent(), at: new Date().toISOString() });
+        list.push({ email: v, intent: intent(), suggestion: sug, at: new Date().toISOString() });
         localStorage.setItem(k, JSON.stringify(list));
       } catch (_) {}
 
       const done = () => {
-        say(giving
+        say(sug
+          ? "You’re in — and thank you, I’ve read your note. Founding pricing and ship dates go to the circle first."
+          : giving
           ? "Beautiful — you’re in. We’ll be in touch about making it a gift; founding pricing and dates go to the circle first."
           : "You’re in. Founding pricing and ship dates go to the circle first — watch your inbox.");
-        email.value = "";
+        email.value = ""; if (sugg) sugg.value = "";
       };
 
       if (!JOIN_ENDPOINT) { done(); return; } // placeholder mode — no backend wired yet
@@ -425,12 +428,14 @@
           params.append("embed", "1");
           params.append("tag", giving ? "gift" : "self");   // segment the list in Buttondown
           params.append("metadata__intent", intent());
+          if (sug) params.append("metadata__suggestion", sug);   // design feedback → subscriber metadata in Buttondown
           await fetch(JOIN_ENDPOINT, { method: "POST", mode: "no-cors", body: params });
           done();
         } else {
           const body = new FormData();
           body.append("email", v);
           body.append("intent", intent());
+          if (sug) body.append("suggestion", sug);
           const res = await fetch(JOIN_ENDPOINT, { method: "POST", body, headers: { Accept: "application/json" } });
           if (!res.ok) throw new Error("HTTP " + res.status);
           done();

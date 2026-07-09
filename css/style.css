@@ -649,6 +649,14 @@ section{ position:relative; z-index:2; }
 .join-note{ color:var(--ink-mute); font-size:.8rem; }
 .join-note a{ color:var(--gold); border-bottom:1px solid var(--line); }
 .join-note a:hover{ color:var(--gold-bright); }
+.join-suggest{ width:100%; display:flex; flex-direction:column; gap:8px; text-align:left; }
+.join-suggest-label{ color:var(--ink); font-size:.84rem; line-height:1.4; }
+.join-suggest-label span{ color:var(--ink-mute); }
+.join-suggest textarea{ box-sizing:border-box; width:100%; background:var(--panel); border:1px solid var(--line); border-radius:18px;
+  padding:.8em 1.15em; color:var(--ink); font-family:var(--sans); font-size:.9rem; line-height:1.5; resize:vertical; min-height:2.9em; transition:border-color .3s; }
+.join-suggest textarea:focus{ outline:none; border-color:var(--gold); }
+.join-suggest textarea:focus-visible{ outline:2px solid var(--gold-bright); outline-offset:2px; }
+.join-suggest textarea::placeholder{ color:var(--ink-mute); }
 .join-status{ margin-top:18px; color:var(--gold-bright); font-size:.92rem; min-height:1.2em; font-style:italic; font-family:var(--serif); }
 .join-status.is-error{ color:#f0a36b; }
 
