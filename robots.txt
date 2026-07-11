@@ -1,5 +1,4 @@
 User-agent: *
 Allow: /
 
-# ⚠️ Update the domain below once deployed.
-Sitemap: https://melvinoseiopoku.github.io/makoma-site/sitemap.xml
+Sitemap: https://makoma.io/sitemap.xml

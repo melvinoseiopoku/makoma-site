@@ -1,9 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- ⚠️ Replace makoma.app with your real domain once deployed. -->
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://melvinoseiopoku.github.io/makoma-site/</loc>
-    <lastmod>2026-06-18</lastmod>
+    <loc>https://makoma.io/</loc>
+    <lastmod>2026-07-09</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
   </url>
