@@ -658,6 +658,9 @@ section{ position:relative; z-index:2; }
 .join-suggest textarea:focus-visible{ outline:2px solid var(--gold-bright); outline-offset:2px; }
 .join-suggest textarea::placeholder{ color:var(--ink-mute); }
 .join-status{ margin-top:18px; color:var(--gold-bright); font-size:.92rem; min-height:1.2em; font-style:italic; font-family:var(--serif); }
+.join-follow{ margin-top:14px; color:var(--ink-mute); font-size:.86rem; }
+.join-follow a{ color:var(--gold); border-bottom:1px solid var(--line); transition:color .3s; white-space:nowrap; }
+.join-follow a:hover{ color:var(--gold-bright); }
 .join-status.is-error{ color:#f0a36b; }
 
 /* FAQ */
@@ -679,6 +682,9 @@ section{ position:relative; z-index:2; }
 .footer-row{ display:flex; flex-wrap:wrap; gap:14px 30px; align-items:center; justify-content:center; text-align:center; }
 .footer-tag{ font-family:var(--serif); font-style:italic; color:var(--gold-pale); }
 .footer-meta{ color:var(--ink-mute); font-size:.82rem; flex-basis:100%; }
+.footer-ig{ display:inline-flex; align-items:center; gap:7px; color:var(--gold); font-size:.9rem; transition:color .25s; }
+.footer-ig:hover{ color:var(--gold-bright); }
+.footer-ig svg{ display:block; }
 
 /* ============ responsive nav + mobile menu ============ */
 .nav-right{ display:flex; align-items:center; gap:12px; }
