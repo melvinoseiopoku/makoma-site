@@ -177,7 +177,7 @@ function init() {
   let gLast = 0, gDragging = -1, gDownX = 0, gDownY = 0, gDownNode = -1, gMoved = false, gVertScroll = false, gLastX = 0;   // interaction state (gDownNode: the bead under the finger at press; gDownY: radial tap-slop origin; gVertScroll: a vertical gesture handed to the page)
   let gEcho = null, gHoldTimer = null, gHeld = false;                      // Echo (press-and-hold) state
   // ---- opening phone story state ----
-  let wpPromptEl = null, wpCaptionEl = null;                               // the gold scroll invitation + the "Only the few you carry" payoff (DOM overlays; the phone itself is real 3-D)
+  let wpPromptEl = null, wpCaptionEl = null, wpKeepEl = null;              // the gold scroll invitation, the "Only the few you carry" payoff, and the persistent "keep scrolling" cue (DOM overlays; the phone itself is real 3-D)
   const mainBead = {}, mainPlat = {}, mainPlatBase = {};                   // node → [{mesh,base}] / PLATFORM mesh + its base pos, on the MAIN model
   const mainHub = [];                                                      // hub meshes on the main model
   const phoneDepT = [0, 0, 0, 0, 0];                                       // idle-time each contact departed (0 = not departed)
@@ -857,7 +857,7 @@ function init() {
   }
 
   function initPhone() {
-    wpPromptEl = $("#wpPrompt"); wpCaptionEl = $("#wpCaption");
+    wpPromptEl = $("#wpPrompt"); wpCaptionEl = $("#wpCaption"); wpKeepEl = $("#wpKeep");
     buildPhone3D();
     model.traverse((o) => {
       if (!o.isMesh) return;
@@ -901,6 +901,8 @@ function init() {
     phLast = phP;
     floodStep();                                                            // idle-clocked: drop the next banner when the current one has run its course
     if (wpPromptEl) wpPromptEl.style.opacity = String(clamp(1 - smooth(0.015, 0.09, phP), 0, 1));   // the invitation fades the instant they start
+    // …but a subtler "keep scrolling ↓" takes over and rides the whole demo (mobile), so the sideways motion never reads as a swipe. Gone as the phone leaves.
+    if (wpKeepEl) wpKeepEl.style.opacity = String(0.72 * clamp(smooth(0.12, 0.20, phP) * (1 - smooth(0.80, 0.92, phP)), 0, 1));
     if (wpCaptionEl) wpCaptionEl.style.opacity = String(clamp(smooth(0.5, 0.62, phP) * (1 - smooth(0.9, 1.0, phP)), 0, 1));   // the payoff line rises as the five convert, gone as the phone leaves
     if (!phoneRig) return;
     phoneRig.visible = phP < 0.999;

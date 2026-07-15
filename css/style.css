@@ -1605,6 +1605,14 @@ section{ position:relative; z-index:2; }
 .hero3d .wp-prompt .wp-arrow{ width:10px; height:10px; border-right:2px solid currentColor; border-bottom:2px solid currentColor;
   transform:rotate(45deg); animation:wp-arrow-bob 1.5s ease-in-out infinite; }
 @keyframes wp-arrow-bob{ 0%,100%{ transform:rotate(45deg) translate(0,0); opacity:.45; } 50%{ transform:rotate(45deg) translate(3px,3px); opacity:1; } }
+/* persistent "keep scrolling" cue — subtler than the intro, shown on touch/phones through the whole demo (opacity driven by hero3d.js) */
+.hero3d .wp-keep{ position:absolute; left:50%; bottom:8.5vh; transform:translateX(-50%); margin:0; z-index:7;
+  display:none; align-items:center; gap:9px; white-space:nowrap; pointer-events:none;
+  font-family:var(--serif); font-size:clamp(.8rem,3.2vw,1rem); letter-spacing:.14em; text-transform:uppercase;
+  color:var(--ink-soft); text-shadow:0 2px 16px rgba(0,0,0,.75); opacity:0; transition:opacity .5s; }
+.hero3d .wp-keep .wp-arrow{ width:9px; height:9px; border-right:2px solid currentColor; border-bottom:2px solid currentColor;
+  transform:rotate(45deg); animation:wp-arrow-bob 1.5s ease-in-out infinite; }
+@media (max-width:820px){ .hero3d:not(.no3d) .wp-keep{ display:flex; } }
 /* once the five are threaded, the phone is shoved off-frame to the right */
 .hero3d #whyStage.phone-out .wp-phone{ opacity:0; transform:translateX(-50%) translate(155%,7%) rotate(7deg); }
 .hero3d:not(.no3d) .scroll-cue{ display:none; }   /* the wp-prompt IS the scroll cue during the phone story */
@@ -1612,7 +1620,7 @@ section{ position:relative; z-index:2; }
 .hero3d .hero-cap{ position:absolute; left:50%; bottom:10vh; transform:translateX(-50%); margin:0; z-index:7;
   font-family:var(--serif); font-size:clamp(1.2rem,2.7vw,1.9rem); color:var(--gold-pale); letter-spacing:.01em;
   text-shadow:0 2px 18px rgba(0,0,0,.72); opacity:0; transition:opacity .45s; pointer-events:none; white-space:nowrap; }
-@media (prefers-reduced-motion: reduce){ .hero3d .wp-prompt .wp-arrow{ animation:none; } }
+@media (prefers-reduced-motion: reduce){ .hero3d .wp-prompt .wp-arrow, .hero3d .wp-keep .wp-arrow{ animation:none; } }
 @media(max-width:820px){   /* phones: the title takes the top, the phone story owns the rest */
   .hero3d .why-stage{ left:50%; top:auto; bottom:2vh; transform:translate(-50%,0); height:min(66vh,560px); }
   .hero3d:not(.no3d) .hero-intro{ top:calc(72px + 3vh); bottom:auto; transform:none; }
