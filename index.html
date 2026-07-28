@@ -36,6 +36,13 @@
 <link rel="apple-touch-icon" href="assets/logo/favicon-180.png" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<!-- The hero still is the largest thing above the fold; start it before the parser reaches the <picture>. -->
+<link rel="preload" as="image" type="image/webp"
+      href="assets/img/bracelet-makoma.webp"
+      imagesrcset="assets/img/bracelet-makoma-960.webp 960w, assets/img/bracelet-makoma.webp 1536w"
+      imagesizes="100vw" fetchpriority="high" />
+<!-- three.js heads a serial chain (three -> DRACO -> bracelet GLB); start it during HTML parse, not after. -->
+<link rel="modulepreload" href="assets/vendor/three/three.module.js" />
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
 <script>
   /* set the theme before paint to avoid a flash. DARK is the default — the brand's gold-on-black — for every
@@ -134,8 +141,16 @@
 <section class="hero3d" id="hero">
   <div class="hero3d-sticky">
     <canvas id="heroCanvas" aria-hidden="true"></canvas>
-    <img src="assets/img/bracelet-makoma.jpg" class="hero3d-poster" id="heroPoster"
-         alt="The M'AKOMA bracelet rendered in 3D — beads and core hub on a braided cord." />
+    <!-- The hero's first paint: shown instantly, then cross-faded out once the live 3D is up.
+         WebP (54 KB / 22 KB mobile) replaces the 364 KB JPEG, which is kept as the fallback. -->
+    <picture>
+      <source type="image/webp"
+              srcset="assets/img/bracelet-makoma-960.webp 960w, assets/img/bracelet-makoma.webp 1536w"
+              sizes="100vw" />
+      <img src="assets/img/bracelet-makoma.jpg" class="hero3d-poster" id="heroPoster"
+           width="1536" height="1024" fetchpriority="high" decoding="async"
+           alt="The M'AKOMA bracelet rendered in 3D — beads and core hub on a braided cord." />
+    </picture>
     <div class="hero3d-veil" aria-hidden="true"></div>
     <p class="sr-only">A 3D anatomy of the bracelet: each matte-black bead carries an engraved gold Adinkra symbol, a small circuit board and a haptic motor; the gold core hub holds the battery, microphone and speaker.</p>
 

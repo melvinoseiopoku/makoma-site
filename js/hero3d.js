@@ -1158,6 +1158,9 @@ function init() {
     const rect = section.getBoundingClientRect();
     const total = section.offsetHeight - window.innerHeight;
     target = clamp(-rect.top / Math.max(total, 1), 0, 1);
+    // Guarantee the exploded-view boards are in flight long before they're needed: the phone story owns the
+    // first PHONE_FRAC (20%) and the reveals come after it, so 6% is a wide safety margin over the fetch.
+    if (target > 0.06) requestBoards();
   }
   function resize() {
     // size to the canvas's ACTUAL displayed box, not window.innerHeight — on mobile the URL bar makes
@@ -1640,9 +1643,17 @@ function init() {
   const SETTLE0 = 0.82, CAM_EL_END = 27, CAM_DIST_END = 4.7, CAM_PAN_END = 0.5;
   let hubAsm = null, beadAsm = null, endSpin = 0;
 
+  // The two KiCad board GLBs (akoma_pcb 78 KB + akoma_hub_pcb 229 KB) are only ever seen deep inside the
+  // exploded view, but they used to be requested the instant the bracelet GLB finished parsing — which
+  // extended the cold-load critical chain from 3.7 s to 7.4 s for something nobody has scrolled to yet.
+  // Queue them instead and fetch on the first idle moment, or the moment the scroll starts heading toward
+  // the reveal, whichever comes first. `buildBoard` still returns its (initially empty) group synchronously,
+  // so the assembly graph is unchanged — only the network request moves off the critical path.
+  const boardQueue = [];
+  let boardsRequested = false;
   function buildBoard(url, axis) {   // a REAL routed board exported from KiCad (Draco glTF), laid flat ⟂ axis
     const g = new THREE.Group();     // filled asynchronously when the board GLB loads
-    loader.load(url, (gltf) => {
+    boardQueue.push(() => loader.load(url, (gltf) => {
       const board = gltf.scene;
       board.position.sub(new THREE.Box3().setFromObject(board).getCenter(new THREE.Vector3()));   // centre on origin
       board.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
@@ -1651,8 +1662,13 @@ function init() {
       holder.scale.setScalar(MM * 1000);                                 // KiCad glTF is in metres -> hero units
       holder.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), axis);   // component side -> assembly axis
       g.add(holder);
-    }, undefined, (e) => console.warn("[hero3d] board load failed:", url, e));
+    }, undefined, (e) => console.warn("[hero3d] board load failed:", url, e)));
     return g;
+  }
+  function requestBoards() {         // idempotent; safe to call from both the idle hook and the scroll handler
+    if (boardsRequested) return;
+    boardsRequested = true;
+    while (boardQueue.length) boardQueue.shift()();
   }
   const mkMetal = (c, r, m) => new THREE.MeshStandardMaterial({ color: c, roughness: r, metalness: m });
   function buildBox(L, T, W, axis, mat, decor) {   // an L×W slab, T thick; its thin (Y) axis aligned to `axis`
@@ -1953,5 +1969,8 @@ function init() {
     build();
     setupExplode();
     buildGather();      // clone the FINISHED hero bracelet (after setupExplode → glow + hub correct) for the circle
+    // setupExplode queued the two board GLBs rather than fetching them. Pull them in once the main thread
+    // goes quiet (the timeout is the backstop for browsers without requestIdleCallback, e.g. older Safari).
+    (window.requestIdleCallback || ((fn) => setTimeout(fn, 1500)))(requestBoards, { timeout: 4000 });
   }, undefined, fail);
 }
