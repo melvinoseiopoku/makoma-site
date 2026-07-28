@@ -38,8 +38,8 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <!-- The hero still is the largest thing above the fold; start it before the parser reaches the <picture>. -->
 <link rel="preload" as="image" type="image/webp"
-      href="assets/img/bracelet-makoma.webp"
-      imagesrcset="assets/img/bracelet-makoma-960.webp 960w, assets/img/bracelet-makoma.webp 1536w"
+      href="assets/img/makoma-hero.webp"
+      imagesrcset="assets/img/makoma-hero-760.webp 760w, assets/img/makoma-hero.webp 1100w"
       imagesizes="100vw" fetchpriority="high" />
 <!-- three.js heads a serial chain (three -> DRACO -> bracelet GLB); start it during HTML parse, not after. -->
 <link rel="modulepreload" href="assets/vendor/three/three.module.js" />
@@ -142,13 +142,13 @@
   <div class="hero3d-sticky">
     <canvas id="heroCanvas" aria-hidden="true"></canvas>
     <!-- The hero's first paint: shown instantly, then cross-faded out once the live 3D is up.
-         WebP (54 KB / 22 KB mobile) replaces the 364 KB JPEG, which is kept as the fallback. -->
+         The REAL CAD render. WebP 19 KB / 12 KB mobile, JPEG fallback. -->
     <picture>
       <source type="image/webp"
-              srcset="assets/img/bracelet-makoma-960.webp 960w, assets/img/bracelet-makoma.webp 1536w"
+              srcset="assets/img/makoma-hero-760.webp 760w, assets/img/makoma-hero.webp 1100w"
               sizes="100vw" />
-      <img src="assets/img/bracelet-makoma.jpg" class="hero3d-poster" id="heroPoster"
-           width="1536" height="1024" fetchpriority="high" decoding="async"
+      <img src="assets/img/makoma-hero.jpg" class="hero3d-poster" id="heroPoster"
+           width="1100" height="2390" fetchpriority="high" decoding="async"
            alt="The M'AKOMA bracelet rendered in 3D — beads and core hub on a braided cord." />
     </picture>
     <div class="hero3d-veil" aria-hidden="true"></div>
