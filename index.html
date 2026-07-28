@@ -117,6 +117,7 @@
     <span class="brand-mark">M'AKOMA<span class="tm">™</span></span>
   </a>
   <nav class="nav-links" id="navLinks">
+    <a href="#yourfive">Design yours</a>
     <a href="#hero">Why M&rsquo;akoma</a>
     <a href="#position">Where</a>
     <a href="#adoption">How it begins</a>
@@ -137,7 +138,70 @@
 
 <main id="top">
 
-<!-- ============ HERO — the live 3D CAD bracelet is the single, unified hero ============ -->
+<!-- ============ WHO ARE YOUR FIVE — the configurator OPENS the page ============
+     The visitor designs their own bracelet before they are told anything: naming
+     the five is the hook, and the meaning arrives through the interaction instead
+     of ahead of it. The hero below then answers "why" (the phone story) and "is it
+     real" (the CAD explosion) for someone already invested.
+
+     No WebGL here on purpose — see js/configurator.js. The stage is 8 positioned
+     divs on an ellipse; the roster rail is a NATIVE horizontal scroller and IS the
+     rotation control, which is what keeps a sideways-looking gesture from ever
+     fighting the page scroll. -->
+<section class="cfg" id="yourfive">
+  <div class="wrap">
+    <header class="cfg-head reveal">
+      <p class="eyebrow">Make it yours</p>
+      <h1 class="cfg-title">Who are your <span class="gold-ink">five?</span></h1>
+      <p class="cfg-sub">Name them. Give each a symbol and a light. This is the bracelet we&rsquo;d string for you.</p>
+    </header>
+
+    <div class="cfg-grid">
+      <div class="cfg-stage">
+        <svg class="cfg-cord" aria-hidden="true"></svg>
+        <div class="cfg-ring" aria-hidden="true"></div>
+        <p class="cfg-hint">Tap a bead to feel it</p>
+      </div>
+
+      <div class="cfg-panel">
+        <p class="cfg-front" aria-hidden="true"></p>
+
+        <p class="eyebrow cfg-lbl">Your five</p>
+        <div class="cfg-roster" role="tablist" aria-label="Your five people"></div>
+
+        <div class="cfg-editor" role="tabpanel">
+          <input class="cfg-name" id="cfgName" type="text" maxlength="24"
+                 autocomplete="off" autocorrect="off" spellcheck="false"
+                 aria-label="Their name" />
+          <p class="cfg-namehelp">First name, or whatever you actually call them.</p>
+
+          <p class="eyebrow cfg-lbl">Their symbol</p>
+          <div class="cfg-symrail" role="radiogroup" aria-label="Adinkra symbol"></div>
+          <p class="cfg-symmeta" aria-live="polite"></p>
+
+          <p class="eyebrow cfg-lbl">Their light <span class="cfg-lightname"></span></p>
+          <div class="cfg-lights" role="radiogroup" aria-label="Their light"></div>
+        </div>
+
+        <div class="cfg-finish">
+          <p class="eyebrow cfg-lbl">The bracelet <span class="cfg-shellname"></span></p>
+          <div class="cfg-shells" role="radiogroup" aria-label="Bracelet colour"></div>
+        </div>
+
+        <div class="cfg-actions">
+          <button type="button" class="btn btn-gold cfg-cta">Save my five</button>
+          <button type="button" class="cfg-reset">Start over</button>
+        </div>
+        <p class="cfg-ctasub">Joins the waitlist and keeps this exact bracelet against your name.</p>
+      </div>
+    </div>
+
+    <p class="cfg-toast" role="status"></p>
+    <p class="sr-only cfg-sr" aria-live="polite"></p>
+  </div>
+</section>
+
+<!-- ============ HERO — the live 3D CAD bracelet: the "why" and the "look inside" ============ -->
 <section class="hero3d" id="hero">
   <div class="hero3d-sticky">
     <canvas id="heroCanvas" aria-hidden="true"></canvas>
@@ -485,7 +549,12 @@
 </main>
 
 <script src="js/glyphs.js"></script>
+<!-- design.js must precede main.js: it owns the shared design state that main.js
+     reads when submitting the waitlist form. Classic scripts, not modules, because
+     main.js is a classic IIFE and cannot import. -->
+<script src="js/design.js"></script>
 <script src="js/main.js"></script>
+<script src="js/configurator.js"></script>
 <script type="module" src="js/hero3d.js"></script>
 <script src="js/positioning.js"></script>
 <script src="js/coach.js"></script>

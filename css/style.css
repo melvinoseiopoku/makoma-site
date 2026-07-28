@@ -1869,3 +1869,130 @@ section{ position:relative; z-index:2; }
 .td-flatcell{ display:flex; flex-direction:column; align-items:center; gap:6px; flex:1 1 0; min-width:0; }
 .td-flatcell img{ width:clamp(40px,11vw,56px); height:auto; filter:drop-shadow(0 4px 8px rgba(0,0,0,.5)); }
 .td-flatcell span{ font-family:var(--sans); font-size:.58rem; letter-spacing:.07em; text-transform:uppercase; color:var(--ink-mute); }
+
+/* ============================================================
+   "Who are your five?" configurator (#yourfive)
+   Mobile-first. The stage is pure CSS/SVG — no second WebGL context.
+   `--shell` is the bracelet colourway, `--lit` each bead's light.
+   ============================================================ */
+.cfg{ padding:clamp(84px,11vw,150px) 0 clamp(60px,8vw,110px); position:relative; }
+.cfg-head{ text-align:center; max-width:640px; margin:0 auto clamp(26px,4vw,42px); }
+.cfg-title{ font-family:var(--serif); font-weight:500; line-height:1.02; letter-spacing:-.01em;
+  font-size:clamp(2.1rem,8vw,3.6rem); margin:.24em 0 .3em; }
+.cfg-sub{ color:var(--ink-soft); font-size:clamp(.92rem,2.4vw,1.02rem); margin:0; }
+
+.cfg-grid{ display:block; }
+
+/* ---- stage ---- */
+.cfg-stage{ position:relative; width:100%; margin:0 auto;
+  height:min(46vh,320px); height:min(46dvh,320px);   /* vh first: dvh is unreliable in the IG webview */
+  transition:height .22s var(--ease), opacity .22s var(--ease); }
+.cfg.is-typing .cfg-stage{ height:0; opacity:0; overflow:hidden; }  /* soft keyboard: let the editor rise */
+.cfg-cord{ position:absolute; inset:0; width:100%; height:100%; overflow:visible; }
+.cfg-cordline{ fill:none; stroke:#131315; stroke-width:5; }
+.cfg-ring{ position:absolute; inset:0; }
+.cfg-bead{ position:absolute; left:0; top:0; width:64px; height:64px; cursor:pointer;
+  will-change:transform; -webkit-tap-highlight-color:transparent; }
+.cfg-face{ display:block; width:100%; height:100%; border-radius:50%;
+  background:radial-gradient(circle at 36% 28%, color-mix(in srgb, var(--shell,#0c0c0d) 88%, #ffffff 12%), var(--shell,#0c0c0d) 72%);
+  box-shadow:inset 0 -5px 12px rgba(0,0,0,.55), inset 0 3px 7px rgba(255,255,255,.10), 0 5px 14px rgba(0,0,0,.5);
+  display:grid; place-items:center; transition:box-shadow .3s var(--ease); }
+.cfg-glyph{ width:52%; height:52%; fill:var(--gold); opacity:.55; transition:fill .25s var(--ease), opacity .25s var(--ease), filter .25s var(--ease); }
+.cfg-bead.is-lit .cfg-glyph{ fill:var(--lit,var(--gold)); opacity:1;
+  filter:drop-shadow(0 0 3px var(--lit,var(--gold))) drop-shadow(0 0 11px var(--lit,var(--gold))); }
+.cfg-bead.is-lit .cfg-face{ box-shadow:inset 0 -5px 12px rgba(0,0,0,.55), inset 0 3px 7px rgba(255,255,255,.10),
+  0 5px 14px rgba(0,0,0,.5), 0 0 20px -3px var(--lit,var(--gold)); }
+/* a light shell is laser-marked DARK, not gold — keeps the symbol legible */
+.cfg.is-lightshell .cfg-glyph{ fill:#2b2318; }
+.cfg.is-lightshell .cfg-bead.is-lit .cfg-glyph{ fill:color-mix(in srgb, var(--lit) 55%, #2b2318); filter:none; }
+@keyframes cfgPulse{ 0%{ transform:scale(1);} 38%{ transform:scale(1.16);} 100%{ transform:scale(1);} }
+.cfg-bead.is-pulse .cfg-face{ animation:cfgPulse .46s var(--ease); }
+.cfg-hint{ position:absolute; left:50%; bottom:2px; transform:translateX(-50%); margin:0;
+  font-family:var(--serif); font-size:.9rem; color:var(--ink-mute); white-space:nowrap;
+  transition:opacity .5s var(--ease); pointer-events:none; }
+.cfg-hint.is-gone{ opacity:0; }
+
+/* ---- front label + roster ---- */
+.cfg-front{ text-align:center; font-family:var(--serif); font-size:1.5rem; color:var(--gold-pale);
+  margin:10px 0 18px; min-height:1.3em; }
+.cfg-front.is-ghost{ font-style:italic; color:var(--ink-mute); }
+.cfg-lbl{ margin:0 0 10px; }
+.cfg-lbl span{ color:var(--gold); letter-spacing:.06em; text-transform:none; font-size:.92em; }
+.cfg-lbl span::before{ content:"· "; opacity:.6; }
+.cfg-roster{ display:flex; gap:12px; overflow-x:auto; overflow-y:hidden; padding:2px 0 12px;
+  scroll-snap-type:x mandatory; scroll-padding-inline:calc(50% - 48px);
+  scrollbar-width:none; overscroll-behavior-x:contain; -webkit-overflow-scrolling:touch; }
+.cfg-roster::-webkit-scrollbar{ display:none; }
+.cfg-chip{ flex:0 0 92px; scroll-snap-align:center; background:none; border:0; padding:6px 0; cursor:pointer;
+  display:flex; flex-direction:column; align-items:center; gap:8px;
+  opacity:.45; transform:scale(.86); transition:opacity .25s var(--ease), transform .25s var(--ease); }
+.cfg-chip.is-on{ opacity:1; transform:scale(1); }
+.cfg-chipface{ width:46px; height:46px; border-radius:50%; display:grid; place-items:center;
+  background:radial-gradient(circle at 38% 30%, #1a1a1e, #08080a);
+  box-shadow:inset 0 -3px 8px rgba(0,0,0,.6), 0 2px 8px rgba(0,0,0,.45); }
+.cfg-chip.is-on .cfg-chipface{ box-shadow:inset 0 -3px 8px rgba(0,0,0,.6), 0 0 0 1px var(--gold), 0 2px 10px rgba(0,0,0,.5); }
+.cfg-chipface .cfg-glyph{ width:56%; height:56%; fill:var(--lit,var(--gold)); opacity:1;
+  filter:drop-shadow(0 0 4px var(--lit,var(--gold))); }
+.cfg-chipname{ font-family:var(--serif); font-size:.95rem; color:var(--gold-pale); max-width:92px;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.cfg-chipname.is-ghost{ font-style:italic; color:var(--ink-mute); }
+
+/* ---- editor ---- */
+.cfg-editor{ border-top:1px solid var(--line-soft); padding-top:20px; }
+.cfg-name{ width:100%; background:none; border:0; border-bottom:1px solid var(--line);
+  font-family:var(--serif); font-size:1.35rem; color:var(--ink); padding:6px 0 10px; }
+.cfg-name:focus{ outline:none; border-bottom-color:var(--gold); }
+.cfg-name::placeholder{ color:var(--ink-mute); font-style:italic; }
+.cfg-namehelp{ font-size:.72rem; color:var(--ink-mute); margin:7px 0 22px; opacity:0; transition:opacity .2s; }
+.cfg-name:focus + .cfg-namehelp{ opacity:1; }
+
+.cfg-symrail{ display:flex; gap:12px; overflow-x:auto; overflow-y:hidden; padding-bottom:10px;
+  scroll-snap-type:x proximity; scrollbar-width:none; overscroll-behavior-x:contain;
+  -webkit-mask-image:linear-gradient(90deg,#000 88%,transparent);
+  mask-image:linear-gradient(90deg,#000 88%,transparent); }
+.cfg-symrail::-webkit-scrollbar{ display:none; }
+.cfg-sym{ flex:0 0 56px; height:56px; scroll-snap-align:center; background:none; border:0; padding:0; cursor:pointer; }
+.cfg-symface{ width:56px; height:56px; border-radius:50%; display:grid; place-items:center;
+  background:radial-gradient(circle at 38% 30%, #1a1a1e, #08080a);
+  box-shadow:inset 0 -3px 8px rgba(0,0,0,.6); transition:box-shadow .2s var(--ease); }
+.cfg-symface .cfg-glyph{ width:56%; height:56%; fill:var(--gold); opacity:.72; }
+.cfg-sym.is-on .cfg-symface{ box-shadow:inset 0 -3px 8px rgba(0,0,0,.6), 0 0 0 1.5px var(--gold); }
+.cfg-sym.is-on .cfg-symface .cfg-glyph{ fill:var(--lit,var(--gold)); opacity:1;
+  filter:drop-shadow(0 0 4px var(--lit)) drop-shadow(0 0 12px var(--lit)); }
+.cfg-sym.is-taken .cfg-symface{ opacity:.34; }
+.cfg-symmeta{ margin:4px 0 24px; min-height:2.6em; }
+.cfg-symmeta b{ display:block; font-family:var(--serif); font-weight:500; font-size:1.05rem; color:var(--gold); }
+.cfg-symmeta span{ display:block; font-size:.82rem; color:var(--ink-mute); }
+
+.cfg-lights,.cfg-shells{ display:flex; gap:6px; flex-wrap:wrap; margin-bottom:6px; }
+.cfg-light,.cfg-shell{ background:none; border:0; padding:6px; cursor:pointer; border-radius:50%;
+  line-height:0; transition:box-shadow .2s var(--ease); }
+.cfg-light i,.cfg-shell i{ display:block; width:32px; height:32px; border-radius:50%;
+  box-shadow:0 0 0 1px rgba(255,255,255,.18) inset, 0 1px 4px rgba(0,0,0,.5); }
+.cfg-shell i{ width:34px; height:34px; }
+.cfg-light.is-on,.cfg-shell.is-on{ box-shadow:0 0 0 1.5px var(--gold); }
+
+.cfg-finish{ border-top:1px solid var(--line-soft); margin-top:24px; padding-top:20px; }
+.cfg-actions{ display:flex; align-items:center; gap:16px; margin-top:26px; flex-wrap:wrap; }
+.cfg-reset{ background:none; border:0; color:var(--ink-mute); font-size:.78rem; cursor:pointer;
+  text-decoration:underline; text-underline-offset:3px; }
+.cfg-reset:hover{ color:var(--gold); }
+.cfg-ctasub{ font-size:.78rem; color:var(--ink-mute); margin:12px 0 0; }
+
+.cfg-toast{ position:fixed; left:50%; bottom:24px; transform:translate(-50%,10px); z-index:60;
+  margin:0; padding:11px 18px; border-radius:999px; background:rgba(12,12,13,.94);
+  border:1px solid var(--line); color:var(--gold-pale); font-size:.84rem; white-space:nowrap;
+  opacity:0; pointer-events:none; transition:opacity .25s var(--ease), transform .25s var(--ease); }
+.cfg-toast.is-on{ opacity:1; transform:translate(-50%,0); }
+
+@media (min-width:900px){
+  .cfg-grid{ display:grid; grid-template-columns:1.05fr .95fr; gap:clamp(30px,4vw,64px); align-items:center; }
+  /* min-height, not height: the base rule's `height` kept winning the cascade here */
+  .cfg .cfg-stage{ min-height:min(60vh,460px); min-height:min(60dvh,460px); }
+  .cfg.is-typing .cfg-stage{ height:min(60vh,460px); opacity:1; }   /* no soft keyboard on desktop */
+  .cfg .cfg-bead{ width:76px; height:76px; }
+}
+@media (prefers-reduced-motion: reduce){
+  .cfg-bead{ transition:none; }
+  .cfg-bead.is-pulse .cfg-face{ animation:none; }
+}
