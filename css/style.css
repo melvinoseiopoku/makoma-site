@@ -1919,8 +1919,13 @@ section{ position:relative; z-index:2; }
 .cfg-lbl{ margin:0 0 10px; }
 .cfg-lbl span{ color:var(--gold); letter-spacing:.06em; text-transform:none; font-size:.92em; }
 .cfg-lbl span::before{ content:"· "; opacity:.6; }
-.cfg-roster{ display:flex; gap:12px; overflow-x:auto; overflow-y:hidden; padding:2px 0 12px;
-  scroll-snap-type:x mandatory; scroll-padding-inline:calc(50% - 48px);
+.cfg-roster{ display:flex; gap:12px; overflow-x:auto; overflow-y:hidden;
+  /* padding-inline, NOT scroll-padding-inline: scroll-padding only shrinks the snapport,
+     it adds no scrollable length, so with symmetric padding the snapport centre is still
+     the scrollport centre and the FIRST and LAST chips can never reach the middle. Real
+     inline padding is what makes all five centreable (measured: 3 snap rests -> 5). */
+  padding:2px calc(50% - 46px) 12px;
+  scroll-snap-type:x mandatory;
   scrollbar-width:none; overscroll-behavior-x:contain; -webkit-overflow-scrolling:touch; }
 .cfg-roster::-webkit-scrollbar{ display:none; }
 .cfg-chip{ flex:0 0 92px; scroll-snap-align:center; background:none; border:0; padding:6px 0; cursor:pointer;

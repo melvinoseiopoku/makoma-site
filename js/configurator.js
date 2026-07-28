@@ -82,6 +82,7 @@
   var tapped = false;
   var raf = null;
   var litMap = {};                 // bead index -> glow colour, rebuilt only when the design changes
+  var progScroll = 0;              // timestamp: suppress the scroll-debounce during our own scrollIntoView
   function refreshLit() {
     litMap = {};
     D.get().people.forEach(function (p) { litMap[D.beadOf(p.sym)] = p.glow; });
@@ -277,6 +278,7 @@
     paintEditor();
     paintRoster();
     if (scrollChip && roster.children[selected]) {
+      progScroll = Date.now();     // an explicit tap wins; don't let our own smooth-scroll re-derive it
       roster.children[selected].scrollIntoView({ inline: "center", block: "nearest", behavior: reduce ? "auto" : "smooth" });
     }
   }
@@ -386,11 +388,12 @@
         var pos = f * (D.SLOTS - 1);
         var i0 = Math.floor(pos), i1 = Math.min(D.SLOTS - 1, i0 + 1), frac = pos - i0;
         var a0 = angleForBead(beadIdxs[i0]), a1 = angleForBead(beadIdxs[i1]);
-        angle = norm(a0 + shortest(a1 - a0) * frac);
-        layout();
+        var na = norm(a0 + shortest(a1 - a0) * frac);
+        if (isFinite(na)) { angle = na; layout(); }   // a NaN here would spin the rAF loop forever
       }
       clearTimeout(scrollT);
       scrollT = setTimeout(function () {                        // Safari has no scrollend
+        if (Date.now() - progScroll < 700) return;   // this scroll was ours, not the user's
         var idx = centredChip();
         if (idx !== selected) { selected = idx; paintEditor(); paintRoster(); }
       }, 120);
