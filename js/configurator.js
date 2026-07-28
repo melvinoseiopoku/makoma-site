@@ -81,6 +81,11 @@
   var beadEls = [];
   var tapped = false;
   var raf = null;
+  var litMap = {};                 // bead index -> glow colour, rebuilt only when the design changes
+  function refreshLit() {
+    litMap = {};
+    D.get().people.forEach(function (p) { litMap[D.beadOf(p.sym)] = p.glow; });
+  }
 
   /* ---------- glyph rendering (from window.ADINKRA_PATHS, already loaded) ---------- */
   function glyphSVG(key, cls) {
@@ -114,9 +119,7 @@
     // keep the whole ring (plus a bead radius) inside the stage on any viewport
     var rx = Math.min((w - bead) / 2 - 6, (h - bead) / 2 / 0.52 - 6, 220);
     var ry = rx * 0.52;                              // a bracelet lying tilted away, not a flat circle
-    var st = D.get();
-    var lit = {};
-    st.people.forEach(function (p) { lit[D.beadOf(p.sym)] = p.glow; });
+    var lit = litMap;                                        // cached; refreshed on state change, not per frame
 
     for (var i = 0; i < 8; i++) {
       var t = angle + i * TAU / 8;
@@ -283,7 +286,7 @@
     var p = st.people[selected];
     var real = p.name.trim();
 
-    nameIn.value = real;
+    if (document.activeElement !== nameIn) nameIn.value = real;   // never fight the caret mid-type
     nameIn.placeholder = p.ghost;
 
     frontLbl.textContent = real || p.ghost;
@@ -374,9 +377,10 @@
        anywhere — the browser keeps full ownership of the gesture. */
     var scrollT = null;
     roster.addEventListener("scroll", function () {
+      if (raf) { cancelAnimationFrame(raf); raf = null; }     // the finger wins over the ease
       var max = roster.scrollWidth - roster.clientWidth;
       if (max > 4) {
-        var f = roster.scrollLeft / max;                       // 0..1 across the five
+        var f = Math.max(0, Math.min(1, roster.scrollLeft / max));   // clamp: WebKit rubber-banding overscrolls
         var st = D.get();
         var beadIdxs = st.people.map(function (p) { return D.beadOf(p.sym); });
         var pos = f * (D.SLOTS - 1);
@@ -387,11 +391,24 @@
       }
       clearTimeout(scrollT);
       scrollT = setTimeout(function () {                        // Safari has no scrollend
-        var mx = roster.scrollWidth - roster.clientWidth;
-        var idx = mx > 4 ? Math.round((roster.scrollLeft / mx) * (D.SLOTS - 1)) : selected;
+        var idx = centredChip();
         if (idx !== selected) { selected = idx; paintEditor(); paintRoster(); }
       }, 120);
     }, { passive: true });
+
+    /* Which chip is actually nearest the rail's centre. Measured rather than derived
+       from a scrollLeft fraction, because scroll-padding + snap mean the travel does
+       not map linearly onto the five chips. */
+    function centredChip() {
+      var mid = roster.getBoundingClientRect().left + roster.clientWidth / 2;
+      var best = selected, bd = Infinity;
+      [].forEach.call(roster.children, function (c, i) {
+        var r = c.getBoundingClientRect();
+        var d = Math.abs(r.left + r.width / 2 - mid);
+        if (d < bd) { bd = d; best = i; }
+      });
+      return best;
+    }
 
     /* Tapping any bead selects that person AND pulses it — one rule, both halves
        rewarding. A two-rule system ("front pulses, side selects") is not inferable. */
@@ -430,7 +447,7 @@
       if (em) setTimeout(function () { try { em.focus({ preventScroll: true }); } catch (e) { em.focus(); } }, reduce ? 0 : 620);
     });
 
-    D.subscribe(function () { paintEditor(); paintRoster(); layout(); });
+    D.subscribe(function () { refreshLit(); paintEditor(); paintRoster(); layout(); });
 
     var ro = window.ResizeObserver ? new ResizeObserver(function () { layout(); }) : null;
     if (ro) ro.observe(stage); else window.addEventListener("resize", layout);

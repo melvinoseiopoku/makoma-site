@@ -131,8 +131,13 @@
     get: function () { return JSON.parse(JSON.stringify(state)); },
 
     setShell: function (id) {
-      if (!validShell(id) || state.shell === id) return;
-      state.shell = id; state.touched = true; save();
+      if (!validShell(id)) return;
+      var same = state.shell === id;
+      state.shell = id;
+      // Record the choice even when they re-pick the current colour: clicking Onyx
+      // deliberately is a vote, and `touched` is what separates a real vote from a
+      // drive-by submit that silently carried the default.
+      if (!state.touched || !same) { state.touched = true; save(); }
     },
     setName: function (i, name) {
       if (!state.people[i]) return;
@@ -147,11 +152,11 @@
       state.people.forEach(function (p, j) { if (p.sym === sym && j !== i) holder = j; });
       if (holder !== -1) state.people[holder].sym = state.people[i].sym;
       state.people[i].sym = sym;
-      state.touched = true; save();
+      save();
     },
     setGlow: function (i, hex) {
       if (!state.people[i] || !/^#[0-9a-f]{6}$/i.test(hex)) return;
-      state.people[i].glow = hex; state.touched = true; save();
+      state.people[i].glow = hex; save();
     },
     reset: function () { state = defaults(); save(); },
     subscribe: function (fn) { if (typeof fn === "function") { subs.push(fn); fn(state); } },
@@ -164,6 +169,7 @@
        just measure traffic. Count colour votes over cfg=custom only. */
     toMetadata: function () {
       var named = state.people.filter(function (p) { return p.name.trim(); }).length;
+      // `cfg` reports ONLY whether a shell was explicitly chosen — see setShell.
       return {
         shell:   state.shell,
         cfg:     state.touched ? "custom" : "default",
