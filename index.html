@@ -117,8 +117,9 @@
     <span class="brand-mark">M'AKOMA<span class="tm">™</span></span>
   </a>
   <nav class="nav-links" id="navLinks">
-    <a href="#hero">Why M&rsquo;akoma</a>
-    <a href="#position">Where</a>
+    <a href="#hero">The piece</a>
+    <a href="#yourfive">Design yours</a>
+    <a href="#more">What else</a>
     <a href="#adoption">How it begins</a>
     <a href="#launch">The Road</a>
     <a href="#join" class="nav-link-cta">Waitlist</a>
@@ -137,12 +138,15 @@
 
 <main id="top">
 
-<!-- ============ HERO — the live 3D CAD bracelet is the single, unified hero ============ -->
+
+
+<!-- ============ HERO — the live 3D CAD bracelet: the "why" and the "look inside" ============ -->
 <section class="hero3d" id="hero">
   <div class="hero3d-sticky">
     <canvas id="heroCanvas" aria-hidden="true"></canvas>
     <!-- The hero's first paint: shown instantly, then cross-faded out once the live 3D is up.
-         The REAL CAD render. WebP 19 KB / 12 KB mobile, JPEG fallback. -->
+         The REAL CAD render (makoma_hero_notext.png) — replaced an AI-generated image that was
+         standing in for the product. WebP 19 KB / 12 KB mobile, JPEG fallback. -->
     <picture>
       <source type="image/webp"
               srcset="assets/img/makoma-hero-760.webp 760w, assets/img/makoma-hero.webp 1100w"
@@ -156,9 +160,9 @@
 
     <div class="hero3d-overlay">
       <div class="hero-intro" id="heroIntro">
-        <p class="eyebrow">Fine jewelry, modern technology</p>
+        <p class="eyebrow">Fine jewelry</p>
         <h1 class="hero-title">The people<br/><span class="gold-ink">you carry.</span></h1>
-        <p class="hero-sub">Worn on the wrist. Felt across the distance.</p>
+        <p class="hero-sub" id="heroSub">Worn on the wrist. Felt across the distance.</p>
       </div>
 
       <div class="hero-caption" id="heroCaption" aria-live="polite">
@@ -176,7 +180,7 @@
       <!-- cluster names are now ENGRAVED into each bracelet's hub underside (hero3d.js), not a screen overlay -->
 
       <div class="hero-outro" id="heroOutro">
-        <h2>Five people.<br/><span class="gold-ink">One quiet channel.</span></h2>
+        <h2>Six beads.<br/><span class="gold-ink">One quiet channel.</span></h2>
         <div class="hero-actions">
           <a href="#join" class="btn btn-gold">Join the waitlist</a>
         </div>
@@ -228,79 +232,138 @@
   </div>
 </section>
 
+<!-- SECTION 3 - MAKE IT YOURS. It follows the hero rather than splitting it: the hero is one
+     continuous pinned timeline that already carries "why it exists" (the phone story) and "look
+     inside" (the CAD explosion), and cutting it in half to interleave this would rebuild a working
+     2,000-line animation for no gain. By the time a visitor arrives here they have seen the object,
+     the reason and the engineering - which is when "now make it yours" lands hardest anyway. -->
+<!-- ============ WHO ARE YOUR FIVE — the configurator OPENS the page ============
+     The visitor designs their own bracelet before they are told anything: naming
+     the five is the hook, and the meaning arrives through the interaction instead
+     of ahead of it. The hero below then answers "why" (the phone story) and "is it
+     real" (the CAD explosion) for someone already invested.
+
+     No WebGL here on purpose — see js/configurator.js. The stage is 8 positioned
+     divs on an ellipse; the roster rail is a NATIVE horizontal scroller and IS the
+     rotation control, which is what keeps a sideways-looking gesture from ever
+     fighting the page scroll. -->
+<section class="cfg" id="yourfive">
+  <div class="wrap">
+    <header class="cfg-head reveal">
+      <p class="eyebrow">Make it yours</p>
+      <h1 class="cfg-title">Who are your <span class="gold-ink">five?</span></h1>
+      <p class="cfg-sub">Name them. Give each a symbol and a light. This is the bracelet we&rsquo;d string for you.</p>
+    </header>
+
+    <div class="cfg-grid">
+      <div class="cfg-stage">
+        <svg class="cfg-cord" aria-hidden="true"></svg>
+        <div class="cfg-ring" aria-hidden="true"></div>
+        <p class="cfg-hint">Tap a bead to feel it</p>
+      </div>
+
+      <div class="cfg-panel">
+        <p class="cfg-front" aria-hidden="true"></p>
+
+        <p class="eyebrow cfg-lbl">Your five</p>
+        <div class="cfg-roster" role="tablist" aria-label="Your five people"></div>
+
+        <div class="cfg-editor" role="tabpanel">
+          <input class="cfg-name" id="cfgName" type="text" maxlength="24"
+                 autocomplete="off" autocorrect="off" spellcheck="false"
+                 aria-label="Their name" />
+          <p class="cfg-namehelp">First name, or whatever you actually call them.</p>
+
+          <p class="eyebrow cfg-lbl">Their symbol</p>
+          <div class="cfg-symrail" role="radiogroup" aria-label="Adinkra symbol"></div>
+          <p class="cfg-symmeta" aria-live="polite"></p>
+
+          <p class="eyebrow cfg-lbl">Their light <span class="cfg-lightname"></span></p>
+          <div class="cfg-lights" role="radiogroup" aria-label="Their light"></div>
+        </div>
+
+        <div class="cfg-finish">
+          <p class="eyebrow cfg-lbl">The bracelet <span class="cfg-shellname"></span></p>
+          <div class="cfg-shells" role="radiogroup" aria-label="Bracelet colour"></div>
+        </div>
+
+        <div class="cfg-actions">
+          <button type="button" class="btn btn-gold cfg-cta">Save my five</button>
+          <button type="button" class="cfg-reset">Start over</button>
+        </div>
+        <p class="cfg-ctasub">Joins the waitlist and keeps this exact bracelet against your name.</p>
+      </div>
+    </div>
+
+    <p class="cfg-toast" role="status"></p>
+    <p class="sr-only cfg-sr" aria-live="polite"></p>
+  </div>
+</section>
+
+<!-- ============ SECTION 5 - WHAT ELSE IT CAN DO ============
+     The platform angle, deliberately placed HERE and not in the hero: leading with it would make
+     the page argue two cases at once (jewellery and gadget) and a visitor decides which kind of
+     page they are on in about two seconds. Arriving after the object, the reason, the engineering
+     and their own design, it reads as depth rather than as a spec sheet.
+     Built on the existing .hib-grid / .hib-panel / .hib-cap pattern from "How it begins" so it
+     inherits that styling wholesale - no new layout CSS. -->
+<section class="circle" id="more">
+  <div class="wrap" style="text-align:center;">
+    <p class="eyebrow reveal" style="display:block; margin-bottom:18px;">Beyond the circle</p>
+    <h2 class="reveal" style="font-family:var(--serif); font-weight:500; font-size:clamp(2rem,4.6vw,3.4rem); line-height:1.04; margin:0 0 18px;">
+      It does more <span class="gold-ink">than you&rsquo;d think.</span>
+    </h2>
+    <p class="tech-lede reveal" style="margin:0 auto 38px;">The same beads that carry your people can carry anything you ask of them.</p>
+
+    <div class="hib-grid reveal">
+      <figure class="hib-panel">
+        <div class="hib-scene">
+          <span class="hib-badge">Press &middot; and something happens</span>
+          <span class="hib-brace b3">
+            <img src="assets/beads/sankofa.png" alt="" loading="lazy">
+            <img src="assets/beads/aya.png" alt="" loading="lazy">
+            <span class="hib-lit"><img src="assets/beads/nsoroma.png" alt="" loading="lazy"><img class="hib-glow" src="assets/beads/nsoroma_glow.png" alt="" loading="lazy"></span>
+            <img src="assets/beads/gye_nyame.png" alt="" loading="lazy">
+            <img src="assets/beads/nkyinkyim.png" alt="" loading="lazy">
+          </span>
+          <span class="hib-note">your bead &middot; your shortcut</span>
+        </div>
+        <figcaption class="hib-cap">
+          <h3>Any bead. Anything you like.</h3>
+          <p>A bead does not have to hold a person. Give one to your camera, your music, your do-not-disturb &mdash; then reach it without reaching for your phone.</p>
+        </figcaption>
+      </figure>
+
+      <figure class="hib-panel">
+        <div class="hib-scene hib-scene--app">
+          <span class="hib-phone"><img src="assets/img/app-beads-light.jpg" alt="Assigning a bead in the M'AKOMA app" loading="lazy"><span class="hib-tap" aria-hidden="true"></span></span>
+          <svg class="hib-link" viewBox="0 0 130 70" aria-hidden="true" preserveAspectRatio="none">
+            <defs><linearGradient id="moreg" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#c9a04e" stop-opacity="0"/><stop offset="1" stop-color="#e8c57a"/></linearGradient></defs>
+            <path d="M8 56 Q66 4 122 34" fill="none" stroke="url(#moreg)" stroke-width="2.2" stroke-dasharray="3 7" stroke-linecap="round"/>
+          </svg>
+          <span class="hib-brace b1">
+            <img src="assets/beads/akoma.png" alt="" loading="lazy">
+            <img src="assets/beads/aya.png" alt="" loading="lazy">
+            <img src="assets/beads/sankofa.png" alt="" loading="lazy">
+          </span>
+        </div>
+        <figcaption class="hib-cap">
+          <h3>It changes when you do.</h3>
+          <p>Re-assign a bead whenever life moves &mdash; a new person, a new habit. The bracelet you bought keeps becoming the one you need.</p>
+        </figcaption>
+      </figure>
+    </div>
+  </div>
+</section>
+
 <!-- The hero→circle gather now lives INSIDE #hero (hero3d.js); the old separate touch-demo section is retired. -->
 
 <!-- The Why-M'AKOMA phone story now OPENS the hero (see #whyStage inside #hero); the old phone+carousel section is retired. -->
 
 <!-- ============ WHERE WE LIVE — interactive 2D→3D positioning ============ -->
-<section id="position" class="wl-section" aria-labelledby="wl-eyebrow">
-  <div class="wl-wrap">
-    <p class="wl-eyebrow" id="wl-eyebrow">Where we live</p>
-    <div class="wl-stage" data-stage="1" aria-hidden="false">
-      <div class="wl-scene">
-        <div class="wl-plane">
-          <div class="wl-grid" aria-hidden="true"></div>
-          <span class="wl-edge wl-edge--t">Chosen few can reach you</span>
-          <span class="wl-edge wl-edge--b">Anyone can reach you</span>
-          <span class="wl-edge wl-edge--l">Requires effort</span>
-          <span class="wl-edge wl-edge--r">Lives with you</span>
-          <div class="wl-axis" aria-hidden="true">
-            <span class="wl-axis-tick"></span>
-            <span class="wl-axis-label">Presence</span>
-          </div>
-          <div class="wl-nodes">
-            <button class="wl-node wl-node--logo" type="button" data-x="23" data-y="37" data-lift="14" data-kind="flat" aria-label="iMessage — a screen you open">
-              <span class="wl-logo" style="background:#34DA52"><svg viewBox="0 0 24 24" fill="#fff" aria-hidden="true"><path d="M12 3.2C6.8 3.2 2.6 6.6 2.6 10.8c0 2.4 1.3 4.5 3.4 5.9-.2.9-.8 2.1-1.6 2.9 1.4-.2 3-.8 4.1-1.5 1.1.3 2.2.4 3.5.4 5.2 0 9.4-3.5 9.4-7.6S17.2 3.2 12 3.2z"/></svg></span><span class="wl-stem" aria-hidden="true"></span>
-            </button>
-<button class="wl-node wl-node--logo" type="button" data-x="30" data-y="31" data-lift="16" data-kind="flat" aria-label="WhatsApp — a screen you open">
-              <span class="wl-logo" style="background:#25D366"><img src="assets/logos/whatsapp.svg" alt="" aria-hidden="true" /></span><span class="wl-stem" aria-hidden="true"></span>
-            </button>
-<button class="wl-node wl-node--logo" type="button" data-x="35" data-y="27" data-lift="15" data-kind="flat" aria-label="Phone calls — a screen you open">
-              <span class="wl-logo" style="background:#34C759"><svg viewBox="0 0 24 24" fill="#fff" aria-hidden="true"><path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.1-2.1c.3-.3.7-.3 1-.2 1.1.4 2.4.6 3.6.6.6 0 1 .5 1 1V20c0 .6-.4 1-1 1C9.6 21 3 14.4 3 6c0-.6.5-1 1-1h3.4c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.4 0 .8-.2 1l-2.2 2.2z"/></svg></span><span class="wl-stem" aria-hidden="true"></span>
-            </button>
-<button class="wl-node wl-node--logo" type="button" data-x="27" data-y="43" data-lift="13" data-kind="flat" aria-label="Telegram — a screen you open">
-              <span class="wl-logo" style="background:#229ED9"><img src="assets/logos/telegram.svg" alt="" aria-hidden="true" /></span><span class="wl-stem" aria-hidden="true"></span>
-            </button>
-<button class="wl-node wl-node--logo" type="button" data-x="55" data-y="76" data-lift="8" data-kind="flat" aria-label="Instagram — anyone can reach you">
-              <span class="wl-logo" style="background:linear-gradient(45deg,#f09433,#dc2743 45%,#bc1888)"><img src="assets/logos/instagram.svg" alt="" aria-hidden="true" /></span><span class="wl-stem" aria-hidden="true"></span>
-            </button>
-<button class="wl-node wl-node--logo" type="button" data-x="61" data-y="72" data-lift="9" data-kind="flat" aria-label="Snapchat — anyone can reach you">
-              <span class="wl-logo" style="background:#FFFC00"><img src="assets/logos/snapchat.svg" alt="" aria-hidden="true" /></span><span class="wl-stem" aria-hidden="true"></span>
-            </button>
-<button class="wl-node wl-node--logo" type="button" data-x="65" data-y="78" data-lift="8" data-kind="flat" aria-label="TikTok — anyone can reach you">
-              <span class="wl-logo" style="background:#111014; box-shadow:inset 0 0 0 1px rgba(255,255,255,.12)"><img src="assets/logos/tiktok.svg" alt="" aria-hidden="true" /></span><span class="wl-stem" aria-hidden="true"></span>
-            </button>
-<button class="wl-node wl-node--logo" type="button" data-x="58" data-y="83" data-lift="7" data-kind="flat" aria-label="Facebook — anyone can reach you">
-              <span class="wl-logo" style="background:#0866FF"><img src="assets/logos/facebook.svg" alt="" aria-hidden="true" /></span><span class="wl-stem" aria-hidden="true"></span>
-            </button>
-            <button class="wl-node wl-node--hub" type="button" data-x="87" data-y="49" data-lift="56" data-kind="hub" aria-label="Bond Touch — a single hub, one node for everyone">
-              <span class="wl-dot"></span><span class="wl-stem" aria-hidden="true"></span><span class="wl-label">Bond Touch</span>
-            </button>
-            <button class="wl-node wl-node--beads" type="button" data-x="88" data-y="13" data-lift="98" data-kind="beads" aria-label="M'AKOMA — a string of distinct beads, each a different person; lives with you and only your chosen few reach you">
-              <span class="wl-string" aria-hidden="true">
-                <img class="wl-beadimg" src="assets/beads/akoma.png" alt="" />
-                <img class="wl-beadimg" src="assets/beads/sankofa.png" alt="" />
-                <img class="wl-beadimg" src="assets/beads/gye_nyame.png" alt="" />
-                <img class="wl-beadimg" src="assets/beads/aya.png" alt="" />
-                <img class="wl-beadimg" src="assets/beads/nkyinkyim.png" alt="" />
-              </span>
-              <span class="wl-stem" aria-hidden="true"></span>
-              <span class="wl-label wl-label--apex">M&rsquo;AKOMA</span>
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="wl-steps" role="tablist" aria-label="Positioning view">
-      <button class="wl-step is-on" type="button" role="tab" aria-selected="true" data-go="1" aria-label="Flat map view"></button>
-      <button class="wl-step" type="button" role="tab" aria-selected="false" data-go="2" aria-label="Presence axis view"></button>
-      <button class="wl-step" type="button" role="tab" aria-selected="false" data-go="3" aria-label="Beads versus hub view"></button>
-    </div>
-    <p class="reveal" style="text-align:center; color:var(--gold-pale); opacity:.85; font-family:var(--serif); font-style:italic; font-size:1.2rem; margin:30px auto 0; max-width:40ch;">
-      Not on a screen. On the people you love.
-    </p>
-  </div>
-</section>
+<!-- "Where we live" (#position) removed 2026-07-28: competitive-positioning analysis,
+     not desire. It belongs in the pitch deck, not on a jewellery landing page. -->
+
 
 <!-- ============ HOW IT BEGINS — adoption (infographic + real app) ============ -->
 <section class="circle" id="adoption">
@@ -485,10 +548,17 @@
 </main>
 
 <script src="js/glyphs.js"></script>
+<!-- design.js must precede main.js: it owns the shared design state that main.js
+     reads when submitting the waitlist form. Classic scripts, not modules, because
+     main.js is a classic IIFE and cannot import. -->
+<script src="js/design.js"></script>
 <script src="js/main.js"></script>
+<script src="js/configurator.js"></script>
 <script type="module" src="js/hero3d.js"></script>
-<script src="js/positioning.js"></script>
-<script src="js/coach.js"></script>
+<!-- Neither js/positioning.js (its "Where we live" section is cut) nor js/coach.js is loaded:
+     the bracelet no longer explains itself. Touching a bead summons the other person
+     unannounced, and being surprised by it IS the moment. Every window.__coach call in
+     hero3d.js is already null-guarded, so nothing else changes. -->
 <!-- carousel.js + circle.js retired: the phone story opens the hero (hero3d.js) and the gather cluster IS the circle -->
 
 <script>

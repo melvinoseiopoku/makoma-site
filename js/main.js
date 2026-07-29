@@ -396,11 +396,18 @@
       const giving = intent() === "gift";
       const sug = ((sugg && sugg.value) || "").trim();
 
+      // The bracelet they designed in #yourfive. toMetadata() is the ONLY path from the
+      // design store to the network and it deliberately never reads the five names —
+      // those are personal data about third parties who never visited this site.
+      // What ships is the manufacturing signal: shell colourway, symbols, lights, and
+      // cfg=custom|default so colour votes can be counted over real choices only.
+      const design = (window.MAKOMA_DESIGN && window.MAKOMA_DESIGN.toMetadata()) || null;
+
       // always keep a local copy so a submission is never silently lost
       try {
         const k = "makoma_waitlist";
         const list = JSON.parse(localStorage.getItem(k) || "[]");
-        list.push({ email: v, intent: intent(), suggestion: sug, at: new Date().toISOString() });
+        list.push({ email: v, intent: intent(), suggestion: sug, design: design, at: new Date().toISOString() });
         localStorage.setItem(k, JSON.stringify(list));
       } catch (_) {}
 
@@ -429,6 +436,9 @@
           params.append("tag", giving ? "gift" : "self");   // segment the list in Buttondown
           params.append("metadata__intent", intent());
           if (sug) params.append("metadata__suggestion", sug);   // design feedback → subscriber metadata in Buttondown
+          if (design) {                                          // the bracelet they built (never their names)
+            Object.keys(design).forEach((k) => params.append("metadata__" + k, design[k]));
+          }
           await fetch(JOIN_ENDPOINT, { method: "POST", mode: "no-cors", body: params });
           done();
         } else {
@@ -436,6 +446,9 @@
           body.append("email", v);
           body.append("intent", intent());
           if (sug) body.append("suggestion", sug);
+          // mirror the design here too, so swapping email providers never silently
+          // drops the manufacturing signal
+          if (design) Object.keys(design).forEach((k) => body.append(k, design[k]));
           const res = await fetch(JOIN_ENDPOINT, { method: "POST", body, headers: { Accept: "application/json" } });
           if (!res.ok) throw new Error("HTTP " + res.status);
           done();

@@ -31,6 +31,11 @@ const SPIN_PHASE = 169.6 * DEG;    // start rotation: the Akoma (heart) bead fac
 // ---- OPENING phone story: the site opens on a phone buried in notifications; the five pinned people
 //      peel off and land on the REAL CAD beads (which pop in as each lands), the remaining beads + hub
 //      fade in, and THEN the threading begins. Scroll-driven; DOM lives in #whyStage inside the hero. ----
+// [0..OBJECT_FRAC] = THE OBJECT. Before a single word of tech, the finished bracelet simply
+// turns. It is jewellery first; the phone story below is the "why", and it lands harder once
+// someone already wants the thing. The rest of the timeline is compressed into what remains,
+// so every downstream phase keeps its existing tuning untouched.
+const OBJECT_FRAC = 0.13;
 const PHONE_FRAC = 0.20;           // first 20% of the section = the phone → contacts → beads story
 const PHONE_NODE = [0, 6, 7, 2, 3];   // bead node each pinned contact becomes (Mom·Dad·Priscilla·Sylvester·Phoebe = GATHER_NODE[1..5])
 const PHONE_OTHERS = [1, 4, 5];    // the remaining beads, fading into the picture after the five land
@@ -157,6 +162,19 @@ function init() {
   spin.add(orient);
   scene.add(spin);
   let modelR = 10;
+  // OBJECT MODE: the hero's opening phase reuses the gather machinery so a tap can summon a
+  // receiver, but WITHOUT the cluster's staging — YOU stays at the hero bracelet's exact size
+  // and position, the exposure lift is off, and every instructional overlay stays hidden.
+  let objectMode = false;
+  /* The object phase says what the piece IS, one line at a time — an ambient cycle under the
+     title, not a prompt. Each line is a pair so the second clause can carry the gold. */
+  const OBJ_LINES = [
+    ["Six beads.",     "One quiet channel."],
+    ["Touch a bead.",  "They feel it."],
+    ["Speak to it.",   "They hear your echo."]
+  ];
+  const OBJ_IN = 0.7, OBJ_HOLD = 2.9, OBJ_OUT = 0.7, OBJ_SPAN = OBJ_IN + OBJ_HOLD + OBJ_OUT;
+  let subEl = null, subIdx = -1, subBase = "";
   let gatherGroup = null; const gatherInstances = [];   // the 6 bracelet clones for the gather cluster
   const gSpin = [], gVel = [], gBuzz = [], gTarget = [], gSnapping = [], gPitch = [];   // spin · velocity · pulse · snap target · snapping · bottom-row upward tilt
   const gCalled = new Array(GATHER_N).fill(-99);       // idle-time each background bracelet was last summoned to receive (drives its step-forward)
@@ -356,7 +374,7 @@ function init() {
       gSpin[i] = gTarget[i] = endSpin; gVel[i] = 0; gBuzz[i] = null; gSnapping[i] = false;
       const engMat = engraveHubName(mc, GATHER_NAME[i]);   // the name is etched into the hub's flat underside — part of the bracelet, turns with it
       if (engMat) mats.push(engMat);                      // …and fades with it
-      gatherInstances.push({ pivot, spin: sp, mc, beadMat, beadMeshes, platOf, mats, basinMat, hubMeshes, threadMeshes, threadStrands, threadBeads, bodyMat: matMap.get(matBlack) || null, _shakeNode: -1, _whipped: false });
+      gatherInstances.push({ pivot, spin: sp, mc, beadMat, beadMeshes, platOf, mats, engMat, basinMat, hubMeshes, threadMeshes, threadStrands, threadBeads, bodyMat: matMap.get(matBlack) || null, _shakeNode: -1, _whipped: false });
     }
     makeEchoCanvas();
     // all bracelets keep the same (uniform) facing; the BOTTOM row alone pitches up so its beads angle up, not down.
@@ -858,6 +876,7 @@ function init() {
 
   function initPhone() {
     wpPromptEl = $("#wpPrompt"); wpCaptionEl = $("#wpCaption"); wpKeepEl = $("#wpKeep");
+    subEl = $("#heroSub"); if (subEl && !subBase) subBase = subEl.innerHTML;
     buildPhone3D();
     model.traverse((o) => {
       if (!o.isMesh) return;
@@ -949,14 +968,15 @@ function init() {
   // compact 2×3 cluster, then each floats on its own gentle (unsynchronised) bob. Hero text fades.
   function updateGather(g) {
     if (!gatherGroup) return;
-    renderer.toneMappingExposure = 1.12 + 0.62 * g;   // lift the matte beads out of the dark as they cluster
-    if (g > 0.0015 && outro) { const oo = clamp(1 - smooth(0.0, 0.18, g), 0, 1); outro.style.opacity = String(oo); outro.style.pointerEvents = oo > 0.5 ? "auto" : "none"; }
+    renderer.toneMappingExposure = objectMode ? 1.12 : 1.12 + 0.62 * g;   // lift the matte beads out of the dark as they cluster
+    if (objectMode && outro) { outro.style.opacity = "0"; outro.style.pointerEvents = "none"; }
+    if (!objectMode && g > 0.0015 && outro) { const oo = clamp(1 - smooth(0.0, 0.18, g), 0, 1); outro.style.opacity = String(oo); outro.style.pointerEvents = oo > 0.5 ? "auto" : "none"; }
     let recvPres = 0;   // the strongest step-forward among the five receivers → the header yields + the frame opens
     for (let j = 1; j < GATHER_N; j++) recvPres = Math.max(recvPres, presenceEnv(idle - gCalled[j]));
     gRecvPres = recvPres;
     if (gConn) { gConn.pres = presenceEnv(idle - gCalled[gConn.p]); if (gConn.pres <= 0.001) gConn = null; }   // the bond lives while they're together
-    if (gatherGuideEl) gatherGuideEl.style.opacity = String(clamp(smooth(0.42, 0.8, g) * (1 - recvPres), 0, 1));   // guide fades in as the bracelets settle, and yields when a receiver steps up top
-    if (window.__coach) window.__coach.setGather(g);   // first-run coach marks: freeze-frame + walk the gestures once
+    if (gatherGuideEl) gatherGuideEl.style.opacity = objectMode ? "0" : String(clamp(smooth(0.42, 0.8, g) * (1 - recvPres), 0, 1));   // guide fades in as the bracelets settle, and yields when a receiver steps up top
+    if (window.__coach && !objectMode) window.__coach.setGather(g);   // first-run coach marks: freeze-frame + walk the gestures once
     const show = g > 0.0015;
     gatherGroup.visible = show; spin.visible = !show;          // hand off from the hero original to the clones
     for (const id of ["#hubLabels", "#beadLabels", "#beadWords"]) { const h = $(id); if (h) h.style.opacity = show ? "0" : ""; }
@@ -969,7 +989,8 @@ function init() {
     const RN = GATHER_N - 1;
     const portrait = camera.aspect < 1;   // mobile → receivers top/bottom; desktop → receivers ring AROUND YOU (sides)
     camera.getWorldDirection(_gfwd);                                                    // into the scene (away from camera) — depth axis
-    const eIn = smooth(0.06, 0.7, g), entr = eIn * eIn * (3 - 2 * eIn);                 // the whole stage blooms in as g→1
+    const eIn = smooth(0.06, 0.7, g);
+    const entr = objectMode ? 1 : eIn * eIn * (3 - 2 * eIn);          // the whole stage blooms in as g→1; object mode is already 'there'
     const breathe = matGlow.emissiveIntensity;
     for (let i = 0; i < GATHER_N; i++) {
       const inst = gatherInstances[i];
@@ -980,10 +1001,13 @@ function init() {
       const pl = bb ? Math.sin(Math.min((idle - bb.t0) / 0.7, 1) * Math.PI) : 0;
       // ---- POSE + FADE: YOU is always here; the others are INVISIBLE in the background and fade in only as they
       //      step forward to receive (opacity == presence), then fade back out and vanish. ----
-      const pres = (i === 0) ? 1 : presenceEnv(idle - gCalled[i]);   // 0 = gone, 1 = up-front receiving
+      const pres = (i === 0) ? 1 : presenceEnv(idle - gCalled[i]);
       inst.pivot.visible = pres > 0.004;
       if (!inst.pivot.visible) { inst._shakeNode = -1; continue; }   // fully faded out → skip (nothing to draw)
-      for (const m of inst.mats) m.opacity = pres;                   // EVERY part crosses the same hashed-alpha coverage together → the bracelet dissolves in/out as ONE unit
+      for (const m of inst.mats) m.opacity = pres;
+      // In the object phase the bracelet is not labelled — it is simply the piece. The names
+      // belong to the cluster further down, where they identify who is who.
+      if (objectMode && inst.engMat) inst.engMat.opacity = 0;                   // EVERY part crosses the same hashed-alpha coverage together → the bracelet dissolves in/out as ONE unit
       if (inst.basinMat) inst.basinMat.opacity = pres;               // the button (not in `mats`) fades on the same uniform curve
       // RECEIVER PARITY: lift ONLY a summoned receiver's bead bodies with a faint warm self-glow (× presence), so DAD
       // reads as bright as YOU even sitting low in the dark. YOU (i===0) is exempt — it already basks in the warm pool.
@@ -991,7 +1015,7 @@ function init() {
       let U, R, F, pivScale;
       if (i === 0) {
         U = 0; R = 0; F = 0;                                                             // YOU stays dead-centre + bright
-        pivScale = lerp(1, GATHER_YOU_SCALE, entr);                                       // SEAMLESS hand-off (#4): enters at the hero bracelet's EXACT size (1), eases to YOU's cluster size — no pop-in
+        pivScale = objectMode ? 1 : lerp(1, GATHER_YOU_SCALE, entr);   // object mode: stay exactly the hero bracelet's size                                       // SEAMLESS hand-off (#4): enters at the hero bracelet's EXACT size (1), eases to YOU's cluster size — no pop-in
       } else {
         const th = (i - 1) * (TAU / RN) + Math.PI / RN;                                  // its fixed slot on the ring
         // WHERE it settles: PORTRAIT → directly above/below YOU (narrow screen); LANDSCAPE → around YOU, out to the
@@ -1195,7 +1219,39 @@ function init() {
   composer.addPass(bloom);
   composer.addPass(new OutputPass());
 
-  function update(rawP) {
+  /* Cross-fade the object phase's three lines through the hero's own sub-line, so nothing new
+     is added to the layout. Restores the original copy the moment the phase ends. */
+  function cycleObjectLine(on) {
+    if (!subEl) return;
+    if (!on) {
+      if (subIdx !== -1) { subEl.innerHTML = subBase; subEl.style.opacity = ""; subIdx = -1; }
+      return;
+    }
+    const t = idle % (OBJ_LINES.length * OBJ_SPAN);
+    const i = Math.floor(t / OBJ_SPAN), u = t - i * OBJ_SPAN;
+    if (i !== subIdx) {
+      subIdx = i;
+      subEl.innerHTML = OBJ_LINES[i][0] + ' <span class="gold-ink">' + OBJ_LINES[i][1] + "</span>";
+    }
+    const op = u < OBJ_IN ? u / OBJ_IN
+             : u < OBJ_IN + OBJ_HOLD ? 1
+             : Math.max(0, 1 - (u - OBJ_IN - OBJ_HOLD) / OBJ_OUT);
+    subEl.style.opacity = String(op);
+  }
+
+  function update(rawP0) {
+    // The object phase owns the first OBJECT_FRAC of scroll; everything that follows is the
+    // original timeline, rescaled into the remainder so its tuning still holds.
+    const objP = clamp(rawP0 / OBJECT_FRAC, 0, 1);
+    const inObject = objP < 1;
+    // THE OBJECT. Do not reconstruct a bracelet here — the timeline already produces a
+    // perfectly assembled one at the end of its threading/settle run (hub in place, cord
+    // closed, every bead restored, camera in the tuned product-shot framing). So the object
+    // phase simply RENDERS THAT STATE and turns it. Rebuilding it by hand is what dropped the
+    // hub (mainBead holds beads only) and glitched akoma_ntoaso (setupExplode reparents its
+    // meshes, so restoring from mainBead cannot put it back).
+    const rawP = inObject ? HERO_FRAC
+                          : clamp((rawP0 - OBJECT_FRAC) / (1 - OBJECT_FRAC), 0, 1);
     // scroll timeline: [0..PHONE_FRAC] the phone story → [PHONE_FRAC..HERO_FRAC] the existing hero anim
     // (threading → reveals → settle) → [HERO_FRAC..GATHER_END] the gather → dwell to 1.
     const phP = Math.min(1, rawP / PHONE_FRAC);
@@ -1259,7 +1315,9 @@ function init() {
     dropClusterY = (-DROP_DIST * dFall + dBounce) * modelR;
     const camY = -DROP_DIST * smooth(0, DROP_CAMLAG, fg) * modelR;
     if (gatherGroup) gatherGroup.position.set(0, dropClusterY, 0);
-    placeCamera(settle, fg, camY);
+    // When someone is summoned in the object phase, ease the framing out to the gather fit so
+    // the arriving bracelet is actually in shot, and let it close again as they recede.
+    placeCamera(settle, objectMode ? gRecvPres : fg, camY);
     threadAmbient(smooth(0.04, 0.16, anim) * (1 - smooth(0.86, 1.0, anim)) * (1 - Math.min(1, fg * 3)));   // slight ambient pad while the bracelet threads (off during phone / drop)
     for (const rv of reveals) {
       if (rv._e > 0.06 && (rv._prevE || 0) <= 0.06) explodeSound();   // the CAD assembly opens → a slight airy reveal whoosh
@@ -1273,9 +1331,20 @@ function init() {
     // bracelet plane — but the cord and every bead's bus holes lie in one plane, so the hub must
     // stay in that plane too (exactly where it's threaded). It keeps its natural threaded
     // orientation through the settle, coplanar with the beads, so the cord stays in the bus holes.
-    overlay(anim, Math.min(1, rawP / HERO_FRAC), fg);   // intro/cue fade on RAW scroll; the "Five people" outro fades as the FALL starts (held through DROP_HOLD_F)
+    // In the object phase rawP is pinned to HERO_FRAC (we are rendering the settled state), which
+    // the intro fade would read as "long past the intro" and hide the title. Drive it from the
+    // object phase's own progress instead: hold the copy up, then clear it as the phone story arrives.
+    const introDrive = objectMode ? 0.035 + 0.05 * smooth(0.72, 1.0, objP)
+                                  : Math.min(1, rawP / HERO_FRAC);
+    overlay(anim, introDrive, fg);   // intro/cue fade on RAW scroll; the "Five people" outro fades as the FALL starts (held through DROP_HOLD_F)
     updatePhone(phP);
-    updateGather(fg);
+    // Hand the object phase to the gather rig (YOU == the hero bracelet, unchanged in size or
+    // place) so that tapping a bead can summon a receiver. Nothing is announced: the bracelet
+    // just turns, and a touch is the only thing that reveals there is someone on the other end.
+    objectMode = inObject;
+    if (inObject) gSpin[0] = SPIN_PHASE + idle * 0.16;   // the settled bracelet, simply turning
+    cycleObjectLine(inObject);
+    updateGather(inObject ? 1 : fg);
   }
 
   let raf = 0;
@@ -1351,7 +1420,7 @@ function init() {
   }
   const clearHold = () => { if (gHoldTimer) { clearTimeout(gHoldTimer); gHoldTimer = null; } };
   canvas.addEventListener("pointerdown", (ev) => {
-    if (gLast < 0.90) return;                    // interactive across the whole dwell (gather is pinned at 1 from 0.90)
+    if (gLast < 0.90 && !objectMode) return;
     const pick = gPickBead(ev); if (pick.i !== 0) return;   // only the big central YOU bracelet is interactive; the others are backgrounded
     const i = 0;
     audioCtx();   // wake the AudioContext inside this gesture so the hold-fired Echo is allowed to sound
