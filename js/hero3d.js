@@ -1802,10 +1802,14 @@ function init() {
   // hero keeps showing the bracelet they made.
   // ==================================================================
   const BOX_AZ = 26, BOX_EL = 12.5;         // three-quarter view — straight-on, a clear cube reads as a flat rectangle
-  const BOX_TURN = 0.11;                    // rad/s — the turntable's display rotation
-  const BOX_APPEAR = 0.9, BOX_DROP_AT = 1.05, BOX_DROP_T = 0.5, BOX_PANEL_AT = 1.7;
-  let boxMode = false, boxT0 = 0, boxGroup = null, boxPlate = null, boxRestY = 0, boxSide = 0, boxWallH = 0, boxBaseTh = 0, boxFloorY = 0, boxCY = 0;
-  let boxSpin = 0, boxSpinTgt = null, boxThudded = false, boxCamFrom = null, boxFront = null, boxFlare = null;
+  const BOX_TURN = 0.045;                   // rad/s — the display turn, unhurried (a full turn ≈ 2¼ min)
+  // The choreography is PINOCYTOSIS, not gravity: the bracelet never falls. It hangs where it is,
+  // breathing on a slow bob, and the vitrine rises up AROUND it — the rim passes the piece and
+  // the box has swallowed it, the way a vesicle engulfs its cargo. So the piece floats mid-box
+  // (which is also why it no longer sits on the plate), and the plate below just lights it.
+  const BOX_ENGULF_AT = 0.25, BOX_ENGULF_T = 2.8, BOX_CAM_T = 2.4, BOX_PANEL_AT = 3.1;
+  let boxMode = false, boxT0 = 0, boxGroup = null, boxPlate = null, boxSide = 0, boxWallH = 0, boxBaseTh = 0, boxFloorY = 0, boxCY = 0;
+  let boxSpin = 0, boxSpinTgt = null, boxSounded = false, boxCamFrom = null, boxFront = null, boxFlare = null;
   let groundMesh = null, designApplied = false;
   const boxPlatMat = {};                    // node -> this mode's own platform material (colourable per person)
 
@@ -1816,10 +1820,10 @@ function init() {
     boxSide = Math.max(bb.max.x - bb.min.x, bb.max.z - bb.min.z) * 1.14;
     boxWallH = boxSide * 0.62;
     boxBaseTh = boxSide * 0.15;
-    const drop = 0.85 * modelR;
-    boxRestY = -drop;                       // orient.position.y once landed — the piece's lowest point meets the plate
-    boxFloorY = bb.min.y - drop;
-    boxCY = boxFloorY + boxWallH * 0.4;     // what the box camera looks at
+    // the piece FLOATS: the plate sits far enough below that the bracelet hangs at ~mid-height
+    // of the glass, and the walls clear it above
+    boxFloorY = bb.min.y - boxWallH * 0.30;
+    boxCY = boxFloorY + boxWallH * 0.44;    // what the box camera looks at
     boxGroup = new THREE.Group();
     const base = new THREE.Mesh(new THREE.BoxGeometry(boxSide * 1.06, boxBaseTh, boxSide * 1.06),
       new THREE.MeshStandardMaterial({ color: 0xd8d9dc, roughness: 0.5, metalness: 0.3, envMapIntensity: 0.7 }));
@@ -1830,14 +1834,18 @@ function init() {
       new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xffffff, emissiveIntensity: 0.34, roughness: 0.4, metalness: 0 }));
     boxPlate.position.y = boxFloorY - boxBaseTh * 0.07;   // its TOP face is the lit floor the piece lands on
     boxPlate.receiveShadow = true;
-    // acrylic: nearly invisible faces + bright EDGES — the edges are what sell "clear box"
+    // GLASS. Not `transmission` — that renders through the renderer's transmission buffer, which
+    // under this pipeline (alpha canvas + EffectComposer) resolves WHITE and turned every pane
+    // into frosted milk. Glass over a black stage is sold by absence + edges instead: panes at
+    // near-zero opacity with a faint cool tint and a whisper of env sheen, and BRIGHT edge lines.
     const walls = new THREE.Mesh(new THREE.BoxGeometry(boxSide, boxWallH, boxSide),
-      new THREE.MeshPhysicalMaterial({ color: 0xffffff, transparent: true, opacity: 0.03, roughness: 0.02, metalness: 0,
-        envMapIntensity: 0.18, specularIntensity: 0.08, side: THREE.DoubleSide, depthWrite: false }));   // env + specular kept LOW — the env sun and the vitrine spot both printed hot white blobs on the glass
+      new THREE.MeshPhysicalMaterial({ color: 0xdfe9ff, metalness: 0, roughness: 0.05,
+        transparent: true, opacity: 0.028, envMapIntensity: 0.12, specularIntensity: 0.15,
+        side: THREE.DoubleSide, depthWrite: false }));
     walls.position.y = boxFloorY + boxWallH / 2;
     walls.renderOrder = 3;
     const edges = new THREE.LineSegments(new THREE.EdgesGeometry(walls.geometry),
-      new THREE.LineBasicMaterial({ color: 0xf2f4f8, transparent: true, opacity: 0.65 }));
+      new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.85 }));
     edges.position.copy(walls.position);
     edges.renderOrder = 4;
     // the vitrine's own downlight — a museum spot from above, so the piece is LIT on the plate
@@ -1918,7 +1926,7 @@ function init() {
     if (gatherGroup) gatherGroup.visible = false;
     spin.visible = true;
     if (cutEl) cutEl.style.opacity = "0";
-    boxMode = true; boxT0 = idle; boxThudded = false; boxFlare = null;
+    boxMode = true; boxT0 = idle; boxSounded = false; boxFlare = null;
     boxSpin = spin.rotation.y; boxSpinTgt = null;
     boxGroup.visible = true;
     boxCamFrom = { pos: camera.position.clone(), tgt: new THREE.Vector3(0, 0, 0) };
@@ -1979,29 +1987,22 @@ function init() {
 
   function updateBox() {
     const t = reduce ? 99 : idle - boxT0;
-    // the vitrine rises from below while the piece lifts slightly — anticipation before the drop
-    const up = smooth(0, BOX_APPEAR, t);
-    boxGroup.position.y = (1 - up) * (-2.6 * modelR);
-    let y = 0.3 * modelR * smooth(0.1, BOX_APPEAR, t);
-    if (t >= BOX_DROP_AT) {
-      const u = clamp((t - BOX_DROP_AT) / BOX_DROP_T, 0, 1);
-      if (u > 0 && !boxThudded && u < 0.05) dropWhoosh();
-      y = 0.3 * modelR + (boxRestY - 0.3 * modelR) * u * u;     // gravity — t² accel into the box
-      if (u >= 1) {
-        if (!boxThudded) { boxThudded = true; dropThud(); try { if (navigator.vibrate) navigator.vibrate([0, 40, 60, 24]); } catch (e) {} }
-        const s = clamp((t - BOX_DROP_AT - BOX_DROP_T) / 0.4, 0, 1);   // one soft arch of rebound
-        y = boxRestY + 0.1 * modelR * 4 * s * (1 - s);
-      }
-    }
-    if (reduce) y = boxRestY;
-    orient.position.y = y;
-    // the turntable: a slow display turn; selecting a person eases their bead round to the front
+    // THE PIECE: it never falls. A slight rise as the mode opens — it lets go of the page — then
+    // a slow weightless bob, as if suspended in the display field.
+    const float = smooth(0, 1.6, t);
+    orient.position.y = float * (0.1 * modelR + (reduce ? 0 : 0.045 * modelR * Math.sin(idle * 0.5)));
+    // THE BOX: rises from far below and swallows the floating piece — slow in, slow out, the rim
+    // passing the bracelet mid-travel. One soft rising breath of air as it begins.
+    const eng = smooth(BOX_ENGULF_AT, BOX_ENGULF_AT + BOX_ENGULF_T, t);
+    boxGroup.position.y = (1 - eng) * (-3.4 * modelR);
+    if (!boxSounded && t >= BOX_ENGULF_AT) { boxSounded = true; if (!reduce) dropRise(); }
+    // the turntable: an unhurried display turn; selecting a person eases their bead to the front
     const dt = 0.016;
     if (boxSpinTgt != null) {
       const d = angDelta(boxSpin, boxSpinTgt);
-      boxSpin += d * Math.min(1, 6.5 * dt);
+      boxSpin += d * Math.min(1, 5 * dt);
       if (Math.abs(d) < 0.012) boxSpinTgt = null;
-    } else if (boxThudded || reduce) boxSpin += BOX_TURN * dt;
+    } else boxSpin += BOX_TURN * dt;
     spin.rotation.y = boxSpin;
     // lights: each person's platform breathes; a pulse flares the tapped bead briefly
     for (const node in boxPlatMat) {
@@ -2015,7 +2016,7 @@ function init() {
       m.emissiveIntensity = v;
     }
     boxPlate.material.emissiveIntensity = 0.34 + 0.025 * Math.sin(idle * 0.7);
-    boxCamera(reduce ? 1 : smooth(0, 1.25, t));
+    boxCamera(reduce ? 1 : smooth(0, BOX_CAM_T, t));
   }
 
   window.__hero.box = {
