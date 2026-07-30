@@ -178,6 +178,7 @@ function init() {
   let gatherGroup = null; const gatherInstances = [];   // the 6 bracelet clones for the gather cluster
   const gSpin = [], gVel = [], gBuzz = [], gTarget = [], gSnapping = [], gPitch = [];   // spin · velocity · pulse · snap target · snapping · bottom-row upward tilt
   const gCalled = new Array(GATHER_N).fill(-99);       // idle-time each background bracelet was last summoned to receive (drives its step-forward)
+  let gManyUp = false;   // more than one receiver up (SOS) — the frame must fit the fanned ring, not one caller
   let gRecvPres = 0;                                    // strongest receiver step-forward this frame → the camera opens the frame to share it with YOU
   let dropClusterY = 0;                                 // the gravity-drop's current world-Y offset of the cluster (0 = hero table, −DROP_DIST·modelR = landed)
   let dropGd = 0, _dropPrevIdle = 0, _prevFg = 0;       // bidirectional time-based drop: gd eases toward a scroll-set target (0 = up on the hero table ↔ 1 = fully landed); _prevFg tracks the fall for one-shot SFX
@@ -192,7 +193,7 @@ function init() {
     const t = (age - PRESENCE_IN - PRESENCE_HOLD) / PRESENCE_OUT; return 1 - t * t * (3 - 2 * t);
   };
   const frontAngleOf = {};                             // bead node → spin angle that faces it to the camera
-  let gLast = 0, gDragging = -1, gDownX = 0, gDownY = 0, gDownNode = -1, gMoved = false, gVertScroll = false, gLastX = 0;   // interaction state (gDownNode: the bead under the finger at press; gDownY: radial tap-slop origin; gVertScroll: a vertical gesture handed to the page)
+  let gLast = 0, gDragging = -1, gDownX = 0, gDownY = 0, gDownNode = -1, gDownHub = false, gMoved = false, gVertScroll = false, gLastX = 0;   // interaction state (gDownNode: the bead under the finger at press; gDownY: radial tap-slop origin; gVertScroll: a vertical gesture handed to the page)
   let gEcho = null, gHoldTimer = null, gHeld = false;                      // Echo (press-and-hold) state
   // ---- opening phone story state ----
   let wpPromptEl = null, wpCaptionEl = null, wpKeepEl = null;              // the gold scroll invitation, the "Only the few you carry" payoff, and the persistent "keep scrolling" cue (DOM overlays; the phone itself is real 3-D)
@@ -249,7 +250,10 @@ function init() {
     // or shrinks when a receiver steps in. PORTRAIT: receiver goes top/bottom → reserve vertical room only. LANDSCAPE:
     // receiver rings AROUND YOU (out to the sides) → reserve room on BOTH axes so a side receiver never clips.
     let halfW, halfH;
-    if (portrait) { halfW = bHalfW; halfH = GATHER_RECV_UP * modelR + bHalfV; }
+    // portrait normally reserves room for ONE receiver above/below. On SOS the circle fans out
+    // on both axes (see updateGather), so the frame has to open for the whole ring instead.
+    if (portrait && gManyUp) { halfW = GATHER_RECV_H * 0.40 * modelR + bHalfW; halfH = GATHER_RECV_V * 1.02 * modelR + bHalfV; }
+    else if (portrait) { halfW = bHalfW; halfH = GATHER_RECV_UP * modelR + bHalfV; }
     else { halfW = GATHER_RECV_H * modelR + bHalfW; halfH = GATHER_RECV_V * modelR + bHalfV; }
     const wFill = portrait ? 0.94 : 0.9;
     const hFill = portrait ? 0.9 : 0.88;
@@ -257,11 +261,25 @@ function init() {
     const dH = halfH / (vHalf * hFill);
     return Math.max(dW, dH);
   }
+  /* Same arithmetic as gatherFitDist, but for ONE bracelet with no receiver room reserved —
+     so the object phase frames the piece to the viewport it is actually in. The fixed
+     CAM_DIST_END is tuned for desktop and over-zooms badly in portrait. */
+  function objectFitDist() {
+    const vHalf = Math.tan(camera.fov * 0.5 * DEG);
+    const aspect = Math.max(camera.aspect, 0.05), portrait = aspect < 1;
+    const bHalfV = 0.62 * modelR, bHalfW = 1.08 * modelR;   // scale 1 here, not GATHER_YOU_SCALE
+    const wFill = portrait ? 0.84 : 0.62;   // leave the title its room; on desktop it shares the frame
+    const hFill = portrait ? 0.42 : 0.66;   // portrait: the title owns the top, so sit smaller
+    return Math.max(bHalfW / (vHalf * aspect * wFill), bHalfV / (vHalf * hFill));
+  }
   function placeCamera(settle = 0, g = 0, dropY = 0) {
     const az = (CAM_AZ + Math.sin(idle * 0.18) * 0.7 * (1 - settle) * (1 - g)) * DEG;   // idle sway fades out as we settle
     const el = (CAM_EL + (CAM_EL_END - CAM_EL) * settle) * DEG;               // rise toward the top-front edge
     let d = (3.15 + (CAM_DIST_END - 3.15) * settle) * modelR;                  // pull back to frame the whole bracelet
     let pan = CAM_PAN_END * modelR * settle;   // pan the framing DOWN so the bracelet rises into the upper frame
+    // THE OBJECT sits DEAD CENTRE and fits whatever viewport it is in: CAM_PAN_END exists to lift
+    // the bracelet into the upper frame for the settle, which is wrong for the opening.
+    if (objectMode) { d = objectFitDist(); pan = 0; }
     if (g > 0) { d = lerp(d, gatherFitDist(), g); pan = lerp(pan, 0, g); }   // gather: aim dead-centre on YOU; the frame is STATIC (never chases a receiver), so YOU never moves (#3)
     const ce = Math.cos(el);
     camera.position.set(Math.cos(az) * ce * d, Math.sin(el) * d - pan + dropY, Math.sin(az) * ce * d);
@@ -429,6 +447,29 @@ function init() {
   }
   // the directed ping: tap a bead on YOUR bracelet → THAT bead's person steps forward, spins to YOUR bead, lights + vibrates it.
   // pTarget is the person the tapped bead stands for; if omitted (e.g. a non-bead tap) fall back to the front person.
+  /* SOS. Pressing the hub button is not a message to one person — it calls the whole circle in
+     at once, every bracelet arriving with the bead that stands for YOU buzzing on their wrist.
+     Deliberately does NOT go through callReceiver(), whose whole job is to keep exactly one
+     receiver up front; here they all come. The frame opens on its own because gRecvPres hits 1. */
+  function sosAll(owner) {
+    const ownNode = GATHER_NODE[owner];
+    let staggered = 0;
+    for (let j = 1; j < GATHER_N; j++) {
+      if (j === owner) continue;
+      gCalled[j] = idle;                                        // all of them, together
+      gTarget[j] = gSpin[j] + angDelta(gSpin[j], frontAngleOf[ownNode]);
+      gSnapping[j] = true;                                      // each turns YOUR bead to the front
+      const d = 0.06 * staggered++;                             // a beat apart so it reads as a wave, not a blink
+      setTimeout(() => { gBuzz[j] = { node: ownNode, t0: idle, hue: GATHER_HUE[owner] }; }, d * 1000);
+    }
+    gConn = null;                                               // this is not a one-to-one bond
+    gBuzz[owner] = { node: ownNode, t0: idle, hue: GATHER_HUE[owner] };
+    try { if (navigator.vibrate) navigator.vibrate([0, 90, 70, 90, 70, 160]); } catch (e) {}
+    buzzSound(GATHER_NOTE[owner], 0.11);
+    setTimeout(() => buzzSound(GATHER_NOTE[owner] * 1.5, 0.09), 150);
+    setTimeout(() => buzzSound(GATHER_NOTE[owner] * 2.0, 0.08), 300);
+  }
+
   function gReach(owner, pTarget) {
     if (window.__coach) window.__coach.done("tap");   // coach: a real tap completes the Tap step
     const p = (pTarget != null && pTarget >= 0) ? pTarget : frontPerson(gSpin[owner]); if (p < 0) return;
@@ -972,14 +1013,26 @@ function init() {
     if (objectMode && outro) { outro.style.opacity = "0"; outro.style.pointerEvents = "none"; }
     if (!objectMode && g > 0.0015 && outro) { const oo = clamp(1 - smooth(0.0, 0.18, g), 0, 1); outro.style.opacity = String(oo); outro.style.pointerEvents = oo > 0.5 ? "auto" : "none"; }
     let recvPres = 0;   // the strongest step-forward among the five receivers → the header yields + the frame opens
-    for (let j = 1; j < GATHER_N; j++) recvPres = Math.max(recvPres, presenceEnv(idle - gCalled[j]));
-    gRecvPres = recvPres;
+    let recvUp = 0;
+    for (let j = 1; j < GATHER_N; j++) { const pj = presenceEnv(idle - gCalled[j]); recvPres = Math.max(recvPres, pj); if (pj > 0.02) recvUp++; }
+    const many = recvUp > 1;   // SOS: the whole circle at once, not one caller
+    gRecvPres = recvPres; gManyUp = many;
     if (gConn) { gConn.pres = presenceEnv(idle - gCalled[gConn.p]); if (gConn.pres <= 0.001) gConn = null; }   // the bond lives while they're together
     if (gatherGuideEl) gatherGuideEl.style.opacity = objectMode ? "0" : String(clamp(smooth(0.42, 0.8, g) * (1 - recvPres), 0, 1));   // guide fades in as the bracelets settle, and yields when a receiver steps up top
     if (window.__coach && !objectMode) window.__coach.setGather(g);   // first-run coach marks: freeze-frame + walk the gestures once
     const show = g > 0.0015;
-    gatherGroup.visible = show; spin.visible = !show;          // hand off from the hero original to the clones
-    for (const id of ["#hubLabels", "#beadLabels", "#beadWords"]) { const h = $(id); if (h) h.style.opacity = show ? "0" : ""; }
+    // Normally the clones take over from the hero original. In OBJECT MODE we keep the ORIGINAL
+    // visible instead, because the exploded-bead rig (setupExplode) lives on it — the clones have
+    // no such rig. The gather group stays live so receivers can still be summoned; YOU's own clone
+    // is simply held invisible (see the pres line below) so we are not drawing two bracelets.
+    gatherGroup.visible = show; spin.visible = objectMode ? true : !show;
+    // These hosts are killed once the clones take over, so callouts can't float over the wrong
+    // bracelet. OBJECT MODE is the exception for #beadLabels: the bead reveal IS running there (on
+    // the original), so its "Touch / Light / A pulse" callouts have to come through.
+    for (const id of ["#hubLabels", "#beadLabels", "#beadWords"]) {
+      const h = $(id); if (!h) continue;
+      h.style.opacity = (show && !(objectMode && id === "#beadLabels")) ? "0" : "";
+    }
     if (!show) return;
     camera.updateMatrixWorld(true);
     const right = new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 0);   // screen-right
@@ -1001,7 +1054,7 @@ function init() {
       const pl = bb ? Math.sin(Math.min((idle - bb.t0) / 0.7, 1) * Math.PI) : 0;
       // ---- POSE + FADE: YOU is always here; the others are INVISIBLE in the background and fade in only as they
       //      step forward to receive (opacity == presence), then fade back out and vanish. ----
-      const pres = (i === 0) ? 1 : presenceEnv(idle - gCalled[i]);
+      const pres = (i === 0) ? (objectMode ? 0 : 1) : presenceEnv(idle - gCalled[i]);   // object mode draws the ORIGINAL, so YOU's clone stays hidden
       inst.pivot.visible = pres > 0.004;
       if (!inst.pivot.visible) { inst._shakeNode = -1; continue; }   // fully faded out → skip (nothing to draw)
       for (const m of inst.mats) m.opacity = pres;
@@ -1021,7 +1074,8 @@ function init() {
         // WHERE it settles: PORTRAIT → directly above/below YOU (narrow screen); LANDSCAPE → around YOU, out to the
         // SIDES at its own ring angle. Its slot never changes — it's simply revealed there.
         let tU, tR;
-        if (portrait) { tU = (Math.cos(th) >= 0 ? 1 : -1) * GATHER_RECV_UP; tR = 0; }
+        if (portrait && many) { tU = Math.cos(th) * GATHER_RECV_V * 1.02; tR = Math.sin(th) * GATHER_RECV_H * 0.40; }
+        else if (portrait) { tU = (Math.cos(th) >= 0 ? 1 : -1) * GATHER_RECV_UP; tR = 0; }
         else { tU = Math.cos(th) * GATHER_RECV_V; tR = Math.sin(th) * GATHER_RECV_H; }
         // SUBTLE reveal — the bracelet was ALWAYS there; pressing just reveals it. NO travel: it holds its slot and
         // fades in (opacity == pres), with only a whisper of scale + a hair of depth. Never dragged in from afar.
@@ -1147,6 +1201,7 @@ function init() {
 
   // ---- overlay ----
   const intro = $("#heroIntro"), outro = $("#heroOutro"), cue = $("#heroCue"), bar = $("#heroProgress span");
+  const heroCta = $("#heroCta");   // the opening CTAs, pinned bottom-centre; fades with the intro copy
   const gatherGuideEl = $("#gatherGuide");
   const capWrap = $("#heroCaption"), capK = capWrap?.querySelector(".hc-kicker"), capT = capWrap?.querySelector(".hc-title"), capL = capWrap?.querySelector(".hc-line");
   // Scene-tied hero narrative — captions are PINNED to what the bracelet is doing (not spread evenly), so each
@@ -1167,6 +1222,7 @@ function init() {
     const introOp = 1 - smooth(0.035, 0.085, rawP == null ? p : rawP);
     if (intro) intro.style.opacity = introOp;
     if (cue) cue.style.opacity = introOp;
+    if (heroCta) { heroCta.style.opacity = introOp; heroCta.style.pointerEvents = introOp > 0.5 ? "auto" : "none"; }
     section.style.setProperty("--intro-op", String(introOp));   // light-mode hero veil fades WITH the intro copy
     const outOp = smooth(0.9, 0.99, p) * (1 - smooth(0.04, 0.34, gd));   // "Five people" rises at the settle, then fades as the drop plays
     // the touch-demo takes over the outro fade once you scroll into it (suppressOutro); default off = unchanged
@@ -1239,6 +1295,31 @@ function init() {
     subEl.style.opacity = String(op);
   }
 
+  /* One bead, opening and closing on a loop while the object turns.
+     IMPORTANT: `_e` is NOT "how open" — updateExplode carries its OWN open/hold/close envelope
+     across e = 0 -> 1 (tilt up by .28, split out by .46, hold to .66, reassemble by .9). So e = 1
+     is CLOSED AGAIN, not open. What this returns is therefore a RAMP through that envelope, with
+     the segment boundaries stretched so the open state gets the longest dwell — and a beat of rest
+     at each end, because the piece should read as jewellery before it reads as engineering. */
+  const OBJ_EX_PERIOD = 13.0;
+  const OBJ_TURN = 0.16;                       // rad/s — the object's slow turn
+  let objTurn = SPIN_PHASE, objTurnPrev = 0;
+  const OBJ_EX_SEG = [
+    [0.00, 0.14, 0,    0   ],   // rest, assembled
+    [0.14, 0.34, 0,    0.46],   // tilt up + split out
+    [0.34, 0.62, 0.46, 0.66],   // held open — the long look
+    [0.62, 0.84, 0.66, 1   ],   // reassemble + tilt back
+    [0.84, 1.00, 1,    1   ]    // rest (e = 1 is assembled)
+  ];
+  function objExplodeEnv(t) {
+    const u = (t % OBJ_EX_PERIOD) / OBJ_EX_PERIOD;
+    for (const [u0, u1, e0, e1] of OBJ_EX_SEG) {
+      if (u >= u1) continue;
+      return e0 === e1 ? e0 : e0 + (e1 - e0) * smooth(u0, u1, u);
+    }
+    return 0;
+  }
+
   function update(rawP0) {
     // The object phase owns the first OBJECT_FRAC of scroll; everything that follows is the
     // original timeline, rescaled into the remainder so its tuning still holds.
@@ -1291,6 +1372,14 @@ function init() {
       if (remaining > 0) a += remaining * r;
       anim = clamp(a, 0, 1);
     }
+    // OBJECT PHASE: while the finished bracelet turns, ONE bead opens and closes on a slow loop —
+    // the hero's own exploded-bead rig, not a second one. This has to be set HERE, before the
+    // updateExplode pass below: the loop above resets every reveal's _e to 0 each frame, so an
+    // assignment made after that pass is silently discarded.
+    // beadAsm.presentSpin is null, so updateExplode does NOT seize the spin for its own staging —
+    // the bead tilts its axis up and splits flat while the piece keeps turning. (The object branch
+    // near the end of update() then eases that turn so the open bead is facing the camera.)
+    if (inObject && beadAsm) beadAsm._e = objExplodeEnv(idle);
     const settle = smooth(SETTLE0, 1, anim);       // 0 through the scroll, ramps to 1 at the very end (the pan-out)
     let spinY = SPIN_PHASE + anim * TAU * SPIN_TURNS;
     if (settle > 0) { let dd = endSpin - spinY; dd = ((dd + Math.PI) % TAU + TAU) % TAU - Math.PI; spinY += dd * settle; }   // ease to hub-at-back
@@ -1320,7 +1409,7 @@ function init() {
     placeCamera(settle, objectMode ? gRecvPres : fg, camY);
     threadAmbient(smooth(0.04, 0.16, anim) * (1 - smooth(0.86, 1.0, anim)) * (1 - Math.min(1, fg * 3)));   // slight ambient pad while the bracelet threads (off during phone / drop)
     for (const rv of reveals) {
-      if (rv._e > 0.06 && (rv._prevE || 0) <= 0.06) explodeSound();   // the CAD assembly opens → a slight airy reveal whoosh
+      if (!inObject && rv._e > 0.06 && (rv._prevE || 0) <= 0.06) explodeSound();   // the CAD assembly opens → a slight airy reveal whoosh (once, on the scripted reveal — not every loop of the object phase)
       rv._prevE = rv._e;
       updateExplode(rv, rv._e);
     }
@@ -1331,18 +1420,36 @@ function init() {
     // bracelet plane — but the cord and every bead's bus holes lie in one plane, so the hub must
     // stay in that plane too (exactly where it's threaded). It keeps its natural threaded
     // orientation through the settle, coplanar with the beads, so the cord stays in the bus holes.
-    // In the object phase rawP is pinned to HERO_FRAC (we are rendering the settled state), which
-    // the intro fade would read as "long past the intro" and hide the title. Drive it from the
-    // object phase's own progress instead: hold the copy up, then clear it as the phone story arrives.
-    const introDrive = objectMode ? 0.035 + 0.05 * smooth(0.72, 1.0, objP)
-                                  : Math.min(1, rawP / HERO_FRAC);
+    // Drive the intro fade off the RAW, un-remapped scroll so it is MONOTONIC across the whole
+    // hero. Two earlier attempts were both wrong: rawP is pinned to HERO_FRAC in object mode (so
+    // the fade read the opening as "long past the intro" and hid the title), and switching to the
+    // object phase's own progress made the copy fade out and then FLASH BACK ON, because the
+    // remapped rawP restarts near 0 the instant object mode ends. This holds the copy up through
+    // the object phase, clears it as the phone story arrives, and keeps it cleared.
+    const introDrive = 0.035 + 0.05 * smooth(OBJECT_FRAC * 0.72, OBJECT_FRAC, rawP0);
     overlay(anim, introDrive, fg);   // intro/cue fade on RAW scroll; the "Five people" outro fades as the FALL starts (held through DROP_HOLD_F)
     updatePhone(phP);
     // Hand the object phase to the gather rig (YOU == the hero bracelet, unchanged in size or
     // place) so that tapping a bead can summon a receiver. Nothing is announced: the bracelet
     // just turns, and a touch is the only thing that reveals there is someone on the other end.
     objectMode = inObject;
-    if (inObject) gSpin[0] = SPIN_PHASE + idle * 0.16;   // the settled bracelet, simply turning
+    if (inObject) {
+      // The turn runs on its own accumulator rather than straight off `idle`, so easing its rate
+      // below can't jump the phase.
+      const e = beadAsm ? beadAsm._e : 0;
+      // The SAME tilt curve updateExplode uses, so presentation tracks the split exactly.
+      const show = beadAsm ? clamp(Math.min(smooth(0.05, 0.28, e), 1 - smooth(0.74, 0.97, e)), 0, 1) : 0;
+      // While a bead is open the piece slows and brings that bead round to the front. Without this
+      // the reveal drifts: one turn takes ~39 s and the loop is 13 s, so every third cycle would
+      // have opened on the FAR side of the ring, hidden behind the hub. It never fully stops —
+      // the bias is capped under 1 so there is always a little motion.
+      objTurn += Math.min(0.1, Math.max(0, idle - objTurnPrev)) * OBJ_TURN * (1 - 0.78 * show);
+      objTurnPrev = idle;
+      let y = objTurn;
+      if (beadAsm && show > 0) y += angDelta(y, beadAsm.frontY) * show * 0.92;
+      spin.rotation.y = y;
+      gSpin[0] = y;                                      // keep the gather maths in step (gReach/frontFriend read gSpin[0])
+    }
     cycleObjectLine(inObject);
     updateGather(inObject ? 1 : fg);
   }
@@ -1392,6 +1499,8 @@ function init() {
     if (nm.indexOf("FB_BASE") === 0) return nm === "FB_BASE" ? 0 : parseInt(nm.slice(7), 10);
     return -1;
   };
+  // the gold hub button is its own mesh — a press there is not a bead press, it is the SOS
+  const isHubButton = (o) => /^(BASIN_SWITCH|HUB_TOP)/.test(o.name || "");
   // the person a tapped bead reaches: a friend bead → that friend; the "You"/symbolic beads or a between-beads tap → nearest friend
   const personForTap = (node) => { const p = (node >= 0) ? PERSON_OF_NODE[node] : undefined; return (p != null && p > 0) ? p : frontFriend(); };
   // Ray-pick the SPECIFIC bead tapped on YOU (so every exposed bead is independently pressable, not just the front one).
@@ -1399,7 +1508,10 @@ function init() {
   // surface is another bracelet is discarded so a background bracelet can't hijack the tap.
   function gPickBead(ev) {
     const you = gatherInstances[0];
-    if (!gatherGroup || !gatherGroup.visible || !you) return { i: -1, node: -1 };
+    if (!gatherGroup || !you) return { i: -1, node: -1 };
+    // object mode displays the original, so raycast THAT; the clone is hidden there
+    const target = objectMode ? spin : you.pivot;
+    if (!objectMode && !gatherGroup.visible) return { i: -1, node: -1 };
     const rect = canvas.getBoundingClientRect();
     const R = 16, offs = [[0, 0], [R, 0], [-R, 0], [0, R], [0, -R]];
     let youHit = false;
@@ -1409,14 +1521,15 @@ function init() {
       gRay.setFromCamera(new THREE.Vector2(nx, ny), camera);
       // ONLY raycast YOU: the background bracelets are opacity-0/invisible but their meshes are still raycast-hittable
       // (the raycaster ignores the pivot's visible flag), and they'd otherwise sit in front and block taps on YOU's beads.
-      const hits = gRay.intersectObject(you.pivot, true);
+      const hits = gRay.intersectObject(target, true);
       let hit = null; for (const h of hits) { if (h.object.visible) { hit = h; break; } }   // skip the hidden internals
       if (!hit) continue;
       youHit = true;
+      if (isHubButton(hit.object)) return { i: 0, node: -1, hub: true };   // the gold button → SOS
       const node = beadNodeOf(hit.object);
       if (node >= 0) return { i: 0, node };   // landed on a specific bead of YOU
     }
-    return { i: youHit ? 0 : -1, node: -1 };   // on YOU but between beads (hub/cord) → node -1
+    return { i: youHit ? 0 : -1, node: -1 };   // on YOU but between beads (cord) → node -1
   }
   const clearHold = () => { if (gHoldTimer) { clearTimeout(gHoldTimer); gHoldTimer = null; } };
   canvas.addEventListener("pointerdown", (ev) => {
@@ -1424,7 +1537,7 @@ function init() {
     const pick = gPickBead(ev); if (pick.i !== 0) return;   // only the big central YOU bracelet is interactive; the others are backgrounded
     const i = 0;
     audioCtx();   // wake the AudioContext inside this gesture so the hold-fired Echo is allowed to sound
-    gDragging = i; gDownNode = pick.node; gDownX = gLastX = ev.clientX; gDownY = ev.clientY; gMoved = false; gVertScroll = false; gVel[i] = 0;
+    gDragging = i; gDownNode = pick.node; gDownHub = !!pick.hub; gDownX = gLastX = ev.clientX; gDownY = ev.clientY; gMoved = false; gVertScroll = false; gVel[i] = 0;
     gHeld = false; clearHold();
     gHoldTimer = setTimeout(() => { gHoldTimer = null; if (gDragging === i && !gMoved) { gHeld = true; startEcho(i, personForTap(gDownNode)); } }, ECHO_HOLD);   // hold → Echo to the pressed bead's person
     // NOTE: no setPointerCapture here — capture only once a horizontal drag is confirmed (below), so a tap or a
@@ -1449,7 +1562,10 @@ function init() {
     clearHold();
     try { canvas.releasePointerCapture(ev.pointerId); } catch (e) {}
     if (gHeld) { gHeld = false; }                                        // the Echo already fired on the long press — no tap
-    else if (!gMoved && ev.type === "pointerup") gReach(i, personForTap(gDownNode));   // a real tap (not a scroll-stolen cancel) → directed Pulse to the pressed bead's person
+    else if (!gMoved && ev.type === "pointerup") {
+      if (gDownHub) sosAll(i);                                           // the hub button reaches EVERYONE
+      else gReach(i, personForTap(gDownNode));                           // a bead reaches ITS person
+    }
     else if (gMoved && !gVertScroll && Math.abs(gVel[i]) < 0.006) gSnapTo(i);   // slow horizontal-drag release → snap now; else momentum carries, then snaps
   };
   canvas.addEventListener("pointerup", gEnd);
@@ -1850,7 +1966,7 @@ function init() {
       [led,                     "Light"],
       [motor,                   "A pulse"],
     ]);
-    beadAsm = { pivot, parts, axis, pE, W: EXPLODE_WIN, internals: [pcb, motor], presentSpin: null, labels };
+    beadAsm = { pivot, parts, axis, pE, W: EXPLODE_WIN, internals: [pcb, motor], presentSpin: null, labels, frontY: fs };   // frontY: the object phase eases the turn here so the reveal never happens on the far side
     reveals.push(beadAsm);
   }
 
