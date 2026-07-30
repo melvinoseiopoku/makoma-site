@@ -2011,6 +2011,7 @@ function init() {
       return;
     }
     if (!boxMode) return;
+    boxScrollUsed = true;              // however it closes, scroll flows past the hero afterwards — never the trap again
     if (cust) cust.classList.remove("is-open");
     // a quick dip to black covers the box striking + the camera cut back to the object framing —
     // the same edit idiom as the object → threading boundary
@@ -2115,6 +2116,42 @@ function init() {
   const boxCloseBtn = document.getElementById("boxClose");
   if (boxCloseBtn) boxCloseBtn.addEventListener("click", closeBox);
   document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeBox(); });
+  // GETTING OUT BY SCROLL — the box must never trap. A deliberate wheel/touch gesture over the
+  // STAGE closes it: downward carries on to the sections below, upward returns to the hero. The
+  // panel is exempt (it scrolls its own content), the opening flick's momentum gets a grace
+  // period, and stale momentum decays so only a fresh, deliberate gesture crosses the threshold.
+  let exitAcc = 0, exitLastT = 0;
+  function boxExitGesture(dy, target) {
+    if (!boxMode) return;
+    if (idle - boxT0 < 1.4) return;                          // the opening gesture's own momentum
+    const sheet = document.querySelector("#customize .box-sheet");
+    if (sheet && target instanceof Node && sheet.contains(target)) return;
+    const now = performance.now();
+    if (now - exitLastT > 350) exitAcc = 0;
+    exitLastT = now; exitAcc += dy;
+    if (Math.abs(exitAcc) < 170) return;
+    const dir = exitAcc > 0 ? 1 : -1; exitAcc = 0;
+    closeBox();
+    if (dir > 0) setTimeout(() => {                          // continue the journey they were on
+      const y = document.getElementById("yourfive");
+      if (y) y.scrollIntoView({ behavior: reduce ? "auto" : "smooth" });
+    }, 430);
+  }
+  window.addEventListener("wheel", (e) => boxExitGesture(e.deltaY, e.target), { passive: true });
+  let boxTouchY = null;
+  window.addEventListener("touchstart", (e) => { boxTouchY = e.touches[0].clientY; }, { passive: true });
+  window.addEventListener("touchmove", (e) => {
+    if (boxTouchY == null) return;
+    const y = e.touches[0].clientY, dy = boxTouchY - y; boxTouchY = y;
+    boxExitGesture(dy, e.target);
+  }, { passive: true });
+  document.addEventListener("keydown", (e) => {
+    if (!boxMode) return;
+    const t = e.target;
+    if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA")) return;   // typing a name, not leaving
+    if (e.key === "PageDown" || e.key === "ArrowDown" || (e.key === " " && !e.shiftKey)) boxExitGesture(400, document.body);
+    if (e.key === "PageUp" || e.key === "ArrowUp") boxExitGesture(-400, document.body);
+  });
   // live re-apply while designing (and keep the design on the hero afterwards)
   if (window.MAKOMA_DESIGN) window.MAKOMA_DESIGN.subscribe(() => { if (designApplied) applyDesign(); });
 
