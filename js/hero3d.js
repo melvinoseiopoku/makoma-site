@@ -1802,16 +1802,19 @@ function init() {
   // hero keeps showing the bracelet they made.
   // ==================================================================
   const BOX_AZ = 26, BOX_EL = 12.5;         // three-quarter view — straight-on, a clear cube reads as a flat rectangle
-  // THE CATCH. The bracelet never falls and never idles in rotation: it hangs on a slow weightless
-  // bob (turning ONLY when a person is selected, to present their bead). The base rises from
-  // below, and then the glass closes on the piece FROM THE SIDES — two half-shell jaws that
-  // approach slowly and strike fast, an animal catching its prey, with one short bite-shudder as
-  // they meet. The seam the two shells leave down the front is deliberate: it reads as the doors
-  // they are.
-  const BOX_RISE_AT = 0.2, BOX_RISE_T = 1.5;         // the lit base, up from below
-  const BOX_JAW_AT = 1.15, BOX_JAW_T = 1.6;          // the glass jaws: slow approach, fast close
-  const BOX_CAM_T = 2.4, BOX_PANEL_AT = 3.2;
-  let boxMode = false, boxT0 = 0, boxGroup = null, boxJaws = null, boxJawL = null, boxJawR = null, boxPlate = null;
+  // THE CATCH — folded from a NET, per the founder's drawing. The bracelet never falls and never
+  // idles in rotation: it hangs on a slow weightless bob (turning ONLY when a person is selected,
+  // to present their bead). The base rises with the four glass walls lying OPEN around it, flat
+  // like an unfolded box, and then they fold UP one after another on their hinge lines — back,
+  // left, right, front — each accelerating shut like a petal falling closed. The lid rides the
+  // back wall (a real box net: wall + lid in one arm) and folds over the top last, with the clack
+  // and one short damped shudder as the box seals.
+  const BOX_RISE_AT = 0.2, BOX_RISE_T = 1.4;                 // the lit base + open net, up from below
+  const BOX_FOLD_AT = 1.35, BOX_FOLD_STAG = 0.18, BOX_FOLD_T = 0.8;   // walls: start, per-wall stagger, per-wall fold
+  const BOX_LID_AT = BOX_FOLD_AT + 3 * BOX_FOLD_STAG + BOX_FOLD_T + 0.1, BOX_LID_T = 0.65;
+  const BOX_CAM_T = 2.6, BOX_PANEL_AT = 3.6;
+  let boxMode = false, boxT0 = 0, boxGroup = null, boxLight = null, boxPlate = null;
+  let boxFolds = [], boxLid = null, boxSpread = 1;           // 1 = net fully open (the camera gives it room)
   let boxSide = 0, boxWallH = 0, boxBaseTh = 0, boxFloorY = 0, boxCY = 0;
   let boxSpin = 0, boxSpinTgt = null, boxSounded = false, boxSnapped = false, boxCamFrom = null, boxFront = null, boxFlare = null;
   let groundMesh = null, designApplied = false;
@@ -1845,38 +1848,51 @@ function init() {
       transparent: true, opacity: 0.028, envMapIntensity: 0.12, specularIntensity: 0.15,
       side: THREE.DoubleSide, depthWrite: false });
     const lineMat = new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.85 });
-    // TWO HALF-SHELL JAWS, split down the middle: each carries a full side wall, half the front,
-    // half the back and half the lid. They slide in along ±X (see updateBox).
-    const hw = boxSide / 2, midY = boxFloorY + boxWallH / 2, topY = boxFloorY + boxWallH;
-    const pane = (jaw, w, h, px, py, pz, ry, rx) => {
+    // FOUR HINGED WALLS + A LID, exactly a box net. Each wall is a nested pair: an OUTER group
+    // carries the base placement + yaw (so "outward" is always the hinge frame's local +z), and an
+    // inner HINGE group does nothing but rotate about its local X — rotation.x = π/2 is the pane
+    // lying flat outward (the open net), 0 is the wall standing shut. The nesting is what keeps
+    // the fold axis honest for the side walls; folding a yawed group with one Euler would rotate
+    // about the wrong world axis. The lid is a child of the BACK wall's hinge, so the open net
+    // shows wall + lid as one long flat arm (the drawing's long panel), and it can only close
+    // after that wall has stood up.
+    const hw = boxSide / 2, hy = boxFloorY + 0.02;             // hinge line a hair above the plate (z-fighting)
+    const foldPane = (w, h) => {
+      const hinge = new THREE.Group();
       const g = new THREE.PlaneGeometry(w, h);
-      const m = new THREE.Mesh(g, glassMat);
-      m.position.set(px, py, pz); if (ry) m.rotation.y = ry; if (rx) m.rotation.x = rx;
-      m.renderOrder = 3;
-      const e = new THREE.LineSegments(new THREE.EdgesGeometry(g), lineMat);
-      e.position.copy(m.position); e.rotation.copy(m.rotation); e.renderOrder = 4;
-      jaw.add(m, e);
+      const m = new THREE.Mesh(g, glassMat); m.position.y = h / 2; m.renderOrder = 3;
+      const e = new THREE.LineSegments(new THREE.EdgesGeometry(g), lineMat); e.position.y = h / 2; e.renderOrder = 4;
+      hinge.add(m, e);
+      return hinge;
     };
-    boxJawL = new THREE.Group(); boxJawR = new THREE.Group();
-    pane(boxJawL, boxSide, boxWallH, -hw, midY, 0, Math.PI / 2, 0);        // left wall
-    pane(boxJawL, hw, boxWallH, -hw / 2, midY, hw, 0, 0);                  // front, left half
-    pane(boxJawL, hw, boxWallH, -hw / 2, midY, -hw, 0, 0);                 // back, left half
-    pane(boxJawL, hw, boxSide, -hw / 2, topY, 0, 0, -Math.PI / 2);         // lid, left half
-    pane(boxJawR, boxSide, boxWallH, hw, midY, 0, Math.PI / 2, 0);         // right wall
-    pane(boxJawR, hw, boxWallH, hw / 2, midY, hw, 0, 0);                   // front, right half
-    pane(boxJawR, hw, boxWallH, hw / 2, midY, -hw, 0, 0);                  // back, right half
-    pane(boxJawR, hw, boxSide, hw / 2, topY, 0, 0, -Math.PI / 2);          // lid, right half
-    boxJaws = new THREE.Group(); boxJaws.add(boxJawL, boxJawR);
-    boxJaws.visible = false;
-    scene.add(boxJaws);
+    boxFolds = [];
+    const mkWall = (px, pz, yaw, i) => {
+      const outer = new THREE.Group();
+      outer.position.set(px, hy, pz); outer.rotation.y = yaw;
+      const hinge = foldPane(boxSide, boxWallH);
+      hinge.rotation.x = Math.PI / 2;                          // born open
+      outer.add(hinge); boxGroup.add(outer);
+      boxFolds.push({ hinge, at: BOX_FOLD_AT + i * BOX_FOLD_STAG, done: false });
+      return hinge;
+    };
+    const backHinge = mkWall(0, -hw, Math.PI, 0);              // back folds first…
+    mkWall(-hw, 0, -Math.PI / 2, 1);                           // …then left…
+    mkWall(hw, 0, Math.PI / 2, 2);                             // …then right…
+    mkWall(0, hw, 0, 3);                                       // …and the front closes toward you
+    const lidHinge = foldPane(boxSide, boxSide);
+    lidHinge.position.y = boxWallH;                            // hinged on the back wall's top edge
+    backHinge.add(lidHinge);
+    boxLid = { hinge: lidHinge, done: false };
     // the vitrine's own downlight — a museum spot from above, so the piece is LIT over the plate
-    // rather than backlit by it. Parented to the STATIC jaws root, not the rising base, so the
-    // light doesn't sweep up the piece during the rise.
+    // rather than backlit by it. Kept in its own STATIC rig, not the rising base, so the light
+    // doesn't sweep up the piece during the rise.
     const spot = new THREE.SpotLight(0xffe9c4, 1.7, 0, 0.62, 0.55, 1.1);   // warm + restrained: white at 2.6 washed the matte-black shell grey
     spot.position.set(boxSide * 0.35, boxFloorY + boxWallH * 2.1, boxSide * 0.4);
     spot.target.position.set(0, boxFloorY, 0);
     spot.castShadow = true; spot.shadow.mapSize.set(1024, 1024); spot.shadow.bias = -0.001; spot.shadow.radius = 5;   // soft contact shadow; the tighter bias printed banding streaks on the plate
-    boxJaws.add(spot, spot.target);
+    boxLight = new THREE.Group(); boxLight.add(spot, spot.target);
+    boxLight.visible = false;
+    scene.add(boxLight);
     boxGroup.add(base, boxPlate);
     boxGroup.visible = false;
     scene.add(boxGroup);
@@ -1947,10 +1963,11 @@ function init() {
     if (gatherGroup) gatherGroup.visible = false;
     spin.visible = true;
     if (cutEl) cutEl.style.opacity = "0";
-    boxMode = true; boxT0 = idle; boxSounded = false; boxSnapped = false; boxFlare = null;
+    boxMode = true; boxT0 = idle; boxSounded = false; boxSnapped = false; boxFlare = null; boxSpread = 1;
     boxSpin = spin.rotation.y; boxSpinTgt = null;
-    boxGroup.visible = true; boxJaws.visible = true;
-    boxJawL.position.x = -1.7 * boxSide; boxJawR.position.x = 1.7 * boxSide;
+    boxGroup.visible = true; boxLight.visible = true;
+    for (const f of boxFolds) { f.done = false; f.hinge.rotation.x = Math.PI / 2; }
+    boxLid.done = false; boxLid.hinge.rotation.x = 0;
     boxCamFrom = { pos: camera.position.clone(), tgt: new THREE.Vector3(0, 0, 0) };
     lockScroll(true); section.classList.add("in-box");
     // the panel arrives once the glass has closed; "makoma:boxopen" tells the configurator to
@@ -1973,7 +1990,7 @@ function init() {
     if (cutEl) cutEl.style.opacity = "1";
     setTimeout(() => {
       boxMode = false;
-      boxGroup.visible = false; if (boxJaws) boxJaws.visible = false;
+      boxGroup.visible = false; if (boxLight) boxLight.visible = false;
       orient.position.y = 0;
       if (groundMesh) groundMesh.visible = true;
       objTurnArmed = false;                            // the object phase re-arms → re-opens on a whole piece
@@ -1987,7 +2004,9 @@ function init() {
     const vHalf = Math.tan(camera.fov * 0.5 * DEG);
     const aspect = Math.max(camera.aspect, 0.05), portrait = aspect < 1;
     // fit the vitrine: its own half-extents, with room for the drop above it
-    const hHalf = (boxWallH + boxBaseTh) * 0.64, wHalf = boxSide * 0.78;
+    // while the net lies open it is far wider than the box — widen the fit with boxSpread and
+    // let it tighten as the walls stand up
+    const hHalf = (boxWallH + boxBaseTh) * 0.64, wHalf = boxSide * 0.78 * (1 + 0.7 * boxSpread);
     const wFill = portrait ? 0.86 : 0.6, hFill = portrait ? 0.42 : 0.72;
     const d = Math.max(wHalf / (vHalf * aspect * wFill), hHalf / (vHalf * hFill));
     const ce = Math.cos(el);
@@ -2020,18 +2039,27 @@ function init() {
     const rise = smooth(BOX_RISE_AT, BOX_RISE_AT + BOX_RISE_T, t);
     boxGroup.position.y = (1 - rise) * (-3.0 * modelR);
     if (!boxSounded && t >= BOX_RISE_AT) { boxSounded = true; if (!reduce) dropRise(); }
-    // …then the glass JAWS take the piece from the sides: a slow approach that accelerates into
-    // the strike (cubic ease-IN — the predator profile), one clack as they meet, and a short
-    // damped bite-shudder while they settle shut.
-    const ju = clamp((t - BOX_JAW_AT) / BOX_JAW_T, 0, 1);
-    let off = (1 - ju * ju * ju) * 1.7 * boxSide;
-    if (ju >= 1) {
+    // …then the net FOLDS: each wall accelerates shut on its hinge (cubic ease-in — a petal
+    // falling closed), back → left → right → front, each landing with a small glass tick.
+    let minE = 1;
+    for (const f of boxFolds) {
+      const u = clamp((t - f.at) / BOX_FOLD_T, 0, 1);
+      const e = u * u * u;
+      minE = Math.min(minE, e);
+      f.hinge.rotation.x = (1 - e) * Math.PI / 2;
+      if (u >= 1 && !f.done) { f.done = true; if (!reduce) noiseWhoosh(0.05, 1600, 800, 0.022); }
+    }
+    boxSpread = 1 - minE;                                      // the camera gives the open net room
+    // the LID folds over the top last — the clack that seals the box, plus one damped shudder
+    const lu = clamp((t - BOX_LID_AT) / BOX_LID_T, 0, 1);
+    let lidA = -(lu * lu * lu) * Math.PI / 2;
+    if (lu >= 1) {
       if (!boxSnapped) { boxSnapped = true;
         if (!reduce) { noiseWhoosh(0.1, 2400, 800, 0.05); try { if (navigator.vibrate) navigator.vibrate([0, 30]); } catch (e) {} } }
-      const sh = t - BOX_JAW_AT - BOX_JAW_T;
-      off = -Math.exp(-6 * sh) * Math.sin(sh * 34) * 0.012 * boxSide;   // the bite: a hair inward, then still
+      const sh = t - BOX_LID_AT - BOX_LID_T;
+      lidA = -Math.PI / 2 - Math.exp(-6 * sh) * Math.sin(sh * 30) * 0.03;
     }
-    boxJawL.position.x = -off; boxJawR.position.x = off;
+    boxLid.hinge.rotation.x = lidA;
     // NO display turn — the piece holds still in the glass. It rotates only when a person is
     // selected, easing their bead round to the front to be worked on.
     const dt = 0.016;
