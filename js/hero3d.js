@@ -875,19 +875,21 @@ function init() {
     const rect = section.getBoundingClientRect();
     const total = section.offsetHeight - window.innerHeight;
     target = total > 4 ? clamp(-rect.top / total, 0, 1) : 0;
-    // SCROLL OPENS THE BOX. A real downward gesture (wheel/touch/keys — tracked below, so an
-    // anchor link's smooth scroll can't trigger it) that leaves the top of the page slides the
-    // piece into customize instead of into the old threading run. Once per visit: after the box
-    // is closed, scrolling flows on to the sections below like a normal page.
+    // SCROLL OPENS THE BOX — every time, not once. The box is a stop on the scroll journey:
+    // a real downward gesture (wheel/touch/keys — tracked below, so an anchor link's smooth
+    // scroll can't trigger it) that leaves the top of the page slides the piece into customize.
+    // Scrolling out of the box re-arms it after a short cooldown (set in closeBox), long enough
+    // that the exiting gesture's own momentum and the post-close smooth scroll can't bounce it
+    // straight back open. Scroll back up to the hero later and scroll down: the box returns.
     const sy = window.scrollY || 0;
-    if (!boxMode && !boxScrollUsed && ready && sy > 30 && _prevSy <= 30 &&
-        performance.now() - scrollIntentT < 260 && !section.classList.contains("no3d")) {
-      boxScrollUsed = true;
+    if (!boxMode && ready && sy > 30 && _prevSy <= 30 &&
+        performance.now() - scrollIntentT < 260 && performance.now() > boxNoReopenUntil &&
+        !section.classList.contains("no3d")) {
       openBox();
     }
     _prevSy = sy;
   }
-  let _prevSy = 0, scrollIntentT = -1e9, boxScrollUsed = false;
+  let _prevSy = 0, scrollIntentT = -1e9, boxNoReopenUntil = 0;
   window.addEventListener("wheel", (e) => { if (e.deltaY > 0) scrollIntentT = performance.now(); }, { passive: true });
   window.addEventListener("touchmove", () => { scrollIntentT = performance.now(); }, { passive: true });
   window.addEventListener("keydown", (e) => {
@@ -2011,7 +2013,7 @@ function init() {
       return;
     }
     if (!boxMode) return;
-    boxScrollUsed = true;              // however it closes, scroll flows past the hero afterwards — never the trap again
+    boxNoReopenUntil = performance.now() + 1400;   // the exit gesture's momentum + the post-close smooth scroll must not re-open it
     if (cust) cust.classList.remove("is-open");
     // a quick dip to black covers the box striking + the camera cut back to the object framing —
     // the same edit idiom as the object → threading boundary
