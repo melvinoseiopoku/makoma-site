@@ -875,25 +875,25 @@ function init() {
     const rect = section.getBoundingClientRect();
     const total = section.offsetHeight - window.innerHeight;
     target = total > 4 ? clamp(-rect.top / total, 0, 1) : 0;
-    // SCROLL OPENS THE BOX — every time, not once. The box is a stop on the scroll journey:
-    // a real downward gesture (wheel/touch/keys — tracked below, so an anchor link's smooth
-    // scroll can't trigger it) that leaves the top of the page slides the piece into customize.
-    // Scrolling out of the box re-arms it after a short cooldown (set in closeBox), long enough
-    // that the exiting gesture's own momentum and the post-close smooth scroll can't bounce it
-    // straight back open. Scroll back up to the hero later and scroll down: the box returns.
+    // THE BOX IS A STOP ON THE JOURNEY, BOTH WAYS. A real gesture (wheel/touch/keys — tracked
+    // below, so an anchor link's smooth scroll can't trigger it) opens it whenever the page
+    // crosses the hero boundary: scrolling DOWN out of the top, or scrolling UP back into it
+    // from the sections below. Closing starts a short cooldown (set in closeBox) so the exit
+    // gesture's own momentum and the post-close smooth scroll can't bounce it straight back open.
     const sy = window.scrollY || 0;
-    if (!boxMode && ready && sy > 30 && _prevSy <= 30 &&
-        performance.now() - scrollIntentT < 260 && performance.now() > boxNoReopenUntil &&
-        !section.classList.contains("no3d")) {
+    const gestureFresh = performance.now() - scrollIntentT < 260;
+    if (!boxMode && ready && gestureFresh && performance.now() > boxNoReopenUntil &&
+        !section.classList.contains("no3d") &&
+        ((sy > 30 && _prevSy <= 30) || (sy < 30 && _prevSy >= 30))) {
       openBox();
     }
     _prevSy = sy;
   }
   let _prevSy = 0, scrollIntentT = -1e9, boxNoReopenUntil = 0;
-  window.addEventListener("wheel", (e) => { if (e.deltaY > 0) scrollIntentT = performance.now(); }, { passive: true });
+  window.addEventListener("wheel", () => { scrollIntentT = performance.now(); }, { passive: true });
   window.addEventListener("touchmove", () => { scrollIntentT = performance.now(); }, { passive: true });
   window.addEventListener("keydown", (e) => {
-    if (e.key === "ArrowDown" || e.key === "PageDown" || (e.key === " " && !e.shiftKey)) scrollIntentT = performance.now();
+    if (["ArrowDown", "PageDown", "ArrowUp", "PageUp"].includes(e.key) || (e.key === " " && !e.shiftKey)) scrollIntentT = performance.now();
   });
   function resize() {
     // size to the canvas's ACTUAL displayed box, not window.innerHeight — on mobile the URL bar makes
@@ -1831,7 +1831,7 @@ function init() {
   const BOX_RISE_AT = 0.2, BOX_RISE_T = 1.5;                 // the base + open net, up from below
   const BOX_FOLD_AT = 1.5, BOX_FOLD_T = 2.3;                 // all four walls at once, slow
   const BOX_CAM_T = 2.8, BOX_PANEL_AT = 4.0;
-  let boxMode = false, boxT0 = 0, boxGroup = null, boxLight = null, boxPlate = null;
+  let boxMode = false, boxT0 = 0, boxExitT0 = null, boxGroup = null, boxLight = null, boxPlate = null;
   let boxFolds = [], boxSpread = 1;                          // 1 = net fully open (the camera gives it room)
   let boxSide = 0, boxWallH = 0, boxBaseTh = 0, boxFloorY = 0, boxCY = 0;
   let boxSpin = 0, boxSpinTgt = null, boxSounded = false, boxSnapped = false, boxCamFrom = null, boxFront = null, boxFlare = null;
@@ -1871,8 +1871,10 @@ function init() {
     // into frosted milk. Glass over a black stage is sold by absence + edges instead: panes at
     // near-zero opacity with a faint cool tint and a whisper of env sheen, and BRIGHT edge lines.
     const glassMat = new THREE.MeshPhysicalMaterial({ color: 0xedf1f7, metalness: 0, roughness: 0.05,
-      transparent: true, opacity: 0.024, envMapIntensity: 0.03, specularIntensity: 0,
+      transparent: true, opacity: 0.011, envMapIntensity: 0.03, specularIntensity: 0,
       side: THREE.DoubleSide, depthWrite: false });
+      // 0.011, down from 0.024: a view line crosses 2-3 panes (DoubleSide + overlapping walls),
+      // so pane opacity STACKS — what read as fog was accumulation, not any one pane
       // env nearly OFF and direct-light specular FULLY off: the fresnel-boosted sky painted
       // everything behind a pane slate-blue, and the vitrine spot printed a bright dot on the
       // glass (a point light on a smooth pane always does). Over a black stage the EDGES carry
@@ -2006,27 +2008,33 @@ function init() {
     else setTimeout(showPanel, BOX_PANEL_AT * 1000);
   }
 
-  function closeBox() {
+  function finalizeClose() {
+    boxMode = false; boxExitT0 = null;
+    boxGroup.visible = false; if (boxLight) boxLight.visible = false;
+    orient.position.y = 0;
+    if (groundMesh) groundMesh.visible = true;
+    objTurnArmed = false;                              // the object phase re-arms → re-opens on a whole piece
+    lockScroll(false); section.classList.remove("in-box");
+    update(progress);                                  // repaint the object phase
+  }
+  function closeBox(opts) {
     const cust = $("#customize");
     if (section.classList.contains("no3d")) {
       lockScroll(false); section.classList.remove("in-box"); if (cust) cust.classList.remove("is-open");
       return;
     }
-    if (!boxMode) return;
+    if (!boxMode || boxExitT0 != null) return;
     boxNoReopenUntil = performance.now() + 1400;   // the exit gesture's momentum + the post-close smooth scroll must not re-open it
     if (cust) cust.classList.remove("is-open");
-    // a quick dip to black covers the box striking + the camera cut back to the object framing —
-    // the same edit idiom as the object → threading boundary
+    if (opts && opts.reverse && !reduce) {
+      // UPWARD exit: the catch plays backwards — walls unfold to the open net, the base sinks
+      // away, the piece settles out of its float — and the hero is simply there again. No cut.
+      boxExitT0 = idle;
+      return;
+    }
+    // DOWNWARD exit / X / Escape: a quick dip to black covers the cut back to the object framing
     if (cutEl) cutEl.style.opacity = "1";
-    setTimeout(() => {
-      boxMode = false;
-      boxGroup.visible = false; if (boxLight) boxLight.visible = false;
-      orient.position.y = 0;
-      if (groundMesh) groundMesh.visible = true;
-      objTurnArmed = false;                            // the object phase re-arms → re-opens on a whole piece
-      lockScroll(false); section.classList.remove("in-box");
-      update(progress);                                // repaint the object phase under the black, then it lifts
-    }, reduce ? 0 : 380);
+    setTimeout(finalizeClose, reduce ? 0 : 380);
   }
 
   function boxCamera(blend) {
@@ -2060,6 +2068,20 @@ function init() {
   }
 
   function updateBox() {
+    // THE REVERSE — leaving upward plays the fold backwards on its own clock
+    if (boxExitT0 != null) {
+      const te = idle - boxExitT0;
+      const u = clamp(te / 1.7, 0, 1);
+      const e = u * u * u * (u * (6 * u - 15) + 10);
+      for (const f of boxFolds) f.hinge.rotation.x = e * Math.PI / 2;         // unfold to the open net
+      boxSpread = e;
+      boxGroup.position.y = -3.0 * modelR * smooth(0.5, 1, u);                // the base sinks away late
+      orient.position.y = (1 - e) * 0.06 * modelR;                            // the float eases out
+      spin.rotation.y = boxSpin;
+      boxCamera(1 - e);                                                       // the hero framing returns
+      if (u >= 1) finalizeClose();
+      return;
+    }
     const t = reduce ? 99 : idle - boxT0;
     // THE PIECE: it never falls. A slight rise as the mode opens — it lets go of the page — then
     // a slow weightless bob, riding low over the plate.
@@ -2119,13 +2141,15 @@ function init() {
   if (boxCloseBtn) boxCloseBtn.addEventListener("click", closeBox);
   document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeBox(); });
   // GETTING OUT BY SCROLL — the box must never trap. A deliberate wheel/touch gesture over the
-  // STAGE closes it: downward carries on to the sections below, upward returns to the hero. The
-  // panel is exempt (it scrolls its own content), the opening flick's momentum gets a grace
-  // period, and stale momentum decays so only a fresh, deliberate gesture crosses the threshold.
+  // STAGE closes it: downward carries on to the sections below (quick dip cut), upward plays the
+  // whole fold IN REVERSE back to the hero. The panel is exempt (it scrolls its own content);
+  // gestures are IGNORED for the entire opening cinematic, so continued scrolling while the
+  // transition runs can never skip it; and stale momentum decays so only a fresh, deliberate
+  // gesture crosses the threshold.
   let exitAcc = 0, exitLastT = 0;
   function boxExitGesture(dy, target) {
-    if (!boxMode) return;
-    if (idle - boxT0 < 1.4) return;                          // the opening gesture's own momentum
+    if (!boxMode || boxExitT0 != null) return;
+    if (idle - boxT0 < BOX_PANEL_AT + 0.25) return;          // the transition is sacred — scrolling through it does nothing
     const sheet = document.querySelector("#customize .box-sheet");
     if (sheet && target instanceof Node && sheet.contains(target)) return;
     const now = performance.now();
@@ -2133,8 +2157,9 @@ function init() {
     exitLastT = now; exitAcc += dy;
     if (Math.abs(exitAcc) < 170) return;
     const dir = exitAcc > 0 ? 1 : -1; exitAcc = 0;
+    if (dir < 0) { closeBox({ reverse: true }); return; }    // up: unfold, sink, hand the hero back
     closeBox();
-    if (dir > 0) setTimeout(() => {                          // continue the journey they were on
+    setTimeout(() => {                                       // down: continue the journey they were on
       const y = document.getElementById("yourfive");
       if (y) y.scrollIntoView({ behavior: reduce ? "auto" : "smooth" });
     }, 430);
