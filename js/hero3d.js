@@ -868,13 +868,31 @@ function init() {
 
   let ready = false, progress = 0, target = 0, idle = 0, inView = true;
   function onScroll() {
+    // The scroll-driven timeline is RETIRED: the hero is one viewport tall and holds the object
+    // phase; scrolling doesn't scrub an animation any more, it opens the box (below). The mapping
+    // is kept for safety should the section ever be given travel again, pinned to 0 otherwise —
+    // without the guard, zero travel makes -rect.top / 1 jump the whole timeline in a few pixels.
     const rect = section.getBoundingClientRect();
     const total = section.offsetHeight - window.innerHeight;
-    target = clamp(-rect.top / Math.max(total, 1), 0, 1);
-    // Guarantee the exploded-view boards are in flight long before they're needed: the object phase
-    // owns the front of the scroll and the reveals come well after it, so 6% is a wide safety margin.
-    if (target > 0.06) requestBoards();
+    target = total > 4 ? clamp(-rect.top / total, 0, 1) : 0;
+    // SCROLL OPENS THE BOX. A real downward gesture (wheel/touch/keys — tracked below, so an
+    // anchor link's smooth scroll can't trigger it) that leaves the top of the page slides the
+    // piece into customize instead of into the old threading run. Once per visit: after the box
+    // is closed, scrolling flows on to the sections below like a normal page.
+    const sy = window.scrollY || 0;
+    if (!boxMode && !boxScrollUsed && ready && sy > 30 && _prevSy <= 30 &&
+        performance.now() - scrollIntentT < 260 && !section.classList.contains("no3d")) {
+      boxScrollUsed = true;
+      openBox();
+    }
+    _prevSy = sy;
   }
+  let _prevSy = 0, scrollIntentT = -1e9, boxScrollUsed = false;
+  window.addEventListener("wheel", (e) => { if (e.deltaY > 0) scrollIntentT = performance.now(); }, { passive: true });
+  window.addEventListener("touchmove", () => { scrollIntentT = performance.now(); }, { passive: true });
+  window.addEventListener("keydown", (e) => {
+    if (e.key === "ArrowDown" || e.key === "PageDown" || (e.key === " " && !e.shiftKey)) scrollIntentT = performance.now();
+  });
   function resize() {
     // size to the canvas's ACTUAL displayed box, not window.innerHeight — on mobile the URL bar makes
     // innerHeight taller than the 100dvh canvas, and a taller buffer squished into a shorter box stretches
@@ -1978,6 +1996,7 @@ function init() {
     for (const f of boxFolds) { f.done = false; f.hinge.rotation.x = Math.PI / 2; }
     boxCamFrom = { pos: camera.position.clone(), tgt: new THREE.Vector3(0, 0, 0) };
     lockScroll(true); section.classList.add("in-box");
+    window.scrollTo(0, 0);   // again, post-lock: a fast flick can land more scroll between the first reset and the lock
     // the panel arrives once the glass has closed; "makoma:boxopen" tells the configurator to
     // present the currently-selected person's bead (the only rotation the piece does in here)
     const showPanel = () => { if (!boxMode) return; cust.classList.add("is-open"); window.dispatchEvent(new CustomEvent("makoma:boxopen")); };

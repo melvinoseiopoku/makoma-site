@@ -139,7 +139,7 @@ h1,h2,h3{ font-family:var(--serif); font-weight:500; line-height:1.04; letter-sp
 }
 
 /* ============ HERO — scroll-driven 3D ============ */
-.hero3d{ position:relative; height:700vh; background:var(--black); }   /* was 850vh with the phone story in front; that was ~17% of the timeline, so the section loses the same share */
+.hero3d{ position:relative; height:100vh; height:100svh; background:var(--black); }   /* ONE viewport: the scroll-driven timeline is retired — the hero holds the object phase, and scrolling opens the box (hero3d.js onScroll) */
 .hero3d.no3d{ height:100svh; }
 .hero3d-sticky{ position:sticky; top:0; height:100svh; height:100dvh; overflow:hidden;
   /* a focused warm POOL behind the bracelet + a darker vignette frame, so the bracelet pops off the page
