@@ -28,21 +28,22 @@ const CAM_AZ = 0, CAM_EL = 15;      // low camera that faces the radial symbols
 const SPIN_TURNS = 1;               // full revolutions across the scroll (8 beads → 1 is plenty)
 const SPIN_PHASE = 169.6 * DEG;    // start rotation: the Akoma (heart) bead faces front at p=0
 
-// ---- OPENING phone story: the site opens on a phone buried in notifications; the five pinned people
-//      peel off and land on the REAL CAD beads (which pop in as each lands), the remaining beads + hub
-//      fade in, and THEN the threading begins. Scroll-driven; DOM lives in #whyStage inside the hero. ----
 // [0..OBJECT_FRAC] = THE OBJECT. Before a single word of tech, the finished bracelet simply
-// turns. It is jewellery first; the phone story below is the "why", and it lands harder once
-// someone already wants the thing. The rest of the timeline is compressed into what remains,
-// so every downstream phase keeps its existing tuning untouched.
+// turns, with one bead opening as it comes round. It is jewellery first. The rest of the timeline
+// is compressed into what remains, so every downstream phase keeps its existing tuning untouched.
 const OBJECT_FRAC = 0.13;
-const PHONE_FRAC = 0.20;           // first 20% of the section = the phone → contacts → beads story
-const PHONE_NODE = [0, 6, 7, 2, 3];   // bead node each pinned contact becomes (Mom·Dad·Priscilla·Sylvester·Phoebe = GATHER_NODE[1..5])
-const PHONE_OTHERS = [1, 4, 5];    // the remaining beads, fading into the picture after the five land
+// The phone-in-the-noise story used to own the next 20% of the scroll — a 3-D phone flooded with
+// notifications whose five pinned people flew out and became the beads. It is gone: the page now
+// leads with the object and the invitation to customise it, and does not open by arguing.
+// THE SEAM IT LEFT: that story also supplied the threading phase's entry state (beads present,
+// cord not yet drawn). Without it the object phase's finished bracelet would cut straight to an
+// unthreaded ring — same beads, no cord, different framing. CUT_WIN below dips the frame to black
+// across the boundary, which is what the cut wants anyway: a hero shot, then how it is made.
+const CUT_WIN = 0.012;             // raw-scroll half-window of the dip-to-black at the object → threading cut
 
 // ---- GATHER phase: after the hero settles, more scroll fades the text and brings in 5 clones of the
 //      bracelet around the centre one — all in the SAME scene (no viewports). ----
-const HERO_FRAC = 0.87;            // the hero anim (threading→settle) runs from PHONE_FRAC to here; a TINY scroll past it triggers the drop
+const HERO_FRAC = 0.87;            // the hero anim (threading→settle) runs from 0 to here; a TINY scroll past it triggers the drop
 const GATHER_END = 1.0;            // the short remaining scroll (HERO_FRAC→1) is the interactive dwell — not a scrubbed gather anymore
 // ---- the GRAVITY DROP: the instant you scroll past "Five people. One quiet channel." the "table" under the bracelet
 //      is pulled, it free-falls into the how-it-works section and lands with a firm, WEIGHTY thud + one small rebound.
@@ -195,46 +196,6 @@ function init() {
   const frontAngleOf = {};                             // bead node → spin angle that faces it to the camera
   let gLast = 0, gDragging = -1, gDownX = 0, gDownY = 0, gDownNode = -1, gDownHub = false, gMoved = false, gVertScroll = false, gLastX = 0;   // interaction state (gDownNode: the bead under the finger at press; gDownY: radial tap-slop origin; gVertScroll: a vertical gesture handed to the page)
   let gEcho = null, gHoldTimer = null, gHeld = false;                      // Echo (press-and-hold) state
-  // ---- opening phone story state ----
-  let wpPromptEl = null, wpCaptionEl = null, wpKeepEl = null;              // the gold scroll invitation, the "Only the few you carry" payoff, and the persistent "keep scrolling" cue (DOM overlays; the phone itself is real 3-D)
-  const mainBead = {}, mainPlat = {}, mainPlatBase = {};                   // node → [{mesh,base}] / PLATFORM mesh + its base pos, on the MAIN model
-  const mainHub = [];                                                      // hub meshes on the main model
-  const phoneDepT = [0, 0, 0, 0, 0];                                       // idle-time each contact departed (0 = not departed)
-  let phoneShiftK = 0;                                                     // 1 while the story holds the bracelet aside, easing to 0 as the phone fades
-  let phLast = 0;                                                          // most-recent phP, read by the notification-flood loop
-  const PHONE_FLY = 1.1;                                                   // seconds a converted bead leaps from the phone to its threading spot
-  // the 3-D phone: a real WebGL object parented to the camera, its screen a live CanvasTexture
-  let phoneRig = null, phoneKnock = null, phoneObj = null, phoneScreen = null, phoneTex = null, phoneCv = null, phoneG = null, phoneTable = null;
-  let phoneBuzzT = -9, phoneDrawT = -9, floodN = 0, nextNotifAt = 0;        // buzz impulse time + screen-redraw throttle + banner spawn counter/clock (all in `idle` units)
-  let activeNotif = null;                                                  // ONE banner at a time: {title,sub,color,t0} — slides in, holds, slides out, then the next
-  const contactCanvasPos = [{x:0,y:0},{x:0,y:0},{x:0,y:0},{x:0,y:0},{x:0,y:0}];   // where each pinned contact is drawn (canvas px) → the bead's launch point
-  const avatarImg = [];                                                     // preloaded pinned-contact avatars
-  // the pinned five + a churn of other chats whose unread counts flood upward (everyone trying to reach you)
-  const PHONE_PEOPLE = [
-    { name: "Mom",       av: "assets/avatars/nana.png",  hue: "#E0A52A" },
-    { name: "Dad",       av: "assets/avatars/kofi.png",  hue: "#B77AF4" },
-    { name: "Priscilla", av: "assets/avatars/maya.png",  hue: "#F0922C" },
-    { name: "Sylvester", av: "assets/avatars/kwame.png", hue: "#63CE88" },
-    { name: "Phoebe",    av: "assets/avatars/esi.png",   hue: "#5C9CEB" },
-  ];
-  // the churning "noise" list under the pinned five — anonymized group chats, spam, an unknown number, a 2FA code:
-  // everyone reaching for you at once. Each new message bumps a row to the top with a fresh preview + "now".
-  const phoneChats = [
-    { name: "Nadia, Theo, Mason +4", pre: "did you see this?? 😭",         time: "1:32 PM",  hue: "#30D158", unread: true  },
-    { name: "Studio — Launch",       pre: "Priya: deck due Weds",          time: "12:35 PM", hue: "#0A84FF", unread: true  },
-    { name: "+1 (555) 240-1063",     pre: "I'll give you a call tmr",      time: "11:52 AM", hue: "#8E8E93", unread: true  },
-    { name: "24011",                 pre: "Your code is ••••••  Don't share it", time: "8:36 AM", hue: "#30D158", unread: false },
-    { name: "Deliveries",            pre: "Your package is out for delivery", time: "Yesterday", hue: "#FF9F0A", unread: false },
-    { name: "Rec League",            pre: "pickup at the marina tn! 🎾",   time: "Yesterday", hue: "#5C9CEB", unread: false },
-    { name: "Neighborhood",          pre: "63 new messages",               time: "Yesterday", hue: "#BF5AF2", unread: false },
-  ];
-  // fresh previews rotated into a chat each time a new message "arrives" (keeps the list feeling live)
-  const CHAT_PINGS = ["did you see this?? 😭", "call me when you're free", "you up?", "wait this is huge",
-    "where are you rn", "sending it now", "can you cover my shift?", "reply when you can", "we still on for tmr?",
-    "reminder: payment due", "lol look at this", "5 new photos", "🔥🔥🔥", "check your email"];
-  const _phV = new THREE.Vector3(), _pv1 = new THREE.Vector3(), _pv2 = new THREE.Vector3(), _pv3 = new THREE.Vector3(), _pv4 = new THREE.Vector3();
-  const _psv = new THREE.Vector3();                                         // scratch: a contact's launch point on the 3-D screen
-  const _pm1 = new THREE.Matrix4(), _pm2 = new THREE.Matrix4();
   let echoCanvas = null, echoCtx = null;                                   // 2-D overlay the waveform stream draws on
   const beadGeomC = {};                                                    // node → bead geometry centre (shared local frame), for the bead's world position
   const _ew1 = new THREE.Vector3(), _ew2 = new THREE.Vector3(), _ep = new THREE.Vector3();   // echo scratch
@@ -284,15 +245,6 @@ function init() {
     const ce = Math.cos(el);
     camera.position.set(Math.cos(az) * ce * d, Math.sin(el) * d - pan + dropY, Math.sin(az) * ce * d);
     camera.lookAt(0, -pan + dropY, 0);   // dropY: the camera follows the falling bracelet DOWN into the how-it-works frame
-    // during the phone story, translate the camera (keeping its aim) so the bracelet sits CLEAR of the phone:
-    // landscape → scene shifts left (phone owns the right); portrait → scene shifts up (phone owns the bottom)
-    if (phoneShiftK > 0) {
-      camera.updateMatrixWorld(true);
-      const w = canvas.clientWidth || 1, h = canvas.clientHeight || 1;
-      const worldPerPx = d * Math.tan(camera.fov * 0.5 * DEG) / (h * 0.5);
-      if (w > h) { _pv1.setFromMatrixColumn(camera.matrixWorld, 0); camera.position.addScaledVector(_pv1, 0.13 * w * worldPerPx * phoneShiftK); }   // camera right → scene left
-      else { _pv1.setFromMatrixColumn(camera.matrixWorld, 1); camera.position.addScaledVector(_pv1, -0.37 * h * worldPerPx * phoneShiftK); }        // camera down → scene up, clear of the bottom-anchored phone (the title has faded by conversion time)
-    }
   }
 
   // etch a name into the flat UNDERSIDE of a clone's hub (HUB_BASE, −Z face) as a gold-inlay decal that is a real
@@ -347,7 +299,7 @@ function init() {
         if (!o.isMesh) return;
         if (isInternal(o)) { o.visible = false; return; }       // sealed-hub/bead internals: hidden in the cluster so a fading shell never shows them
         o.castShadow = o.receiveShadow = false;                 // no shadows on the clones
-        o.visible = true;                                       // the MAIN model starts hidden for the phone story — clones must not inherit that
+        o.visible = true;                                       // a clone is always whole (the original can be mid-explode when it is cloned)
         const orig = o.material, nm = o.name || ""; let node = NaN;
         if (nm.indexOf("PLATFORM") === 0) {
           node = nm === "PLATFORM" ? 0 : parseInt(nm.slice(8), 10);
@@ -503,18 +455,6 @@ function init() {
       o.start(t); o2.start(t); o.stop(t + (dur || 0.5) + 0.02); o2.stop(t + (dur || 0.5) + 0.02);
     } catch (e) {}
   }
-  // the iPhone "ding" — a bright, quick two-tone bell for each phone notification
-  function notifDing() {
-    const c = audioCtx(); if (!c) return;
-    [[1318.5, 0, 0.05], [1760, 0.075, 0.045]].forEach(([f, dt, v]) => {
-      try {
-        const tt = c.currentTime + dt, o = c.createOscillator(), o2 = c.createOscillator(), g = c.createGain();
-        o.type = "sine"; o2.type = "sine"; o.frequency.value = f; o2.frequency.value = f * 2.01;   // a touch of shimmer
-        g.gain.setValueAtTime(0.0001, tt); g.gain.exponentialRampToValueAtTime(v, tt + 0.006); g.gain.exponentialRampToValueAtTime(0.0001, tt + 0.38);
-        o.connect(g); o2.connect(g); g.connect(c.destination); o.start(tt); o2.start(tt); o.stop(tt + 0.4); o2.stop(tt + 0.4);
-      } catch (e) {}
-    });
-  }
   // BEAD TAP = a soft HEARTBEAT (lub-dub) at a per-bead pitch + rhythm, so each bead you touch feels DISTINCT.
   function buzzSound(freq, vol) {
     const c = audioCtx(); if (!c) return;
@@ -557,16 +497,6 @@ function init() {
       o.connect(g); g.connect(c.destination); o.start(t); o.stop(t + 0.32);
     } catch (e) {}
     noiseWhoosh(0.08, 2400, 600, 0.05);                          // the beads + clasp clack on impact
-  }
-  // a soft "pop" + warm upward bloop as a pinned person lifts out of the phone and becomes a bead
-  function popSound(freq) {
-    const c = audioCtx(); if (!c) return;
-    try {
-      const t = c.currentTime, o = c.createOscillator(), g = c.createGain();
-      o.type = "sine"; o.frequency.setValueAtTime((freq || 440) * 0.5, t); o.frequency.exponentialRampToValueAtTime(freq || 440, t + 0.05);
-      g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.085, t + 0.008); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.4);
-      o.connect(g); g.connect(c.destination); o.start(t); o.stop(t + 0.42);
-    } catch (e) {}
   }
   // a slight airy "reveal" whoosh + faint rising shimmer as a CAD assembly explodes open
   function explodeSound() {
@@ -697,312 +627,11 @@ function init() {
     ctx.restore();
   }
 
-  // ---- the OPENING phone story: a real 3-D phone drowning in notifications; the five pinned people pop OUT of the
-  //      live screen as the actual CAD beads, the rest fade in UNTHREADED, then the forming bracelet knocks the
-  //      phone away. Threading + the CAD explosion come later, when the bead scroll begins. ----
-  const PHONE_ASPECT = 2.04;                                    // screen height / width
-  const PHONE_CW = 552, PHONE_CH = Math.round(PHONE_CW * PHONE_ASPECT);   // screen-canvas resolution
-  let phoneScreenW = 1, phoneScreenH = 1;                       // the screen plane's local size (set in buildPhone3D)
-  const FLOOD_MSGS = [
-    ["Messages",   "Nadia: did you SEE this?? 😭", "#30D158"],
-    ["Instagram",  "3 people liked your photo",    "#E4405F"],
-    ["Studio — Launch", "Priya: deck due Weds",    "#0A84FF"],
-    ["Breaking",   "You have to see this",         "#FF3B30"],
-    ["Deliveries", "Your package is 2 stops away", "#FF9F0A"],
-    ["24011",      "Your code is ••••••  Don't share it", "#30D158"],
-    ["X",          "18 new notifications",          "#1D9BF0"],
-    ["Rec League", "game at the marina tn! 🎾",    "#5C9CEB"],
-    ["News",       "Everyone is talking about this","#C21807"],
-    ["Mail",       "You're behind on 89 threads",   "#1A73E8"],
-  ];
-
-  function roundedRectShape(w, h, r) {
-    const s = new THREE.Shape(), x = -w / 2, y = -h / 2;
-    s.moveTo(x + r, y);
-    s.lineTo(x + w - r, y); s.quadraticCurveTo(x + w, y, x + w, y + r);
-    s.lineTo(x + w, y + h - r); s.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
-    s.lineTo(x + r, y + h); s.quadraticCurveTo(x, y + h, x, y + h - r);
-    s.lineTo(x, y + r); s.quadraticCurveTo(x, y, x + r, y);
-    return s;
-  }
-  // build the phone as a REAL object parented to the camera → it sits fixed in view, in true perspective, and the
-  // beads that pop out of it depth-sort against it correctly (a DOM/CSS phone could never be occluded by them).
-  function buildPhone3D() {
-    // proportions of a real device (unit height): slim body, generous corner radius, thin uniform bezel,
-    // screen corners CONCENTRIC with the body corners (inner radius = outer − bezel) — never a rectangle on a box.
-    const w = 1 / PHONE_ASPECT, h = 1, dp = 0.05, r = w * 0.19, bez = 0.016;
-    const geo = new THREE.ExtrudeGeometry(roundedRectShape(w, h, r),
-      { depth: dp, bevelEnabled: true, bevelThickness: 0.013, bevelSize: 0.013, bevelSegments: 5, steps: 1, curveSegments: 28 });
-    geo.translate(0, 0, -dp / 2);
-    // caps (group 0) = the glass front / matte back; sides + bevel (group 1) = the polished frame that catches edge light
-    const matFace = new THREE.MeshStandardMaterial({ color: 0x050507, roughness: 0.3, metalness: 0.0, envMapIntensity: 0.4 });
-    const matFrame = new THREE.MeshStandardMaterial({ color: 0x26262c, roughness: 0.3, metalness: 0.85, envMapIntensity: 0.85 });
-    const body = new THREE.Mesh(geo, [matFace, matFrame]);
-    body.castShadow = body.receiveShadow = false;
-    // side buttons, like the real thing: mute + two volume (left), power (right)
-    const btn = (len, side, y) => { const b = new THREE.Mesh(new THREE.BoxGeometry(0.013, len, dp * 0.55), matFrame); b.position.set(side * (w / 2 + 0.0045), y, 0); return b; };
-    const buttons = [btn(0.042, -1, 0.315), btn(0.072, -1, 0.222), btn(0.072, -1, 0.128), btn(0.1, 1, 0.16)];
-    phoneCv = document.createElement("canvas"); phoneCv.width = PHONE_CW; phoneCv.height = PHONE_CH;
-    phoneG = phoneCv.getContext("2d");
-    phoneTex = new THREE.CanvasTexture(phoneCv); phoneTex.colorSpace = THREE.SRGBColorSpace; phoneTex.anisotropy = 8;
-    // the screen: an edge-to-edge ROUNDED-RECT shape (not a plane), UVs remapped to 0..1 so the canvas fills it.
-    // OPAQUE — a transparent screen let the light-mode page bleed through the dark pixels and washed the phone out.
-    phoneScreenW = w - bez * 2; phoneScreenH = h - bez * 2;
-    const sg = new THREE.ShapeGeometry(roundedRectShape(phoneScreenW, phoneScreenH, Math.max(r - bez, 0.02)), 28);
-    sg.computeBoundingBox();
-    const bb = sg.boundingBox, suv = sg.attributes.uv, spos = sg.attributes.position;
-    for (let i = 0; i < suv.count; i++) suv.setXY(i, (spos.getX(i) - bb.min.x) / (bb.max.x - bb.min.x), (spos.getY(i) - bb.min.y) / (bb.max.y - bb.min.y));
-    phoneScreen = new THREE.Mesh(sg, new THREE.MeshBasicMaterial({ map: phoneTex, toneMapped: false }));
-    phoneScreen.position.z = dp / 2 + 0.0165; phoneScreen.renderOrder = 2;   // just proud of the front cap (cap tops out at dp/2 + bevel)
-    phoneObj = new THREE.Group(); phoneObj.add(body, phoneScreen); buttons.forEach((b) => phoneObj.add(b));
-    // a soft "table": screen-glow sheen + a dark contact shadow so the phone reads as RESTING on a surface, not floating
-    const tcv = document.createElement("canvas"); tcv.width = 512; tcv.height = 512; const tg2 = tcv.getContext("2d");
-    let gr = tg2.createRadialGradient(256, 250, 24, 256, 250, 250);
-    gr.addColorStop(0, "rgba(126,140,166,0.18)"); gr.addColorStop(0.5, "rgba(58,66,86,0.07)"); gr.addColorStop(1, "rgba(0,0,0,0)");
-    tg2.fillStyle = gr; tg2.fillRect(0, 0, 512, 512);
-    gr = tg2.createRadialGradient(256, 268, 8, 256, 268, 145);
-    gr.addColorStop(0, "rgba(0,0,0,0.5)"); gr.addColorStop(1, "rgba(0,0,0,0)");
-    tg2.fillStyle = gr; tg2.fillRect(0, 0, 512, 512);
-    const tableTex = new THREE.CanvasTexture(tcv); tableTex.colorSpace = THREE.SRGBColorSpace;
-    phoneTable = new THREE.Mesh(new THREE.PlaneGeometry(w * 3.2, h * 2.4),
-      new THREE.MeshBasicMaterial({ map: tableTex, transparent: true, toneMapped: false, depthWrite: false }));
-    phoneTable.renderOrder = -1;
-    phoneKnock = new THREE.Group(); phoneKnock.add(phoneTable, phoneObj);
-    phoneRig = new THREE.Group(); phoneRig.add(phoneKnock); phoneRig.visible = false;
-    scene.add(camera); camera.add(phoneRig);                       // the camera must be in the graph for its children to render
-    PHONE_PEOPLE.forEach((p, i) => { const im = new Image(); im.onload = () => { avatarImg[i] = im; }; im.src = p.av; });
-    // seed ONE banner mid-slide so the first frame already shows a live notification (never a dead phone)
-    activeNotif = { title: FLOOD_MSGS[0][0], sub: FLOOD_MSGS[0][1], color: FLOOD_MSGS[0][2], t0: -0.12 }; floodN = 1;
-    drawPhoneScreen(0);
-  }
-
-  // fix the phone in the camera's view (right on landscape, low-centre on portrait), scaled to a stable fraction of
-  // the viewport, buzzing on each notification, and — past phP≈0.84 — tumbling off as the bracelet knocks it away.
-  function placePhone3D(phP) {
-    if (!phoneRig) return;
-    const w = canvas.clientWidth || 1, h = canvas.clientHeight || 1, land = w >= h;
-    const vHalf = Math.tan(camera.fov * 0.5 * DEG);
-    const Dz = (camera.position.length() || (3.15 * modelR)) * 0.6;   // phone depth — in front of the bracelet
-    const hh = Dz * vHalf;                                             // world half-height of the viewport at that depth
-    const fracH = land ? 0.82 : 0.62, fx = land ? 0.47 : 0.0, fy = land ? -0.02 : -0.24;
-    phoneRig.scale.setScalar(fracH * 2 * hh);
-    phoneRig.position.set(fx * hh * Math.max(camera.aspect, 0.05), fy * hh, -Dz);   // buzz now rattles the PHONE on the (still) table, not the whole rig
-    const kk = smooth(0.84, 1.0, phP);                                // knocked away: tumble off to the lower-right
-    phoneKnock.position.set(kk * 1.9, -kk * 0.55, kk * 0.15);
-    phoneKnock.rotation.set(kk * 0.25, kk * 1.15, -kk * 0.8);
-    // resting orientation — a real device is held at an ANGLE. Off-centre landscape already reads as 3-D; a centred
-    // portrait phone looks like a flat slab, so yaw it more there. A gentle hand-held float keeps it volumetric and
-    // slides the screen's reflection across the glass. Killed as it's knocked away (kk), so the tumble reads clean.
-    // RESTING ON A TABLE: laid back so we look DOWN the screen at an angle (top edge recedes), canted a touch like a
-    // phone set down not-square. A resting device barely drifts; a notification RATTLES it against the hard surface.
-    const rest = 1 - kk;
-    const bz = Math.max(0, 1 - (idle - phoneBuzzT) / 0.5), rattle = bz * bz;   // sharp attack, quick decay
-    const rx = rattle ? Math.sin(idle * 132) * 0.004 : 0, ry = rattle ? Math.sin(idle * 119 + 1.7) * 0.004 : 0, rrot = rattle ? Math.sin(idle * 150) * 0.006 : 0;
-    const pitch = -0.5 * rest, yaw = (land ? -0.13 : -0.10) * rest, roll = (land ? 0.03 : 0.055) * rest;
-    phoneObj.position.set(rx, ry, 0);
-    phoneObj.rotation.set(pitch + Math.sin(idle * 0.5) * 0.005 * rest + rrot, yaw + rrot * 0.6, roll + Math.sin(idle * 0.36) * 0.004 * rest + rrot);
-    phoneObj.scale.setScalar(1 - 0.12 * kk);
-    phoneObj.visible = kk < 0.999;   // the knocked-away phone tumbles off-frame then vanishes
-    if (phoneTable) {                                          // the surface lies parallel under the phone, fading as it's knocked away
-      phoneTable.rotation.set(pitch, yaw, roll);
-      phoneTable.position.set(0, -0.03, -0.06);
-      phoneTable.material.opacity = rest; phoneTable.visible = rest > 0.02;
-    }
-  }
-
-  const _rr = (g, x, y, w, h, r) => { r = Math.min(r, w / 2, h / 2); g.beginPath(); g.moveTo(x + r, y); g.arcTo(x + w, y, x + w, y + h, r); g.arcTo(x + w, y + h, x, y + h, r); g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + w, y, r); g.closePath(); };
-  const _clip = (g, s, w) => { let t = s; while (g.measureText(t).width > w && t.length > 3) t = t.slice(0, -2); return t + (t !== s ? "…" : ""); };
-  function drawAvatar(g, i, cx, cy, r) {
-    g.save(); g.beginPath(); g.arc(cx, cy, r, 0, TAU); g.closePath(); g.clip();
-    const im = avatarImg[i];
-    if (im) g.drawImage(im, cx - r, cy - r, r * 2, r * 2);
-    else { g.fillStyle = PHONE_PEOPLE[i].hue; g.fillRect(cx - r, cy - r, r * 2, r * 2); }
-    g.restore();
-    g.lineWidth = 2; g.strokeStyle = "rgba(255,255,255,.14)"; g.beginPath(); g.arc(cx, cy, r, 0, TAU); g.stroke();
-  }
-  // the live iOS-dark Messages screen: status bar → title → search → the pinned FIVE (photo avatars) → the churning
-  // noise list. ONE notification banner slides in over the top at a time (never a stack). A pure fn of idle/phP.
-  const BANNER_IN = 0.16, BANNER_HOLD = 0.62, BANNER_OUT = 0.2, BANNER_GAP = 0.1, BANNER_LIFE = BANNER_IN + BANNER_HOLD + BANNER_OUT;   // quick, like the live flood — a new one about every ~1s
-  const APP = "-apple-system, 'SF Pro Text', 'Helvetica Neue', Arial, sans-serif";
-  function drawPhoneScreen(phP) {
-    const g = phoneG; if (!g) return;
-    const W = PHONE_CW, H = PHONE_CH;
-    g.textBaseline = "middle"; g.textAlign = "left";
-    g.fillStyle = "#000000"; g.fillRect(0, 0, W, H);                     // iOS dark Messages = true black
-
-    // ---- status bar ----
-    g.fillStyle = "#ffffff"; g.font = "600 27px " + APP; g.fillText("9:41", 40, 40);
-    let rx = W - 40;                                                     // battery
-    g.strokeStyle = "rgba(255,255,255,.55)"; g.lineWidth = 2; _rr(g, rx - 34, 30, 34, 18, 5); g.stroke();
-    g.fillStyle = "#ffffff"; _rr(g, rx - 31, 33, 25, 12, 3); g.fill(); g.globalAlpha = .55; g.fillRect(rx + 1, 34, 3, 10); g.globalAlpha = 1;
-    rx -= 50; g.fillStyle = "#ffffff";                                   // wifi glyph
-    g.beginPath(); g.arc(rx, 46, 15, Math.PI * 1.25, Math.PI * 1.75); g.arc(rx, 46, 0, Math.PI * 1.75, Math.PI * 1.25, true); g.fill();
-    rx -= 34; for (let i = 0; i < 4; i++) { const bh = 6 + i * 4; g.fillStyle = "#ffffff"; _rr(g, rx + i * 8, 46 - bh, 5, bh, 1.5); g.fill(); }   // signal
-    g.fillStyle = "#000000"; _rr(g, W / 2 - 62, 15, 124, 35, 17); g.fill();   // dynamic island
-
-    // ---- title + compose ----
-    g.fillStyle = "#ffffff"; g.font = "700 46px " + APP; g.fillText("Messages", 30, 150);
-    g.strokeStyle = "#0A84FF"; g.lineWidth = 4; g.lineCap = "round"; g.lineJoin = "round";   // compose glyph (pencil in square)
-    _rr(g, W - 82, 128, 44, 44, 12); g.stroke();
-    g.beginPath(); g.moveTo(W - 66, 158); g.lineTo(W - 50, 142); g.lineTo(W - 44, 148); g.lineTo(W - 60, 164); g.closePath();
-    g.fillStyle = "#0A84FF"; g.fill();
-
-    // ---- search field ----
-    const sbY = 178, sbH = 60, scy = sbY + sbH / 2;
-    g.fillStyle = "rgba(120,120,128,0.22)"; _rr(g, 26, sbY, W - 52, sbH, 20); g.fill();
-    g.strokeStyle = "rgba(235,235,245,0.5)"; g.lineWidth = 3;
-    g.beginPath(); g.arc(66, scy - 1, 9, 0, TAU); g.moveTo(73, scy + 6); g.lineTo(82, scy + 15); g.stroke();
-    g.fillStyle = "rgba(235,235,245,0.5)"; g.font = "400 26px " + APP; g.fillText("Search", 96, scy);
-    g.fillStyle = "rgba(235,235,245,0.5)"; _rr(g, W - 58, scy - 12, 12, 22, 6); g.fill();          // mic body
-    g.fillRect(W - 53, scy + 10, 2, 6); g.beginPath(); g.arc(W - 52, scy + 8, 8, 0.15 * Math.PI, 0.85 * Math.PI); g.stroke();
-
-    // ---- pinned FIVE (photo-avatar grid): the people you actually carry ----
-    const grid = [[138, 322], [276, 322], [414, 322], [207, 470], [345, 470]], pr = 54;
-    for (let i = 0; i < PHONE_PEOPLE.length && i < grid.length; i++) {
-      const cx = grid[i][0], cy = grid[i][1]; contactCanvasPos[i].x = cx; contactCanvasPos[i].y = cy;
-      const da = phoneDepT[i] ? clamp((idle - phoneDepT[i]) / 0.45, 0, 1) : 0;
-      if (da > 0 && da < 1) {                                            // conversion flash where the bead leaps out
-        g.globalAlpha = (1 - da) * 0.9; g.strokeStyle = PHONE_PEOPLE[i].hue; g.lineWidth = 6;
-        g.beginPath(); g.arc(cx, cy, pr + da * 54, 0, TAU); g.stroke(); g.globalAlpha = 1;
-      }
-      if (da < 1) {
-        g.globalAlpha = 1 - da; drawAvatar(g, i, cx, cy, pr);
-        if (i % 2 === 0) { g.fillStyle = "#0A84FF"; g.beginPath(); g.arc(cx + pr - 6, cy - pr + 8, 10, 0, TAU); g.fill(); }   // a couple have unread
-        g.globalAlpha = 1;
-        g.fillStyle = "#c8c2b4"; g.font = "500 22px " + APP; g.textAlign = "center"; g.fillText(PHONE_PEOPLE[i].name, cx, cy + pr + 26); g.textAlign = "left";
-      }
-    }
-
-    // ---- the noise list (churning chats) ----
-    let cy = 590; const rowH = 92, ar = 35;
-    for (let i = 0; i < phoneChats.length && cy + rowH < H - 6; i++) {
-      const c = phoneChats[i], mid = cy + rowH / 2;
-      if (c.unread) { g.fillStyle = "#0A84FF"; g.beginPath(); g.arc(24, mid, 7, 0, TAU); g.fill(); }   // unread dot
-      g.fillStyle = c.hue; g.beginPath(); g.arc(66, mid, ar, 0, TAU); g.fill();                        // avatar
-      const init = (c.name.match(/[A-Za-z0-9]/) || ["#"])[0].toUpperCase();
-      g.fillStyle = "#ffffff"; g.font = "600 30px " + APP; g.textAlign = "center"; g.fillText(init, 66, mid + 1); g.textAlign = "left";
-      g.fillStyle = "#ffffff"; g.font = (c.unread ? "600 " : "500 ") + "28px " + APP; g.fillText(_clip(g, c.name, W - 112 - 130), 112, mid - 18);
-      g.fillStyle = "#8d8d93"; g.font = "400 24px " + APP; g.fillText(_clip(g, c.pre, W - 112 - 70), 112, mid + 20);
-      g.fillStyle = c.time === "now" ? "#0A84FF" : "#8d8d93"; g.font = "400 22px " + APP; g.textAlign = "right"; g.fillText(c.time, W - 54, mid - 22); g.textAlign = "left";
-      g.strokeStyle = "rgba(235,235,245,0.28)"; g.lineWidth = 3; g.lineCap = "round";                  // chevron
-      g.beginPath(); g.moveTo(W - 42, mid - 9); g.lineTo(W - 32, mid); g.lineTo(W - 42, mid + 9); g.stroke();
-      g.strokeStyle = "rgba(255,255,255,0.07)"; g.lineWidth = 1; g.beginPath(); g.moveTo(112, cy + rowH); g.lineTo(W, cy + rowH); g.stroke();
-      cy += rowH;
-    }
-
-    // ---- ONE notification banner, sliding down over the very top ----
-    if (activeNotif) {
-      const age = idle - activeNotif.t0;
-      if (age >= 0 && age < BANNER_LIFE) {
-        let a = 1, hidden = 0;                                          // hidden 0 = down/visible, 1 = tucked up off-screen
-        if (age < BANNER_IN) { const t = smooth(0, 1, age / BANNER_IN); hidden = 1 - t; a = t; }
-        else if (age > BANNER_IN + BANNER_HOLD) { const t = smooth(0, 1, (age - BANNER_IN - BANNER_HOLD) / BANNER_OUT); hidden = t; a = 1 - t; }
-        const bx = 18, bw = W - 36, bh = 150, byRest = 20, by = byRest - hidden * (bh + byRest + 18);
-        g.globalAlpha = clamp(a, 0, 1);
-        g.fillStyle = "rgba(44,44,48,0.97)"; _rr(g, bx, by, bw, bh, 34); g.fill();
-        g.fillStyle = activeNotif.color; _rr(g, bx + 22, by + 30, 66, 66, 16); g.fill();
-        g.fillStyle = "#f5f5f7"; g.font = "600 27px " + APP; g.fillText(_clip(g, activeNotif.title, bw - 150), bx + 108, by + 52);
-        g.fillStyle = "#c7c7cc"; g.font = "400 25px " + APP; g.fillText(_clip(g, activeNotif.sub, bw - 128), bx + 108, by + 95);
-        g.fillStyle = "#9a9aa0"; g.font = "400 22px " + APP; g.textAlign = "right"; g.fillText("now", bx + bw - 24, by + 46); g.textAlign = "left";
-        g.globalAlpha = 1;
-      }
-    }
-  }
-  // a contact's launch point: its avatar ON the 3-D screen, in world space
-  function contactScreenWorld(i, out) {
-    const p = contactCanvasPos[i];
-    out.set((p.x / PHONE_CW - 0.5) * phoneScreenW, (0.5 - p.y / PHONE_CH) * phoneScreenH, 0.003);
-    return out.applyMatrix4(phoneScreen.matrixWorld);
-  }
-
-  function initPhone() {
-    wpPromptEl = $("#wpPrompt"); wpCaptionEl = $("#wpCaption"); wpKeepEl = $("#wpKeep");
+  // The hero's text hooks. This used to be initPhone(), which also collected every bead/hub mesh so
+  // the phone story could hide and fly them; with that story gone the model simply renders whole, and
+  // all that is left to capture is the sub-line the object phase cycles its copy through.
+  function initHeroText() {
     subEl = $("#heroSub"); if (subEl && !subBase) subBase = subEl.innerHTML;
-    buildPhone3D();
-    model.traverse((o) => {
-      if (!o.isMesh) return;
-      const nm = o.name || "";
-      if (nm.indexOf("HUB_") === 0 || nm === "BASIN_SWITCH") { mainHub.push(o); return; }
-      if (o.userData.adjuster) { mainHub.push(o); return; }   // the clasp tails are knotted into the hub — they hide/reveal WITH it (else they float during the phone story)
-      let node = NaN;
-      if (nm.indexOf("PLATFORM") === 0) { node = nm === "PLATFORM" ? 0 : parseInt(nm.slice(8), 10); if (!isNaN(node)) { mainPlat[node] = o; mainPlatBase[node] = o.position.clone(); } }
-      else if (nm.indexOf("FB_CAP") === 0) node = nm === "FB_CAP" ? 0 : parseInt(nm.slice(6), 10);
-      else if (nm.indexOf("FB_BASE") === 0) node = nm === "FB_BASE" ? 0 : parseInt(nm.slice(7), 10);
-      else return;
-      if (!isNaN(node)) (mainBead[node] || (mainBead[node] = [])).push({ mesh: o, base: o.position.clone() });   // base pos → the flight can offset + restore exactly
-    });
-  }
-
-  // THE NOISE — while the phone is prominent, keep dropping notifications into the top and flooding the chats'
-  // unread counts (everyone reaching out), buzzing the phone with each. Winds down as the phone is knocked away.
-  // THE NOISE, on the SAME `idle` clock as the banner animation (a real-ms timer drifts vs. idle at high refresh):
-  // once the current banner has lived its full slide-in→hold→slide-out + a short gap, drop exactly ONE more.
-  function floodStep() {
-    if (!(ready && inView && phLast < 0.86)) return;   // wind down as the phone is knocked away / off-screen
-    if (idle < nextNotifAt) return;
-    const m = FLOOD_MSGS[floodN++ % FLOOD_MSGS.length];
-    activeNotif = { title: m[0], sub: m[1], color: m[2], t0: idle };                // exactly ONE banner drops in
-    notifDing();                                                                    // …with the iPhone notification ding
-    phoneBuzzT = idle;                                                              // …and it buzzes the phone
-    try { if (navigator.vibrate && phLast > 0.0005) navigator.vibrate([0, 16, 40, 12]); } catch (e) {}
-    // the list keeps receiving too: age the last "now", then bump a fresh chat to the top with a new preview
-    for (const c of phoneChats) if (c.time === "now") c.time = "1m ago";
-    const idx = 1 + (floodN * 7) % Math.max(1, phoneChats.length - 1);
-    const c = phoneChats.splice(idx, 1)[0];
-    c.pre = CHAT_PINGS[(floodN * 5) % CHAT_PINGS.length]; c.time = "now"; c.unread = true;
-    phoneChats.unshift(c);
-    if (phoneChats[3]) phoneChats[3].unread = true;                                 // a second row lights up unread
-    nextNotifAt = idle + BANNER_LIFE + BANNER_GAP + Math.random() * 0.12;           // schedule the next in idle units (tight → rapid flood)
-  }
-
-  // drives the caption/invitation, the 3-D phone, and the piece-by-piece bead reveal; a pure function of phP so
-  // scrolling back re-hides. Each contact CONVERTS at the phone: it pops OUT of the live screen as its real CAD bead.
-  function updatePhone(phP) {
-    phLast = phP;
-    floodStep();                                                            // idle-clocked: drop the next banner when the current one has run its course
-    if (wpPromptEl) wpPromptEl.style.opacity = String(clamp(1 - smooth(0.015, 0.09, phP), 0, 1));   // the invitation fades the instant they start
-    // …but a subtler "keep scrolling ↓" takes over and rides the whole demo (mobile), so the sideways motion never reads as a swipe. Gone as the phone leaves.
-    if (wpKeepEl) wpKeepEl.style.opacity = String(0.72 * clamp(smooth(0.12, 0.20, phP) * (1 - smooth(0.80, 0.92, phP)), 0, 1));
-    if (wpCaptionEl) wpCaptionEl.style.opacity = String(clamp(smooth(0.5, 0.62, phP) * (1 - smooth(0.9, 1.0, phP)), 0, 1));   // the payoff line rises as the five convert, gone as the phone leaves
-    if (!phoneRig) return;
-    phoneRig.visible = phP < 0.999;
-    placePhone3D(phP);
-    if (phoneRig.visible && phP < 0.995 && idle - phoneDrawT > 0.032) { drawPhoneScreen(phP); phoneTex.needsUpdate = true; phoneDrawT = idle; }
-    camera.updateMatrixWorld(true);   // propagate camera + phone transforms so the screen's world matrix is current for the launch points
-
-    const A = 0.34, B = 0.66, n = PHONE_PEOPLE.length;
-    const setNode = (node, vis, atBase) => { const arr = mainBead[node]; if (arr) for (const bm of arr) { bm.mesh.visible = vis; if (atBase) bm.mesh.position.copy(bm.base); } };
-    for (let i = 0; i < n; i++) {
-      const th = A + (B - A) * (i + 0.65) / n;
-      const dep = phP >= th, node = PHONE_NODE[i];
-      if (dep && !phoneDepT[i]) { phoneDepT[i] = idle; phoneBuzzT = idle; popSound(GATHER_NOTE[i % GATHER_NOTE.length]); }   // the pop-out kicks the phone + sounds a rising note
-      if (!dep) { phoneDepT[i] = 0; setNode(node, false, true); continue; }
-      const t = phP >= 0.999 ? 1 : clamp((idle - phoneDepT[i]) / PHONE_FLY, 0, 1);
-      if (t >= 1) { setNode(node, true, true); continue; }
-      const arr = mainBead[node], plat = mainPlat[node], c = beadGeomC[node];
-      if (!arr || !plat || !c) { setNode(node, true, true); continue; }
-      // rest world centre — the bead's threading home
-      _pm1.compose(mainPlatBase[node], plat.quaternion, plat.scale);
-      _pm2.multiplyMatrices(plat.parent.matrixWorld, _pm1);
-      _pv1.copy(c).applyMatrix4(_pm2);                                            // restWorld
-      contactScreenWorld(i, _pv2);                                                // launch point — the contact's face ON the glass
-      const u = t - 1, e1 = 1 + 1.9 * u * u * u + 0.9 * u * u;                    // back-out (≈5% overshoot)
-      _pv3.copy(_pv1).sub(_pv2).multiplyScalar(e1).add(_pv2);                     // position along the leap
-      _pv4.copy(camera.position).sub(_pv1).normalize();
-      _pv3.addScaledVector(_pv4, 0.26 * modelR * Math.sin(Math.PI * t));          // camera-ward hop → it pops toward you out of the screen
-      _pv3.sub(_pv1);                                                             // worldDelta from home
-      _pm2.copy(arr[0].mesh.parent.matrixWorld).invert();                         // world delta → the meshes' parent-local delta
-      _pv2.copy(_pv1).add(_pv3).applyMatrix4(_pm2);
-      _pv4.copy(_pv1).applyMatrix4(_pm2);
-      _pv2.sub(_pv4);
-      for (const bm of arr) { bm.mesh.visible = true; bm.mesh.position.copy(bm.base).add(_pv2); }
-    }
-    // the rest of the bracelet fades in WHILE the five land — the full (still UNTHREADED) set forms and knocks the
-    // phone away. VISIBILITY ONLY for node 1 (akoma_ntoaso): setupExplode reparents its meshes, so writing our
-    // stale pre-rig base positions onto it would fight the explosion and leave the cap ajar.
-    PHONE_OTHERS.forEach((node, k) => setNode(node, phP >= 0.5 + k * 0.06, false));
-    for (const m of mainHub) m.visible = phP >= 0.68;
-    // NOTE: the cord is deliberately NOT drawn here — threading + the CAD explosion begin only when the bead scroll does.
   }
 
   // the gather choreography: the main bracelet shrinks from centre, the copies slide IN FROM THE SIDES into a
@@ -1192,6 +821,7 @@ function init() {
 
     const ground = new THREE.Mesh(new THREE.PlaneGeometry(modelR * 40, modelR * 40), new THREE.ShadowMaterial({ opacity: 0.2 }));
     ground.rotation.x = -Math.PI / 2; ground.position.y = -modelR * 1.15; ground.receiveShadow = true; scene.add(ground);
+    groundMesh = ground;   // box mode hides it — its shadow plane would otherwise hang mid-air inside the vitrine
 
     ready = true;
     if (loaderEl) loaderEl.classList.add("hide");
@@ -1204,6 +834,7 @@ function init() {
   // ---- overlay ----
   const intro = $("#heroIntro"), outro = $("#heroOutro"), cue = $("#heroCue"), bar = $("#heroProgress span");
   const heroCta = $("#heroCta");   // the opening CTAs, pinned bottom-centre; fades with the intro copy
+  const cutEl = $("#heroCut");     // full-bleed black, dipped through the object → threading cut
   const gatherGuideEl = $("#gatherGuide");
   const capWrap = $("#heroCaption"), capK = capWrap?.querySelector(".hc-kicker"), capT = capWrap?.querySelector(".hc-title"), capL = capWrap?.querySelector(".hc-line");
   // Scene-tied hero narrative — captions are PINNED to what the bracelet is doing (not spread evenly), so each
@@ -1240,8 +871,8 @@ function init() {
     const rect = section.getBoundingClientRect();
     const total = section.offsetHeight - window.innerHeight;
     target = clamp(-rect.top / Math.max(total, 1), 0, 1);
-    // Guarantee the exploded-view boards are in flight long before they're needed: the phone story owns the
-    // first PHONE_FRAC (20%) and the reveals come after it, so 6% is a wide safety margin over the fetch.
+    // Guarantee the exploded-view boards are in flight long before they're needed: the object phase
+    // owns the front of the scroll and the reveals come well after it, so 6% is a wide safety margin.
     if (target > 0.06) requestBoards();
   }
   function resize() {
@@ -1340,15 +971,13 @@ function init() {
     // perfectly assembled one at the end of its threading/settle run (hub in place, cord
     // closed, every bead restored, camera in the tuned product-shot framing). So the object
     // phase simply RENDERS THAT STATE and turns it. Rebuilding it by hand is what dropped the
-    // hub (mainBead holds beads only) and glitched akoma_ntoaso (setupExplode reparents its
-    // meshes, so restoring from mainBead cannot put it back).
+    // hub (the bead map held beads only) and glitched akoma_ntoaso (setupExplode reparents its
+    // meshes, so restoring them from a saved base position cannot put it back).
     const rawP = inObject ? HERO_FRAC
                           : clamp((rawP0 - OBJECT_FRAC) / (1 - OBJECT_FRAC), 0, 1);
-    // scroll timeline: [0..PHONE_FRAC] the phone story → [PHONE_FRAC..HERO_FRAC] the existing hero anim
-    // (threading → reveals → settle) → [HERO_FRAC..GATHER_END] the gather → dwell to 1.
-    const phP = Math.min(1, rawP / PHONE_FRAC);
-    phoneShiftK = phoneRig ? clamp(1 - smooth(0.82, 0.98, phP), 0, 1) : 0;   // hold the bracelet clear of the phone, recentring as it fades
-    const p = clamp((rawP - PHONE_FRAC) / (HERO_FRAC - PHONE_FRAC), 0, 1);
+    // scroll timeline: [0..HERO_FRAC] the hero anim (threading → reveals → settle) →
+    // [HERO_FRAC..GATHER_END] the gather → dwell to 1. (The phone story used to own the front of it.)
+    const p = clamp(rawP / HERO_FRAC, 0, 1);
     const gather = Math.max(0, Math.min(1, (rawP - HERO_FRAC) / (GATHER_END - HERO_FRAC)));   // scroll into the gather zone — now only ARMS/triggers the drop
     // TIME-BASED DROP: a tiny scroll past "Five people" TRIGGERS the fall, which then plays out on its OWN clock (idle)
     // as one sudden motion — instead of the fall being scroll-scrubbed frame-by-frame (which read as a "frozen" drop).
@@ -1404,7 +1033,7 @@ function init() {
       // Disarm on the way out, so coming BACK to the top re-arms and opens on a whole piece again.
       // Latched, a return landed on the frozen angle — mid-split in one frame if they left mid-
       // reveal, or nothing at all for most of a revolution if they left just past it. The re-arm
-      // is invisible: the phase boundary is already a hard cut (the phone story owns that frame).
+      // is invisible: the phase boundary is already a hard cut, played behind the dip to black.
       objTurnArmed = false;
     }
     const settle = smooth(SETTLE0, 1, anim);       // 0 through the scroll, ramps to 1 at the very end (the pan-out)
@@ -1434,7 +1063,7 @@ function init() {
     // When someone is summoned in the object phase, ease the framing out to the gather fit so
     // the arriving bracelet is actually in shot, and let it close again as they recede.
     placeCamera(settle, objectMode ? gRecvPres : fg, camY);
-    threadAmbient(smooth(0.04, 0.16, anim) * (1 - smooth(0.86, 1.0, anim)) * (1 - Math.min(1, fg * 3)));   // slight ambient pad while the bracelet threads (off during phone / drop)
+    threadAmbient(smooth(0.04, 0.16, anim) * (1 - smooth(0.86, 1.0, anim)) * (1 - Math.min(1, fg * 3)));   // slight ambient pad while the bracelet threads (off during the drop)
     for (const rv of reveals) {
       if (!inObject && rv._e > 0.06 && (rv._prevE || 0) <= 0.06) explodeSound();   // the CAD assembly opens → a slight airy reveal whoosh. Muted in the object phase on purpose: that reveal is ambient, and the opening of the page should not make a noise nobody asked for.
       rv._prevE = rv._e;
@@ -1455,14 +1084,20 @@ function init() {
     // the object phase, clears it as the phone story arrives, and keeps it cleared.
     const introDrive = 0.035 + 0.05 * smooth(OBJECT_FRAC * 0.72, OBJECT_FRAC, rawP0);
     overlay(anim, introDrive, fg);   // intro/cue fade on RAW scroll; the "Five people" outro fades as the FALL starts (held through DROP_HOLD_F)
-    updatePhone(phP);
+    // THE CUT. The object phase ends on a finished, threaded bracelet in its own framing; the
+    // timeline resumes on the same beads with no cord yet, at a different angle and distance.
+    // Three discontinuities at once, so rather than pretend otherwise, dip the whole frame to
+    // black through the boundary and let it read as an edit.
+    if (cutEl) {
+      const dc = Math.abs(rawP0 - OBJECT_FRAC);
+      cutEl.style.opacity = String(clamp(1 - smooth(0, CUT_WIN, dc), 0, 1));
+    }
     // Hand the object phase to the gather rig (YOU == the hero bracelet, unchanged in size or
     // place) so that tapping a bead can summon a receiver. Nothing is announced: the bracelet
     // just turns, and a touch is the only thing that reveals there is someone on the other end.
     objectMode = inObject;
-    // Keep the gather maths in step with the turn (gReach/frontFriend read gSpin[0]). The turn
-    // itself is advanced up in the reveal block; this runs after updatePhone(), which re-asserts
-    // phone-story state every frame.
+    // Keep the gather maths in step with the turn (gReach/frontFriend read gSpin[0]); the turn
+    // itself is advanced up in the reveal block.
     if (inObject) gSpin[0] = objTurn;
     cycleObjectLine(inObject);
     updateGather(inObject ? 1 : fg);
@@ -1475,7 +1110,7 @@ function init() {
     idle += 0.016;
     progress += (target - progress) * 0.09;
     if (Math.abs(target - progress) < 0.0002) progress = target;
-    if (ready && inView) { update(progress); composer.render(); }
+    if (ready && inView) { if (boxMode) updateBox(); else update(progress); composer.render(); }
   }
 
   window.__hero = {
@@ -1524,8 +1159,8 @@ function init() {
     const you = gatherInstances[0];
     if (!gatherGroup || !you) return { i: -1, node: -1 };
     // object mode displays the original, so raycast THAT; the clone is hidden there
-    const target = objectMode ? spin : you.pivot;
-    if (!objectMode && !gatherGroup.visible) return { i: -1, node: -1 };
+    const target = (objectMode || boxMode) ? spin : you.pivot;
+    if (!objectMode && !boxMode && !gatherGroup.visible) return { i: -1, node: -1 };
     const rect = canvas.getBoundingClientRect();
     const R = 16, offs = [[0, 0], [R, 0], [-R, 0], [0, R], [0, -R]];
     let youHit = false;
@@ -1547,6 +1182,11 @@ function init() {
   }
   const clearHold = () => { if (gHoldTimer) { clearTimeout(gHoldTimer); gHoldTimer = null; } };
   canvas.addEventListener("pointerdown", (ev) => {
+    if (boxMode) {
+      const pick = gPickBead(ev);
+      if (pick.node >= 0) window.dispatchEvent(new CustomEvent("makoma:pick", { detail: { node: pick.node } }));
+      return;                                          // no summon/echo/drag inside the box
+    }
     if (gLast < 0.90 && !objectMode) return;
     const pick = gPickBead(ev); if (pick.i !== 0) return;   // only the big central YOU bracelet is interactive; the others are backgrounded
     const i = 0;
@@ -1721,7 +1361,7 @@ function init() {
       const q = new THREE.Mesh(new THREE.SphereGeometry(0.22, 20, 16), matQuartz); q.position.copy(pq); q.castShadow = true; adjusters.add(q);
       const e = new THREE.Mesh(new THREE.SphereGeometry(0.13, 14, 10), matBlack); e.position.copy(pe); e.castShadow = e.receiveShadow = true; adjusters.add(e);
     }
-    adjusters.traverse((o) => { if (o.isMesh) o.userData.adjuster = true; });   // initPhone folds these into mainHub → hidden until the hub reveals
+    adjusters.traverse((o) => { if (o.isMesh) o.userData.adjuster = true; });   // tagged so the clasp tails can be treated as part of the hub
     model.add(adjusters);
   }
 
@@ -2148,6 +1788,258 @@ function init() {
   // It called e.preventDefault() on those keys at the window level, which swallowed them everywhere on the
   // page — including the waitlist email field (you couldn't type an 'e', 'd', 'b', etc.). Removed for good.
 
+  // ==================================================================
+  // THE MANUFACTURING BOX. "Customize bracelet" plays a cinematic: a clear
+  // acrylic vitrine on a lit white base rises under the turning piece, the
+  // bracelet drops in (whoosh, thud, one soft bounce), and the customise
+  // panel (#customize — the SAME panel configurator.js drives) slides in.
+  // The lit base is a turntable: selecting a person eases their bead round
+  // to the front; otherwise the piece keeps a slow display turn.
+  // Page scroll is locked while the box is up, so the scroll timeline is
+  // simply not consulted (render() calls updateBox() instead of update()).
+  // The visitor's design (shell colourway + each person's light) is applied
+  // to the REAL model here — and deliberately KEPT after closing, so the
+  // hero keeps showing the bracelet they made.
+  // ==================================================================
+  const BOX_AZ = 26, BOX_EL = 12.5;         // three-quarter view — straight-on, a clear cube reads as a flat rectangle
+  const BOX_TURN = 0.11;                    // rad/s — the turntable's display rotation
+  const BOX_APPEAR = 0.9, BOX_DROP_AT = 1.05, BOX_DROP_T = 0.5, BOX_PANEL_AT = 1.7;
+  let boxMode = false, boxT0 = 0, boxGroup = null, boxPlate = null, boxRestY = 0, boxSide = 0, boxWallH = 0, boxBaseTh = 0, boxFloorY = 0, boxCY = 0;
+  let boxSpin = 0, boxSpinTgt = null, boxThudded = false, boxCamFrom = null, boxFront = null, boxFlare = null;
+  let groundMesh = null, designApplied = false;
+  const boxPlatMat = {};                    // node -> this mode's own platform material (colourable per person)
+
+  function buildVitrine() {
+    if (boxGroup) return;
+    orient.updateMatrixWorld(true);
+    const bb = new THREE.Box3().setFromObject(orient);
+    boxSide = Math.max(bb.max.x - bb.min.x, bb.max.z - bb.min.z) * 1.14;
+    boxWallH = boxSide * 0.62;
+    boxBaseTh = boxSide * 0.15;
+    const drop = 0.85 * modelR;
+    boxRestY = -drop;                       // orient.position.y once landed — the piece's lowest point meets the plate
+    boxFloorY = bb.min.y - drop;
+    boxCY = boxFloorY + boxWallH * 0.4;     // what the box camera looks at
+    boxGroup = new THREE.Group();
+    const base = new THREE.Mesh(new THREE.BoxGeometry(boxSide * 1.06, boxBaseTh, boxSide * 1.06),
+      new THREE.MeshStandardMaterial({ color: 0xd8d9dc, roughness: 0.5, metalness: 0.3, envMapIntensity: 0.7 }));
+    base.position.y = boxFloorY - boxBaseTh / 2;
+    // dialled cool on purpose: the plate's job is a soft under-glow around the piece, not a
+    // lightbox — at 0.9 the bloom turned the whole vitrine milky and the bracelet into a silhouette
+    boxPlate = new THREE.Mesh(new THREE.BoxGeometry(boxSide, boxBaseTh * 0.14, boxSide),
+      new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xffffff, emissiveIntensity: 0.34, roughness: 0.4, metalness: 0 }));
+    boxPlate.position.y = boxFloorY - boxBaseTh * 0.07;   // its TOP face is the lit floor the piece lands on
+    boxPlate.receiveShadow = true;
+    // acrylic: nearly invisible faces + bright EDGES — the edges are what sell "clear box"
+    const walls = new THREE.Mesh(new THREE.BoxGeometry(boxSide, boxWallH, boxSide),
+      new THREE.MeshPhysicalMaterial({ color: 0xffffff, transparent: true, opacity: 0.03, roughness: 0.02, metalness: 0,
+        envMapIntensity: 0.18, specularIntensity: 0.08, side: THREE.DoubleSide, depthWrite: false }));   // env + specular kept LOW — the env sun and the vitrine spot both printed hot white blobs on the glass
+    walls.position.y = boxFloorY + boxWallH / 2;
+    walls.renderOrder = 3;
+    const edges = new THREE.LineSegments(new THREE.EdgesGeometry(walls.geometry),
+      new THREE.LineBasicMaterial({ color: 0xf2f4f8, transparent: true, opacity: 0.65 }));
+    edges.position.copy(walls.position);
+    edges.renderOrder = 4;
+    // the vitrine's own downlight — a museum spot from above, so the piece is LIT on the plate
+    // rather than backlit by it (the hero's key light is tuned for the stage centre at y = 0,
+    // and the landed piece sits well below that pool)
+    const spot = new THREE.SpotLight(0xffe9c4, 1.7, 0, 0.62, 0.55, 1.1);   // warm + restrained: white at 2.6 washed the matte-black shell grey
+    spot.position.set(boxSide * 0.35, boxFloorY + boxWallH * 2.1, boxSide * 0.4);
+    spot.target.position.set(0, boxFloorY, 0);
+    spot.castShadow = true; spot.shadow.mapSize.set(1024, 1024); spot.shadow.bias = -0.0004;   // the contact shadow that grounds the piece on the plate
+    boxGroup.add(spot, spot.target);
+    boxGroup.add(base, boxPlate, walls, edges);
+    boxGroup.visible = false;
+    scene.add(boxGroup);
+    // per-node front angles for THIS camera azimuth (frontAngleOf was sampled for the gather
+    // camera and only covers the six gather nodes; a person may sit on any of the eight)
+    boxFront = {};
+    const camDir = new THREE.Vector3(Math.cos(BOX_AZ * DEG), 0, Math.sin(BOX_AZ * DEG));
+    const sav = spin.rotation.y, v = new THREE.Vector3();
+    for (let node = 0; node < 8; node++) {
+      const plat = model.getObjectByName("PLATFORM" + (node === 0 ? "" : String(node))); if (!plat) continue;
+      plat.geometry.computeBoundingBox();
+      const c = plat.geometry.boundingBox.getCenter(new THREE.Vector3());
+      let best = -Infinity, bth = 0;
+      for (let k = 0; k < 180; k++) {
+        const th = k / 180 * TAU; spin.rotation.y = th; spin.updateMatrixWorld(true);
+        v.copy(c).applyMatrix4(plat.matrixWorld);
+        const d = v.dot(camDir); if (d > best) { best = d; bth = th; }
+      }
+      boxFront[node] = bth;
+    }
+    spin.rotation.y = sav; spin.updateMatrixWorld(true);
+  }
+
+  // The stored design onto the REAL model: the shell colourway recolours the shared shell
+  // material (beads + hub together — that IS what a colourway means), and each person's light
+  // becomes their bead's platform emissive. Platforms get this mode's own materials because the
+  // stock ones are shared (matGlow across five beads, matGold elsewhere) — per-person colour
+  // needs one material per bead.
+  function applyDesign() {
+    const D = window.MAKOMA_DESIGN; if (!D || !model) return;
+    const st = D.get();
+    matBlack.color.set(D.shellDef(st.shell).hex);
+    const lit = {};
+    st.people.forEach((p) => { lit[D.beadOf(p.sym)] = p.glow; });
+    for (let node = 0; node < 8; node++) {
+      const plat = model.getObjectByName("PLATFORM" + (node === 0 ? "" : String(node))); if (!plat) continue;
+      let m = boxPlatMat[node];
+      if (!m) { m = boxPlatMat[node] = matGlow.clone(); }
+      if (lit[node]) { m.color.set(lit[node]); m.emissive.set(lit[node]); m.userData.base = 2.2; }
+      else { m.color.set(0xc6a24c); m.emissive.set(0xc6a24c); m.userData.base = 0.0; m.roughness = 0.36; m.metalness = 1.0; }
+      m.emissiveIntensity = m.userData.base;
+      plat.material = m;
+    }
+    designApplied = true;
+  }
+
+  const lockScroll = (on) => {
+    document.documentElement.style.overflow = on ? "hidden" : "";
+    document.body.style.overflow = on ? "hidden" : "";
+  };
+
+  function openBox() {
+    if (boxMode) return;
+    const cust = $("#customize"); if (!cust) return;
+    audioCtx();                                        // wake audio inside the gesture
+    if (section.classList.contains("no3d")) {          // no-WebGL fallback: the panel alone, over the poster
+      lockScroll(true); section.classList.add("in-box"); cust.classList.add("is-open");
+      return;
+    }
+    window.scrollTo(0, 0);
+    target = progress = 0;
+    update(0);                                         // settle the object-phase state before freezing it
+    for (const rv of reveals) { rv._e = 0; rv._prevE = 0; updateExplode(rv, 0); }   // the open bead closes for the drop
+    for (const id of ["#hubLabels", "#beadLabels", "#beadWords"]) { const h = $(id); if (h) h.style.opacity = "0"; }
+    buildVitrine();
+    applyDesign();
+    if (groundMesh) groundMesh.visible = false;
+    if (gatherGroup) gatherGroup.visible = false;
+    spin.visible = true;
+    if (cutEl) cutEl.style.opacity = "0";
+    boxMode = true; boxT0 = idle; boxThudded = false; boxFlare = null;
+    boxSpin = spin.rotation.y; boxSpinTgt = null;
+    boxGroup.visible = true;
+    boxCamFrom = { pos: camera.position.clone(), tgt: new THREE.Vector3(0, 0, 0) };
+    lockScroll(true); section.classList.add("in-box");
+    if (reduce) { cust.classList.add("is-open"); }
+    else setTimeout(() => { if (boxMode) cust.classList.add("is-open"); }, BOX_PANEL_AT * 1000);
+  }
+
+  function closeBox() {
+    const cust = $("#customize");
+    if (section.classList.contains("no3d")) {
+      lockScroll(false); section.classList.remove("in-box"); if (cust) cust.classList.remove("is-open");
+      return;
+    }
+    if (!boxMode) return;
+    if (cust) cust.classList.remove("is-open");
+    // a quick dip to black covers the box striking + the camera cut back to the object framing —
+    // the same edit idiom as the object → threading boundary
+    if (cutEl) cutEl.style.opacity = "1";
+    setTimeout(() => {
+      boxMode = false;
+      boxGroup.visible = false;
+      orient.position.y = 0;
+      if (groundMesh) groundMesh.visible = true;
+      objTurnArmed = false;                            // the object phase re-arms → re-opens on a whole piece
+      lockScroll(false); section.classList.remove("in-box");
+      update(progress);                                // repaint the object phase under the black, then it lifts
+    }, reduce ? 0 : 380);
+  }
+
+  function boxCamera(blend) {
+    const az = BOX_AZ * DEG, el = BOX_EL * DEG;
+    const vHalf = Math.tan(camera.fov * 0.5 * DEG);
+    const aspect = Math.max(camera.aspect, 0.05), portrait = aspect < 1;
+    // fit the vitrine: its own half-extents, with room for the drop above it
+    const hHalf = (boxWallH + boxBaseTh) * 0.64, wHalf = boxSide * 0.78;
+    const wFill = portrait ? 0.86 : 0.6, hFill = portrait ? 0.42 : 0.72;
+    const d = Math.max(wHalf / (vHalf * aspect * wFill), hHalf / (vHalf * hFill));
+    const ce = Math.cos(el);
+    const pos = new THREE.Vector3(Math.cos(az) * ce * d, Math.sin(el) * d + boxCY, Math.sin(az) * ce * d);
+    const tgt = new THREE.Vector3(0, boxCY, 0);
+    if (boxCamFrom && blend < 1) {
+      pos.lerpVectors(boxCamFrom.pos, pos, blend);
+      tgt.lerpVectors(boxCamFrom.tgt, tgt, blend);
+    }
+    camera.position.copy(pos);
+    camera.lookAt(tgt);
+    // shift the scene clear of the panel (right side on desktop, bottom sheet on phones) —
+    // translate the camera along its own axes so the aim is preserved
+    const w = canvas.clientWidth || 1, h = canvas.clientHeight || 1;
+    const worldPerPx = d * Math.tan(camera.fov * 0.5 * DEG) / (h * 0.5);
+    camera.updateMatrixWorld(true);
+    const k = blend;                                   // the shift arrives with the framing
+    const _s = new THREE.Vector3();
+    if (w > h) { _s.setFromMatrixColumn(camera.matrixWorld, 0); camera.position.addScaledVector(_s, 0.5 * Math.min(420, w * 0.4) * worldPerPx * k); }
+    else { _s.setFromMatrixColumn(camera.matrixWorld, 1); camera.position.addScaledVector(_s, -0.24 * h * worldPerPx * k); }
+  }
+
+  function updateBox() {
+    const t = reduce ? 99 : idle - boxT0;
+    // the vitrine rises from below while the piece lifts slightly — anticipation before the drop
+    const up = smooth(0, BOX_APPEAR, t);
+    boxGroup.position.y = (1 - up) * (-2.6 * modelR);
+    let y = 0.3 * modelR * smooth(0.1, BOX_APPEAR, t);
+    if (t >= BOX_DROP_AT) {
+      const u = clamp((t - BOX_DROP_AT) / BOX_DROP_T, 0, 1);
+      if (u > 0 && !boxThudded && u < 0.05) dropWhoosh();
+      y = 0.3 * modelR + (boxRestY - 0.3 * modelR) * u * u;     // gravity — t² accel into the box
+      if (u >= 1) {
+        if (!boxThudded) { boxThudded = true; dropThud(); try { if (navigator.vibrate) navigator.vibrate([0, 40, 60, 24]); } catch (e) {} }
+        const s = clamp((t - BOX_DROP_AT - BOX_DROP_T) / 0.4, 0, 1);   // one soft arch of rebound
+        y = boxRestY + 0.1 * modelR * 4 * s * (1 - s);
+      }
+    }
+    if (reduce) y = boxRestY;
+    orient.position.y = y;
+    // the turntable: a slow display turn; selecting a person eases their bead round to the front
+    const dt = 0.016;
+    if (boxSpinTgt != null) {
+      const d = angDelta(boxSpin, boxSpinTgt);
+      boxSpin += d * Math.min(1, 6.5 * dt);
+      if (Math.abs(d) < 0.012) boxSpinTgt = null;
+    } else if (boxThudded || reduce) boxSpin += BOX_TURN * dt;
+    spin.rotation.y = boxSpin;
+    // lights: each person's platform breathes; a pulse flares the tapped bead briefly
+    for (const node in boxPlatMat) {
+      const m = boxPlatMat[node], base = m.userData.base || 0;
+      let v = base > 0 ? base * (0.88 + 0.12 * Math.sin(idle * 0.9 + node * 1.7)) : 0;
+      if (boxFlare && String(boxFlare.node) === String(node)) {
+        const f = Math.max(0, 1 - (idle - boxFlare.t0) / 0.7);
+        v = Math.max(v, 0.3) + 2.6 * f * f;
+        if (f <= 0) boxFlare = null;
+      }
+      m.emissiveIntensity = v;
+    }
+    boxPlate.material.emissiveIntensity = 0.34 + 0.025 * Math.sin(idle * 0.7);
+    boxCamera(reduce ? 1 : smooth(0, 1.25, t));
+  }
+
+  window.__hero.box = {
+    open: openBox,
+    close: closeBox,
+    get isOpen() { return boxMode; },
+    focus(node) { if (boxMode && boxFront && boxFront[node] != null) boxSpinTgt = boxFront[node]; },
+    pulse(node, hex) {
+      if (!boxMode) return;
+      if (hex && boxPlatMat[node]) { boxPlatMat[node].color.set(hex); boxPlatMat[node].emissive.set(hex); }
+      boxFlare = { node, t0: idle };
+    },
+  };
+  // "Customize bracelet" / "Design yours" / the #yourfive button all open the box (the anchor
+  // stays as fallback markup for non-JS; with the module alive the cinematic takes over)
+  for (const el of document.querySelectorAll('a[href="#yourfive"], [data-open-box]')) {
+    el.addEventListener("click", (e) => { e.preventDefault(); openBox(); });
+  }
+  const boxCloseBtn = document.getElementById("boxClose");
+  if (boxCloseBtn) boxCloseBtn.addEventListener("click", closeBox);
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeBox(); });
+  // live re-apply while designing (and keep the design on the hero afterwards)
+  if (window.MAKOMA_DESIGN) window.MAKOMA_DESIGN.subscribe(() => { if (designApplied) applyDesign(); });
+
   let model = null;
   if (loaderEl) loaderEl.classList.remove("hide");
   const draco = new DRACOLoader(); draco.setDecoderPath("assets/vendor/three/draco/");
@@ -2164,7 +2056,7 @@ function init() {
     buildCord();
     buildBraid();
     buildAdjusters();   // the sliding macramé clasp tails (part of `model` → clones into the gather cluster)
-    initPhone();        // collect the main model's bead/hub meshes BEFORE the first render, so frame 1 starts hidden
+    initHeroText();     // capture the sub-line the object phase cycles its copy through
     build();
     setupExplode();
     onScroll(); render();   // FIRST paint — deliberately after setupExplode(), see the note at the end of build()

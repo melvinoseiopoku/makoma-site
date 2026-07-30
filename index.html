@@ -156,6 +156,8 @@
            alt="The M'AKOMA bracelet rendered in 3D — beads and core hub on a braided cord." />
     </picture>
     <div class="hero3d-veil" aria-hidden="true"></div>
+    <!-- the cut: dipped to black across the object → threading boundary (hero3d.js sets opacity) -->
+    <div class="hero-cut" id="heroCut" aria-hidden="true"></div>
     <p class="sr-only">A 3D anatomy of the bracelet: each matte-black bead carries an engraved gold Adinkra symbol, a small circuit board and a haptic motor; the gold core hub holds the battery, microphone and speaker.</p>
 
     <div class="hero3d-overlay">
@@ -173,6 +175,51 @@
           <a href="#yourfive" class="btn btn-gold">Customize bracelet</a>
           <a href="#join" class="btn btn-line">Join the waitlist</a>
         </div>
+      </div>
+
+      <!-- CUSTOMIZE — the box-mode panel. Lives in the hero because the bracelet being designed
+           is the hero's own 3-D model, dropped into the manufacturing vitrine (hero3d.js box mode).
+           Same .cfg classes as before the move, so the panel styling carries over wholesale;
+           configurator.js drives it and hero3d.js renders the consequences. -->
+      <div class="cfg box-custom" id="customize" aria-hidden="true">
+        <aside class="box-sheet">
+          <button type="button" class="box-close" id="boxClose" aria-label="Close the designer">&times;</button>
+          <header class="box-head">
+            <p class="eyebrow">Make it yours</p>
+            <h2 class="box-title">Who are your <span class="gold-ink">five?</span></h2>
+          </header>
+<div class="cfg-panel">
+        <p class="eyebrow cfg-lbl">Your five</p>
+        <div class="cfg-roster" role="tablist" aria-label="Your five people"></div>
+
+        <div class="cfg-editor" role="tabpanel">
+          <input class="cfg-name" id="cfgName" type="text" maxlength="24"
+                 autocomplete="off" autocorrect="off" spellcheck="false"
+                 aria-label="Their name" />
+          <p class="cfg-namehelp">First name, or whatever you actually call them.</p>
+
+          <p class="eyebrow cfg-lbl">Their symbol</p>
+          <div class="cfg-symrail" role="radiogroup" aria-label="Adinkra symbol"></div>
+          <p class="cfg-symmeta" aria-live="polite"></p>
+
+          <p class="eyebrow cfg-lbl">Their light <span class="cfg-lightname"></span></p>
+          <div class="cfg-lights" role="radiogroup" aria-label="Their light"></div>
+        </div>
+
+        <div class="cfg-finish">
+          <p class="eyebrow cfg-lbl">The bracelet <span class="cfg-shellname"></span></p>
+          <div class="cfg-shells" role="radiogroup" aria-label="Bracelet colour"></div>
+        </div>
+
+        <div class="cfg-actions">
+          <button type="button" class="btn btn-gold cfg-cta">Save my five</button>
+          <button type="button" class="cfg-reset">Start over</button>
+        </div>
+        <p class="cfg-ctasub">Joins the waitlist and keeps this exact bracelet against your name.</p>
+      </div>
+        </aside>
+        <p class="cfg-toast" role="status"></p>
+        <p class="sr-only cfg-sr" aria-live="polite"></p>
       </div>
 
       <div class="hero-caption" id="heroCaption" aria-live="polite">
@@ -204,19 +251,6 @@
         </div>
       </div>
 
-      <!-- THE OPENING: a phone buried in noise quiets to five pinned people, who fly out and land as the
-           REAL beads of the bracelet (hero3d.js drives data-phase / departed / landed from scroll) -->
-      <!-- the OPENING phone story is now a REAL 3-D object (built in hero3d.js): a phone drowning in notifications,
-           the five pinned people popping out of the live screen as the actual beads. This node is the a11y description. -->
-      <div class="why-stage" id="whyStage" role="img"
-           aria-label="A phone buried in notifications quiets down to five pinned people, who pop out of the screen and land as the real beads of the M'AKOMA bracelet."></div>
-
-      <!-- the payoff line — rises as the five convert, gone as the phone is knocked away -->
-      <p class="hero-cap" id="wpCaption" aria-hidden="true">Only the few you carry.</p>
-      <!-- the invitation to act — a scroll CTA that fades the moment they start -->
-      <p class="wp-prompt" id="wpPrompt" aria-hidden="true"><span>Scroll to lift your people out of the noise</span><i class="wp-arrow"></i></p>
-      <!-- persistent, subtle cue (mobile): reassures "keep scrolling ↓" through the demo, so the sideways motion isn't mistaken for a horizontal swipe -->
-      <p class="wp-keep" id="wpKeep" aria-hidden="true"><span>Keep scrolling</span><i class="wp-arrow"></i></p>
     </div>
 
     <div class="hero-progress" id="heroProgress" aria-hidden="true"><span></span></div>
@@ -264,49 +298,10 @@
       <h1 class="cfg-title">Who are your <span class="gold-ink">five?</span></h1>
       <p class="cfg-sub">Name them. Give each a symbol and a light. This is the bracelet we&rsquo;d string for you.</p>
     </header>
-
-    <div class="cfg-grid">
-      <div class="cfg-stage">
-        <svg class="cfg-cord" aria-hidden="true"></svg>
-        <div class="cfg-ring" aria-hidden="true"></div>
-        <p class="cfg-hint">Tap a bead to feel it</p>
-      </div>
-
-      <div class="cfg-panel">
-        <p class="cfg-front" aria-hidden="true"></p>
-
-        <p class="eyebrow cfg-lbl">Your five</p>
-        <div class="cfg-roster" role="tablist" aria-label="Your five people"></div>
-
-        <div class="cfg-editor" role="tabpanel">
-          <input class="cfg-name" id="cfgName" type="text" maxlength="24"
-                 autocomplete="off" autocorrect="off" spellcheck="false"
-                 aria-label="Their name" />
-          <p class="cfg-namehelp">First name, or whatever you actually call them.</p>
-
-          <p class="eyebrow cfg-lbl">Their symbol</p>
-          <div class="cfg-symrail" role="radiogroup" aria-label="Adinkra symbol"></div>
-          <p class="cfg-symmeta" aria-live="polite"></p>
-
-          <p class="eyebrow cfg-lbl">Their light <span class="cfg-lightname"></span></p>
-          <div class="cfg-lights" role="radiogroup" aria-label="Their light"></div>
-        </div>
-
-        <div class="cfg-finish">
-          <p class="eyebrow cfg-lbl">The bracelet <span class="cfg-shellname"></span></p>
-          <div class="cfg-shells" role="radiogroup" aria-label="Bracelet colour"></div>
-        </div>
-
-        <div class="cfg-actions">
-          <button type="button" class="btn btn-gold cfg-cta">Save my five</button>
-          <button type="button" class="cfg-reset">Start over</button>
-        </div>
-        <p class="cfg-ctasub">Joins the waitlist and keeps this exact bracelet against your name.</p>
-      </div>
-    </div>
-
-    <p class="cfg-toast" role="status"></p>
-    <p class="sr-only cfg-sr" aria-live="polite"></p>
+    <!-- the designing itself happens up in the hero: this button drops the bracelet into the
+         manufacturing box and opens the panel (#customize). The section stays as the scroll
+         landmark and the non-JS fallback target. -->
+    <p class="cfg-open reveal"><button type="button" class="btn btn-gold" data-open-box>Design your bracelet</button></p>
   </div>
 </section>
 
@@ -368,7 +363,6 @@
 
 <!-- The hero→circle gather now lives INSIDE #hero (hero3d.js); the old separate touch-demo section is retired. -->
 
-<!-- The Why-M'AKOMA phone story now OPENS the hero (see #whyStage inside #hero); the old phone+carousel section is retired. -->
 
 <!-- ============ WHERE WE LIVE — interactive 2D→3D positioning ============ -->
 <!-- "Where we live" (#position) removed 2026-07-28: competitive-positioning analysis,

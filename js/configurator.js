@@ -1,21 +1,18 @@
 /* ============================================================
-   M'AKOMA — "Who are your five?" bracelet configurator
+   M'AKOMA — "Who are your five?" bracelet configurator (the PANEL)
    ------------------------------------------------------------
-   Deliberately NO WebGL. The hero already holds a WebGLRenderer with the
-   762 KB GLB, a PMREM env map and a bloom pass; a second GL context would
-   duplicate every geometry and texture, and on a mid-range Android inside
-   Instagram's webview (where most of our traffic comes from) that is the
-   likeliest source of jank or a blank canvas. This stage is 8 positioned
-   divs driven by one `angle` number — crisper than 3D at 375px, zero new
-   network bytes, and it works under reduced-motion and save-data.
-
-   The rotation control IS the roster rail: a native horizontal scroll-snap
-   list whose scrollLeft drives the ring. That is the whole answer to the
-   drag-vs-scroll trap a tester hit on the hero ("I thought I had to swipe
-   sideways") — iOS and Android apply their own directional lock to a native
-   scroller, so a vertical-ish swipe scrolls the PAGE and never the rail. No
-   custom gesture physics, no axis ambiguity, and the same gesture picks who
-   you're editing.
+   The stage is no longer here. This panel lives inside the hero (#customize)
+   and what it edits is the hero's REAL 3-D bracelet, dropped into the
+   manufacturing box by hero3d.js ("box mode"). This file owns the form —
+   roster, name, symbol, light, shell, save — and delegates every visual
+   consequence to window.__hero.box:
+     focus(node)      the turntable brings that bead round to the front
+     pulse(node,hex)  the bead's light flares
+   and the design itself flows through window.MAKOMA_DESIGN, which hero3d.js
+   subscribes to (shell colourway + per-person platform lights).
+   Taps on the 3-D beads come BACK as a "makoma:pick" window event, so a
+   touch on the piece selects that person here. The old CSS ring stage
+   (8 divs on an ellipse) is retired with the section it lived in.
 
    State lives in window.MAKOMA_DESIGN (js/design.js) — names never leave
    the browser. This file is the view only.
@@ -57,14 +54,10 @@
     return "Custom";
   };
 
-  var root = $("#yourfive");
+  var root = $("#customize");
   if (!root) return;
 
-  var stage   = $(".cfg-ring", root);
-  var cordSvg = $(".cfg-cord", root);
   var roster  = $(".cfg-roster", root);
-  var frontLbl= $(".cfg-front", root);
-  var hint    = $(".cfg-hint", root);
   var editor  = $(".cfg-editor", root);
   var nameIn  = $("#cfgName");
   var symRail = $(".cfg-symrail", root);
@@ -77,16 +70,12 @@
   var srLive  = $(".cfg-sr", root);
 
   var selected = 0;
-  var angle = 0, targetAngle = 0;
-  var beadEls = [];
-  var tapped = false;
-  var raf = null;
-  var litMap = {};                 // bead index -> glow colour, rebuilt only when the design changes
   var progScroll = 0;              // timestamp: suppress the scroll-debounce during our own scrollIntoView
-  function refreshLit() {
-    litMap = {};
-    D.get().people.forEach(function (p) { litMap[D.beadOf(p.sym)] = p.glow; });
-  }
+
+  /* the 3-D stage, when it's alive (hero3d.js box mode); every call is optional */
+  function box() { return (window.__hero && window.__hero.box) || null; }
+  function boxFocus(node) { var b = box(); if (b) b.focus(node); }
+  function boxPulse(node, hex) { var b = box(); if (b) b.pulse(node, hex); }
 
   /* ---------- glyph rendering (from window.ADINKRA_PATHS, already loaded) ---------- */
   function glyphSVG(key, cls) {
@@ -95,79 +84,6 @@
     var paths = g.paths.map(function (d) { return '<path d="' + d + '"/>'; }).join("");
     return '<svg class="' + (cls || "") + '" viewBox="' + g.viewBox + '" aria-hidden="true" focusable="false">' + paths + "</svg>";
   }
-
-  /* ---------- the ring ---------- */
-  function buildRing() {
-    stage.innerHTML = "";
-    beadEls = [];
-    for (var i = 0; i < 8; i++) {
-      var b = document.createElement("div");
-      b.className = "cfg-bead";
-      b.dataset.bead = String(i);
-      b.innerHTML = '<span class="cfg-face">' + glyphSVG(D.SYMBOLS[i], "cfg-glyph") + "</span>";
-      stage.appendChild(b);
-      beadEls.push(b);
-    }
-  }
-
-  /* Lay the 8 beads on a tilted ellipse. One `angle` variable rotates the whole
-     thing; scale/opacity/z-index fake the depth so it reads as a real bracelet
-     lying at an angle rather than a flat circle of dots. */
-  function layout() {
-    var w = stage.clientWidth || 320, h = stage.clientHeight || 300;
-    var bead = beadEls[0] ? beadEls[0].offsetWidth : 64;
-    var cx = w / 2, cy = h / 2;
-    // keep the whole ring (plus a bead radius) inside the stage on any viewport
-    var rx = Math.min((w - bead) / 2 - 6, (h - bead) / 2 / 0.52 - 6, 220);
-    var ry = rx * 0.52;                              // a bracelet lying tilted away, not a flat circle
-    var lit = litMap;                                        // cached; refreshed on state change, not per frame
-
-    for (var i = 0; i < 8; i++) {
-      var t = angle + i * TAU / 8;
-      var depth = (1 + Math.cos(t)) / 2;             // 1 = nearest the viewer
-      var x = cx + rx * Math.sin(t);
-      var y = cy + ry * Math.cos(t);                 // +cos: the front bead sits LOW, nearest the eye
-      var sc = 0.66 + 0.34 * depth;
-      var el = beadEls[i];
-      el.style.transform = "translate(-50%,-50%) translate(" + x.toFixed(1) + "px," + y.toFixed(1) + "px) scale(" + sc.toFixed(3) + ")";
-      el.style.zIndex = String(Math.round(sc * 100));
-      el.style.opacity = (0.40 + 0.60 * depth).toFixed(3);
-      var glow = lit[i];
-      if (glow) { el.classList.add("is-lit"); el.style.setProperty("--lit", glow); }
-      else { el.classList.remove("is-lit"); el.style.removeProperty("--lit"); }
-    }
-    drawCord(cx, cy, rx, ry);
-  }
-
-  function drawCord(cx, cy, rx, ry) {
-    if (!cordSvg) return;
-    var w = stage.clientWidth || 320, h = stage.clientHeight || 300;
-    cordSvg.setAttribute("viewBox", "0 0 " + w + " " + h);
-    var e = cordSvg.querySelector("ellipse");
-    if (!e) { e = document.createElementNS("http://www.w3.org/2000/svg", "ellipse"); cordSvg.appendChild(e); }
-    e.setAttribute("cx", cx); e.setAttribute("cy", cy);
-    e.setAttribute("rx", rx); e.setAttribute("ry", ry);
-    e.setAttribute("class", "cfg-cordline");
-  }
-
-  /* Bring a bead to the front of the ring (nearest the viewer = cos(t) max, t≈0). */
-  function angleForBead(i) { return -i * TAU / 8; }
-
-  function easeTo(a) {
-    targetAngle = a;
-    if (reduce) { angle = norm(targetAngle); layout(); return; }
-    if (raf) return;
-    var step = function () {
-      var d = shortest(targetAngle - angle);
-      if (Math.abs(d) < 0.002) { angle = norm(targetAngle); layout(); raf = null; return; }
-      angle = norm(angle + d * 0.16);
-      layout();
-      raf = requestAnimationFrame(step);
-    };
-    raf = requestAnimationFrame(step);
-  }
-  function norm(a) { a %= TAU; return a < 0 ? a + TAU : a; }
-  function shortest(d) { d %= TAU; if (d > Math.PI) d -= TAU; if (d < -Math.PI) d += TAU; return d; }
 
   /* ---------- roster ---------- */
   function buildRoster() {
@@ -266,7 +182,7 @@
       var who = st.people[displaced].name.trim() || st.people[displaced].ghost;
       toast(SYM[key].name + " was " + who + "’s — they’ve traded.");
     }
-    easeTo(angleForBead(D.beadOf(key)));
+    boxFocus(D.beadOf(key));
     pulse(D.beadOf(key), st.people[selected].glow);
   }
 
@@ -274,7 +190,7 @@
     selected = Math.max(0, Math.min(D.SLOTS - 1, i));
     var st = D.get();
     var p = st.people[selected];
-    easeTo(angleForBead(D.beadOf(p.sym)));
+    boxFocus(D.beadOf(p.sym));
     paintEditor();
     paintRoster();
     if (scrollChip && roster.children[selected]) {
@@ -290,9 +206,6 @@
 
     if (document.activeElement !== nameIn) nameIn.value = real;   // never fight the caret mid-type
     nameIn.placeholder = p.ghost;
-
-    frontLbl.textContent = real || p.ghost;
-    frontLbl.classList.toggle("is-ghost", !real);
 
     [].forEach.call(symRail.children, function (b) {
       var key = b.dataset.sym;
@@ -347,12 +260,7 @@
   }
 
   function pulse(beadIdx, hex) {
-    var el = beadEls[beadIdx];
-    if (!el) return;
-    el.classList.remove("is-pulse");
-    void el.offsetWidth;                       // restart the animation
-    if (hex) el.style.setProperty("--lit", hex);
-    el.classList.add("is-pulse");
+    boxPulse(beadIdx, hex);                    // the REAL bead flares in the box
     try { if (navigator.vibrate) navigator.vibrate([0, 48, 110, 26]); } catch (e) {}
     var sym = D.SYMBOLS[beadIdx];
     if (SYM[sym]) tone(SYM[sym].note);
@@ -369,33 +277,20 @@
 
   /* ---------- wiring ---------- */
   function init() {
-    buildRing();
     buildRoster();
     buildSymRail();
     buildLights();
     buildShells();
 
-    /* The rail's native scroll drives the ring. Passive listener, no preventDefault
-       anywhere — the browser keeps full ownership of the gesture. */
+    /* Settling the rail on a chip selects that person — which turns the piece in the box.
+       Passive listener; the browser keeps full ownership of the gesture. */
     var scrollT = null;
     roster.addEventListener("scroll", function () {
-      if (raf) { cancelAnimationFrame(raf); raf = null; }     // the finger wins over the ease
-      var max = roster.scrollWidth - roster.clientWidth;
-      if (max > 4) {
-        var f = Math.max(0, Math.min(1, roster.scrollLeft / max));   // clamp: WebKit rubber-banding overscrolls
-        var st = D.get();
-        var beadIdxs = st.people.map(function (p) { return D.beadOf(p.sym); });
-        var pos = f * (D.SLOTS - 1);
-        var i0 = Math.floor(pos), i1 = Math.min(D.SLOTS - 1, i0 + 1), frac = pos - i0;
-        var a0 = angleForBead(beadIdxs[i0]), a1 = angleForBead(beadIdxs[i1]);
-        var na = norm(a0 + shortest(a1 - a0) * frac);
-        if (isFinite(na)) { angle = na; layout(); }   // a NaN here would spin the rAF loop forever
-      }
       clearTimeout(scrollT);
       scrollT = setTimeout(function () {                        // Safari has no scrollend
         if (Date.now() - progScroll < 700) return;   // this scroll was ours, not the user's
         var idx = centredChip();
-        if (idx !== selected) { selected = idx; paintEditor(); paintRoster(); }
+        if (idx !== selected) select(idx, false);
       }, 120);
     }, { passive: true });
 
@@ -413,12 +308,11 @@
       return best;
     }
 
-    /* Tapping any bead selects that person AND pulses it — one rule, both halves
-       rewarding. A two-rule system ("front pulses, side selects") is not inferable. */
-    stage.addEventListener("click", function (e) {
-      var b = e.target.closest(".cfg-bead");
-      if (!b) return;
-      var idx = +b.dataset.bead;
+    /* Tapping a REAL bead in the box selects that person AND pulses it — one rule, both
+       halves rewarding. hero3d.js raycasts the tap and reports the bead node here. */
+    window.addEventListener("makoma:pick", function (e) {
+      var idx = e.detail && e.detail.node;
+      if (idx == null || idx < 0) return;
       var st = D.get();
       var who = -1;
       st.people.forEach(function (p, j) { if (D.beadOf(p.sym) === idx) who = j; });
@@ -428,7 +322,6 @@
       } else {
         pulse(idx, null);                    // an unassigned bead still answers
       }
-      if (!tapped) { tapped = true; if (hint) hint.classList.add("is-gone"); }
     });
 
     nameIn.addEventListener("input", function () { D.setName(selected, nameIn.value); });
@@ -437,26 +330,25 @@
       D.reset(); selected = 0; buildRoster(); select(0, true); toast("Started over.");
     });
 
-    /* Focusing the name field opens the soft keyboard; collapse the stage so the
-       editor rises above it instead of being squashed. */
+    /* Focusing the name field opens the soft keyboard; the bottom sheet grows to make
+       room for the editor (CSS keys off .is-typing). */
     nameIn.addEventListener("focus", function () { root.classList.add("is-typing"); });
     nameIn.addEventListener("blur",  function () { root.classList.remove("is-typing"); });
 
     var cta = $(".cfg-cta", root);
     if (cta) cta.addEventListener("click", function () {
-      var join = document.getElementById("join");
-      if (join) join.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
-      var em = document.getElementById("joinEmail");
-      if (em) setTimeout(function () { try { em.focus({ preventScroll: true }); } catch (e) { em.focus(); } }, reduce ? 0 : 620);
+      var b = box(); if (b && b.isOpen) b.close();     // the box unlocks the page scroll first
+      setTimeout(function () {
+        var join = document.getElementById("join");
+        if (join) join.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
+        var em = document.getElementById("joinEmail");
+        if (em) setTimeout(function () { try { em.focus({ preventScroll: true }); } catch (e) { em.focus(); } }, reduce ? 0 : 620);
+      }, 60);
     });
 
-    D.subscribe(function () { refreshLit(); paintEditor(); paintRoster(); layout(); });
-
-    var ro = window.ResizeObserver ? new ResizeObserver(function () { layout(); }) : null;
-    if (ro) ro.observe(stage); else window.addEventListener("resize", layout);
+    D.subscribe(function () { paintEditor(); paintRoster(); });
 
     select(0, false);
-    layout();
     root.classList.add("is-ready");
   }
 
