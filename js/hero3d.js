@@ -1805,16 +1805,14 @@ function init() {
   // THE CATCH — folded from a NET, per the founder's drawing. The bracelet never falls and never
   // idles in rotation: it hangs on a slow weightless bob (turning ONLY when a person is selected,
   // to present their bead). The base rises with the four glass walls lying OPEN around it, flat
-  // like an unfolded box, and then they fold UP one after another on their hinge lines — back,
-  // left, right, front — each accelerating shut like a petal falling closed. The lid rides the
-  // back wall (a real box net: wall + lid in one arm) and folds over the top last, with the clack
-  // and one short damped shudder as the box seals.
-  const BOX_RISE_AT = 0.2, BOX_RISE_T = 1.4;                 // the lit base + open net, up from below
-  const BOX_FOLD_AT = 1.35, BOX_FOLD_STAG = 0.18, BOX_FOLD_T = 0.8;   // walls: start, per-wall stagger, per-wall fold
-  const BOX_LID_AT = BOX_FOLD_AT + 3 * BOX_FOLD_STAG + BOX_FOLD_T + 0.1, BOX_LID_T = 0.65;
-  const BOX_CAM_T = 2.6, BOX_PANEL_AT = 3.6;
+  // like an unfolded box; then all four fold up TOGETHER, one slow unhurried breath — smooth in,
+  // smooth out, nothing snapping — and the vitrine stands open-topped around the piece. No lid:
+  // the glass frames the bracelet, it doesn't seal it.
+  const BOX_RISE_AT = 0.2, BOX_RISE_T = 1.5;                 // the base + open net, up from below
+  const BOX_FOLD_AT = 1.5, BOX_FOLD_T = 2.3;                 // all four walls at once, slow
+  const BOX_CAM_T = 2.8, BOX_PANEL_AT = 4.0;
   let boxMode = false, boxT0 = 0, boxGroup = null, boxLight = null, boxPlate = null;
-  let boxFolds = [], boxLid = null, boxSpread = 1;           // 1 = net fully open (the camera gives it room)
+  let boxFolds = [], boxSpread = 1;                          // 1 = net fully open (the camera gives it room)
   let boxSide = 0, boxWallH = 0, boxBaseTh = 0, boxFloorY = 0, boxCY = 0;
   let boxSpin = 0, boxSpinTgt = null, boxSounded = false, boxSnapped = false, boxCamFrom = null, boxFront = null, boxFlare = null;
   let groundMesh = null, designApplied = false;
@@ -1832,21 +1830,31 @@ function init() {
     boxCY = boxFloorY + boxWallH * 0.42;    // what the box camera looks at
     boxGroup = new THREE.Group();
     const base = new THREE.Mesh(new THREE.BoxGeometry(boxSide * 1.06, boxBaseTh, boxSide * 1.06),
-      new THREE.MeshStandardMaterial({ color: 0x83858a, roughness: 0.55, metalness: 0.3, envMapIntensity: 0.5 }));
+      new THREE.MeshStandardMaterial({ color: 0x060608, roughness: 0.7, metalness: 0.1, envMapIntensity: 0.02 }));
     base.position.y = boxFloorY - boxBaseTh / 2;
-    // dialled LOW on purpose (0.9 → 0.34 → 0.12 across founder rounds): the plate's job is a
-    // soft under-glow, and any brighter it steals the frame from the piece
+    // BLACK, by founder decree (white → grey → black across rounds). And UNLIT black on purpose:
+    // a lit plate — however dark its paint — reflects the studio key specularly at this camera's
+    // near-grazing view and renders slate-grey. MeshBasic ignores lighting entirely, so the plate
+    // is simply black; a ShadowMaterial catcher lies on top of it to keep the piece's contact
+    // shadow (Basic can't receive shadows).
     boxPlate = new THREE.Mesh(new THREE.BoxGeometry(boxSide, boxBaseTh * 0.14, boxSide),
-      new THREE.MeshStandardMaterial({ color: 0x9b9ea4, emissive: 0xfff4e4, emissiveIntensity: 0.1, roughness: 0.5, metalness: 0 }));
-    boxPlate.position.y = boxFloorY - boxBaseTh * 0.07;   // its TOP face is the lit floor the piece lands on
-    boxPlate.receiveShadow = true;
+      new THREE.MeshBasicMaterial({ color: 0x08080a }));
+    boxPlate.position.y = boxFloorY - boxBaseTh * 0.07;   // its TOP face is the floor under the piece
+    const shadowCatch = new THREE.Mesh(new THREE.PlaneGeometry(boxSide, boxSide),
+      new THREE.ShadowMaterial({ opacity: 0.5 }));
+    shadowCatch.rotation.x = -Math.PI / 2;
+    shadowCatch.position.y = boxFloorY + 0.006;
+    shadowCatch.receiveShadow = true;
+    boxGroup.add(shadowCatch);
     // GLASS. Not `transmission` — that renders through the renderer's transmission buffer, which
     // under this pipeline (alpha canvas + EffectComposer) resolves WHITE and turned every pane
     // into frosted milk. Glass over a black stage is sold by absence + edges instead: panes at
     // near-zero opacity with a faint cool tint and a whisper of env sheen, and BRIGHT edge lines.
-    const glassMat = new THREE.MeshPhysicalMaterial({ color: 0xdfe9ff, metalness: 0, roughness: 0.05,
-      transparent: true, opacity: 0.028, envMapIntensity: 0.12, specularIntensity: 0.15,
+    const glassMat = new THREE.MeshPhysicalMaterial({ color: 0xedf1f7, metalness: 0, roughness: 0.05,
+      transparent: true, opacity: 0.028, envMapIntensity: 0.03, specularIntensity: 0.08,
       side: THREE.DoubleSide, depthWrite: false });
+      // env nearly OFF: at grazing angles the fresnel-boosted sky reflection painted everything
+      // seen through a pane slate-blue — over a black stage the EDGES carry the glass, not sheen
     const lineMat = new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.85 });
     // FOUR HINGED WALLS + A LID, exactly a box net. Each wall is a nested pair: an OUTER group
     // carries the base placement + yaw (so "outward" is always the hinge frame's local +z), and an
@@ -1872,24 +1880,21 @@ function init() {
       const hinge = foldPane(boxSide, boxWallH);
       hinge.rotation.x = Math.PI / 2;                          // born open
       outer.add(hinge); boxGroup.add(outer);
-      boxFolds.push({ hinge, at: BOX_FOLD_AT + i * BOX_FOLD_STAG, done: false });
+      boxFolds.push({ hinge, at: BOX_FOLD_AT, done: false });
       return hinge;
     };
-    const backHinge = mkWall(0, -hw, Math.PI, 0);              // back folds first…
-    mkWall(-hw, 0, -Math.PI / 2, 1);                           // …then left…
-    mkWall(hw, 0, Math.PI / 2, 2);                             // …then right…
-    mkWall(0, hw, 0, 3);                                       // …and the front closes toward you
-    const lidHinge = foldPane(boxSide, boxSide);
-    lidHinge.position.y = boxWallH;                            // hinged on the back wall's top edge
-    backHinge.add(lidHinge);
-    boxLid = { hinge: lidHinge, done: false };
+    mkWall(0, -hw, Math.PI, 0);
+    mkWall(-hw, 0, -Math.PI / 2, 1);
+    mkWall(hw, 0, Math.PI / 2, 2);
+    mkWall(0, hw, 0, 3);
     // the vitrine's own downlight — a museum spot from above, so the piece is LIT over the plate
     // rather than backlit by it. Kept in its own STATIC rig, not the rising base, so the light
     // doesn't sweep up the piece during the rise.
-    const spot = new THREE.SpotLight(0xffe9c4, 1.7, 0, 0.62, 0.55, 1.1);   // warm + restrained: white at 2.6 washed the matte-black shell grey
+    const spot = new THREE.SpotLight(0xffe9c4, 1.7, 0, 0.48, 0.7, 1.1);   // warm, restrained, and TIGHT — the cone hugs the floating piece so its pool doesn't paint the black plate grey
     spot.position.set(boxSide * 0.35, boxFloorY + boxWallH * 2.1, boxSide * 0.4);
     spot.target.position.set(0, boxFloorY, 0);
-    spot.castShadow = true; spot.shadow.mapSize.set(1024, 1024); spot.shadow.bias = -0.001; spot.shadow.radius = 5;   // soft contact shadow; the tighter bias printed banding streaks on the plate
+    spot.castShadow = true; spot.shadow.mapSize.set(2048, 2048); spot.shadow.bias = -0.0005; spot.shadow.normalBias = 0.04; spot.shadow.radius = 4;
+    spot.shadow.camera.near = 5; spot.shadow.camera.far = 40;   // the REAL stair-step fix: the default far plane (500) on a ~30-unit scene left the shadow depth too coarse to resolve
     boxLight = new THREE.Group(); boxLight.add(spot, spot.target);
     boxLight.visible = false;
     scene.add(boxLight);
@@ -1967,7 +1972,6 @@ function init() {
     boxSpin = spin.rotation.y; boxSpinTgt = null;
     boxGroup.visible = true; boxLight.visible = true;
     for (const f of boxFolds) { f.done = false; f.hinge.rotation.x = Math.PI / 2; }
-    boxLid.done = false; boxLid.hinge.rotation.x = 0;
     boxCamFrom = { pos: camera.position.clone(), tgt: new THREE.Vector3(0, 0, 0) };
     lockScroll(true); section.classList.add("in-box");
     // the panel arrives once the glass has closed; "makoma:boxopen" tells the configurator to
@@ -2039,27 +2043,13 @@ function init() {
     const rise = smooth(BOX_RISE_AT, BOX_RISE_AT + BOX_RISE_T, t);
     boxGroup.position.y = (1 - rise) * (-3.0 * modelR);
     if (!boxSounded && t >= BOX_RISE_AT) { boxSounded = true; if (!reduce) dropRise(); }
-    // …then the net FOLDS: each wall accelerates shut on its hinge (cubic ease-in — a petal
-    // falling closed), back → left → right → front, each landing with a small glass tick.
-    let minE = 1;
-    for (const f of boxFolds) {
-      const u = clamp((t - f.at) / BOX_FOLD_T, 0, 1);
-      const e = u * u * u;
-      minE = Math.min(minE, e);
-      f.hinge.rotation.x = (1 - e) * Math.PI / 2;
-      if (u >= 1 && !f.done) { f.done = true; if (!reduce) noiseWhoosh(0.05, 1600, 800, 0.022); }
-    }
-    boxSpread = 1 - minE;                                      // the camera gives the open net room
-    // the LID folds over the top last — the clack that seals the box, plus one damped shudder
-    const lu = clamp((t - BOX_LID_AT) / BOX_LID_T, 0, 1);
-    let lidA = -(lu * lu * lu) * Math.PI / 2;
-    if (lu >= 1) {
-      if (!boxSnapped) { boxSnapped = true;
-        if (!reduce) { noiseWhoosh(0.1, 2400, 800, 0.05); try { if (navigator.vibrate) navigator.vibrate([0, 30]); } catch (e) {} } }
-      const sh = t - BOX_LID_AT - BOX_LID_T;
-      lidA = -Math.PI / 2 - Math.exp(-6 * sh) * Math.sin(sh * 30) * 0.03;
-    }
-    boxLid.hinge.rotation.x = lidA;
+    // …then all four walls fold up TOGETHER on one slow smootherstep — eased at both ends, no
+    // snap, no shudder. One quiet breath of air as they rise, one soft touch as they stand.
+    const u = clamp((t - BOX_FOLD_AT) / BOX_FOLD_T, 0, 1);
+    const e = u * u * u * (u * (6 * u - 15) + 10);
+    for (const f of boxFolds) f.hinge.rotation.x = (1 - e) * Math.PI / 2;
+    boxSpread = 1 - e;                                         // the camera gives the open net room
+    if (u >= 1 && !boxSnapped) { boxSnapped = true; if (!reduce) noiseWhoosh(0.35, 700, 380, 0.022); }
     // NO display turn — the piece holds still in the glass. It rotates only when a person is
     // selected, easing their bead round to the front to be worked on.
     const dt = 0.016;
@@ -2080,7 +2070,6 @@ function init() {
       }
       m.emissiveIntensity = v;
     }
-    boxPlate.material.emissiveIntensity = 0.1 + 0.01 * Math.sin(idle * 0.7);
     boxCamera(reduce ? 1 : smooth(0, BOX_CAM_T, t));
   }
 
