@@ -1781,6 +1781,7 @@ section{ position:relative; z-index:2; }
 .cfg-shell i{ width:34px; height:34px; }
 .cfg-light.is-on,.cfg-shell.is-on{ box-shadow:0 0 0 1.5px var(--gold); }
 
+.cfg-next{ margin-top:20px; width:100%; justify-content:center; }
 .cfg-finish{ border-top:1px solid var(--line-soft); margin-top:24px; padding-top:20px; }
 .cfg-actions{ display:flex; align-items:center; gap:16px; margin-top:26px; flex-wrap:wrap; }
 .cfg-reset{ background:none; border:0; color:var(--ink-mute); font-size:.78rem; cursor:pointer;

@@ -1802,14 +1802,18 @@ function init() {
   // hero keeps showing the bracelet they made.
   // ==================================================================
   const BOX_AZ = 26, BOX_EL = 12.5;         // three-quarter view — straight-on, a clear cube reads as a flat rectangle
-  const BOX_TURN = 0.045;                   // rad/s — the display turn, unhurried (a full turn ≈ 2¼ min)
-  // The choreography is PINOCYTOSIS, not gravity: the bracelet never falls. It hangs where it is,
-  // breathing on a slow bob, and the vitrine rises up AROUND it — the rim passes the piece and
-  // the box has swallowed it, the way a vesicle engulfs its cargo. So the piece floats mid-box
-  // (which is also why it no longer sits on the plate), and the plate below just lights it.
-  const BOX_ENGULF_AT = 0.25, BOX_ENGULF_T = 2.8, BOX_CAM_T = 2.4, BOX_PANEL_AT = 3.1;
-  let boxMode = false, boxT0 = 0, boxGroup = null, boxPlate = null, boxSide = 0, boxWallH = 0, boxBaseTh = 0, boxFloorY = 0, boxCY = 0;
-  let boxSpin = 0, boxSpinTgt = null, boxSounded = false, boxCamFrom = null, boxFront = null, boxFlare = null;
+  // THE CATCH. The bracelet never falls and never idles in rotation: it hangs on a slow weightless
+  // bob (turning ONLY when a person is selected, to present their bead). The base rises from
+  // below, and then the glass closes on the piece FROM THE SIDES — two half-shell jaws that
+  // approach slowly and strike fast, an animal catching its prey, with one short bite-shudder as
+  // they meet. The seam the two shells leave down the front is deliberate: it reads as the doors
+  // they are.
+  const BOX_RISE_AT = 0.2, BOX_RISE_T = 1.5;         // the lit base, up from below
+  const BOX_JAW_AT = 1.15, BOX_JAW_T = 1.6;          // the glass jaws: slow approach, fast close
+  const BOX_CAM_T = 2.4, BOX_PANEL_AT = 3.2;
+  let boxMode = false, boxT0 = 0, boxGroup = null, boxJaws = null, boxJawL = null, boxJawR = null, boxPlate = null;
+  let boxSide = 0, boxWallH = 0, boxBaseTh = 0, boxFloorY = 0, boxCY = 0;
+  let boxSpin = 0, boxSpinTgt = null, boxSounded = false, boxSnapped = false, boxCamFrom = null, boxFront = null, boxFlare = null;
   let groundMesh = null, designApplied = false;
   const boxPlatMat = {};                    // node -> this mode's own platform material (colourable per person)
 
@@ -1820,43 +1824,60 @@ function init() {
     boxSide = Math.max(bb.max.x - bb.min.x, bb.max.z - bb.min.z) * 1.14;
     boxWallH = boxSide * 0.62;
     boxBaseTh = boxSide * 0.15;
-    // the piece FLOATS: the plate sits far enough below that the bracelet hangs at ~mid-height
-    // of the glass, and the walls clear it above
-    boxFloorY = bb.min.y - boxWallH * 0.30;
-    boxCY = boxFloorY + boxWallH * 0.44;    // what the box camera looks at
+    // the piece FLOATS, riding LOW in the glass — just clear of the plate, most of the air above
+    boxFloorY = bb.min.y - boxWallH * 0.16;
+    boxCY = boxFloorY + boxWallH * 0.42;    // what the box camera looks at
     boxGroup = new THREE.Group();
     const base = new THREE.Mesh(new THREE.BoxGeometry(boxSide * 1.06, boxBaseTh, boxSide * 1.06),
-      new THREE.MeshStandardMaterial({ color: 0xd8d9dc, roughness: 0.5, metalness: 0.3, envMapIntensity: 0.7 }));
+      new THREE.MeshStandardMaterial({ color: 0x83858a, roughness: 0.55, metalness: 0.3, envMapIntensity: 0.5 }));
     base.position.y = boxFloorY - boxBaseTh / 2;
-    // dialled cool on purpose: the plate's job is a soft under-glow around the piece, not a
-    // lightbox — at 0.9 the bloom turned the whole vitrine milky and the bracelet into a silhouette
+    // dialled LOW on purpose (0.9 → 0.34 → 0.12 across founder rounds): the plate's job is a
+    // soft under-glow, and any brighter it steals the frame from the piece
     boxPlate = new THREE.Mesh(new THREE.BoxGeometry(boxSide, boxBaseTh * 0.14, boxSide),
-      new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xffffff, emissiveIntensity: 0.34, roughness: 0.4, metalness: 0 }));
+      new THREE.MeshStandardMaterial({ color: 0x9b9ea4, emissive: 0xfff4e4, emissiveIntensity: 0.1, roughness: 0.5, metalness: 0 }));
     boxPlate.position.y = boxFloorY - boxBaseTh * 0.07;   // its TOP face is the lit floor the piece lands on
     boxPlate.receiveShadow = true;
     // GLASS. Not `transmission` — that renders through the renderer's transmission buffer, which
     // under this pipeline (alpha canvas + EffectComposer) resolves WHITE and turned every pane
     // into frosted milk. Glass over a black stage is sold by absence + edges instead: panes at
     // near-zero opacity with a faint cool tint and a whisper of env sheen, and BRIGHT edge lines.
-    const walls = new THREE.Mesh(new THREE.BoxGeometry(boxSide, boxWallH, boxSide),
-      new THREE.MeshPhysicalMaterial({ color: 0xdfe9ff, metalness: 0, roughness: 0.05,
-        transparent: true, opacity: 0.028, envMapIntensity: 0.12, specularIntensity: 0.15,
-        side: THREE.DoubleSide, depthWrite: false }));
-    walls.position.y = boxFloorY + boxWallH / 2;
-    walls.renderOrder = 3;
-    const edges = new THREE.LineSegments(new THREE.EdgesGeometry(walls.geometry),
-      new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.85 }));
-    edges.position.copy(walls.position);
-    edges.renderOrder = 4;
-    // the vitrine's own downlight — a museum spot from above, so the piece is LIT on the plate
-    // rather than backlit by it (the hero's key light is tuned for the stage centre at y = 0,
-    // and the landed piece sits well below that pool)
+    const glassMat = new THREE.MeshPhysicalMaterial({ color: 0xdfe9ff, metalness: 0, roughness: 0.05,
+      transparent: true, opacity: 0.028, envMapIntensity: 0.12, specularIntensity: 0.15,
+      side: THREE.DoubleSide, depthWrite: false });
+    const lineMat = new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.85 });
+    // TWO HALF-SHELL JAWS, split down the middle: each carries a full side wall, half the front,
+    // half the back and half the lid. They slide in along ±X (see updateBox).
+    const hw = boxSide / 2, midY = boxFloorY + boxWallH / 2, topY = boxFloorY + boxWallH;
+    const pane = (jaw, w, h, px, py, pz, ry, rx) => {
+      const g = new THREE.PlaneGeometry(w, h);
+      const m = new THREE.Mesh(g, glassMat);
+      m.position.set(px, py, pz); if (ry) m.rotation.y = ry; if (rx) m.rotation.x = rx;
+      m.renderOrder = 3;
+      const e = new THREE.LineSegments(new THREE.EdgesGeometry(g), lineMat);
+      e.position.copy(m.position); e.rotation.copy(m.rotation); e.renderOrder = 4;
+      jaw.add(m, e);
+    };
+    boxJawL = new THREE.Group(); boxJawR = new THREE.Group();
+    pane(boxJawL, boxSide, boxWallH, -hw, midY, 0, Math.PI / 2, 0);        // left wall
+    pane(boxJawL, hw, boxWallH, -hw / 2, midY, hw, 0, 0);                  // front, left half
+    pane(boxJawL, hw, boxWallH, -hw / 2, midY, -hw, 0, 0);                 // back, left half
+    pane(boxJawL, hw, boxSide, -hw / 2, topY, 0, 0, -Math.PI / 2);         // lid, left half
+    pane(boxJawR, boxSide, boxWallH, hw, midY, 0, Math.PI / 2, 0);         // right wall
+    pane(boxJawR, hw, boxWallH, hw / 2, midY, hw, 0, 0);                   // front, right half
+    pane(boxJawR, hw, boxWallH, hw / 2, midY, -hw, 0, 0);                  // back, right half
+    pane(boxJawR, hw, boxSide, hw / 2, topY, 0, 0, -Math.PI / 2);          // lid, right half
+    boxJaws = new THREE.Group(); boxJaws.add(boxJawL, boxJawR);
+    boxJaws.visible = false;
+    scene.add(boxJaws);
+    // the vitrine's own downlight — a museum spot from above, so the piece is LIT over the plate
+    // rather than backlit by it. Parented to the STATIC jaws root, not the rising base, so the
+    // light doesn't sweep up the piece during the rise.
     const spot = new THREE.SpotLight(0xffe9c4, 1.7, 0, 0.62, 0.55, 1.1);   // warm + restrained: white at 2.6 washed the matte-black shell grey
     spot.position.set(boxSide * 0.35, boxFloorY + boxWallH * 2.1, boxSide * 0.4);
     spot.target.position.set(0, boxFloorY, 0);
-    spot.castShadow = true; spot.shadow.mapSize.set(1024, 1024); spot.shadow.bias = -0.0004;   // the contact shadow that grounds the piece on the plate
-    boxGroup.add(spot, spot.target);
-    boxGroup.add(base, boxPlate, walls, edges);
+    spot.castShadow = true; spot.shadow.mapSize.set(1024, 1024); spot.shadow.bias = -0.001; spot.shadow.radius = 5;   // soft contact shadow; the tighter bias printed banding streaks on the plate
+    boxJaws.add(spot, spot.target);
+    boxGroup.add(base, boxPlate);
     boxGroup.visible = false;
     scene.add(boxGroup);
     // per-node front angles for THIS camera azimuth (frontAngleOf was sampled for the gather
@@ -1926,13 +1947,17 @@ function init() {
     if (gatherGroup) gatherGroup.visible = false;
     spin.visible = true;
     if (cutEl) cutEl.style.opacity = "0";
-    boxMode = true; boxT0 = idle; boxSounded = false; boxFlare = null;
+    boxMode = true; boxT0 = idle; boxSounded = false; boxSnapped = false; boxFlare = null;
     boxSpin = spin.rotation.y; boxSpinTgt = null;
-    boxGroup.visible = true;
+    boxGroup.visible = true; boxJaws.visible = true;
+    boxJawL.position.x = -1.7 * boxSide; boxJawR.position.x = 1.7 * boxSide;
     boxCamFrom = { pos: camera.position.clone(), tgt: new THREE.Vector3(0, 0, 0) };
     lockScroll(true); section.classList.add("in-box");
-    if (reduce) { cust.classList.add("is-open"); }
-    else setTimeout(() => { if (boxMode) cust.classList.add("is-open"); }, BOX_PANEL_AT * 1000);
+    // the panel arrives once the glass has closed; "makoma:boxopen" tells the configurator to
+    // present the currently-selected person's bead (the only rotation the piece does in here)
+    const showPanel = () => { if (!boxMode) return; cust.classList.add("is-open"); window.dispatchEvent(new CustomEvent("makoma:boxopen")); };
+    if (reduce) showPanel();
+    else setTimeout(showPanel, BOX_PANEL_AT * 1000);
   }
 
   function closeBox() {
@@ -1948,7 +1973,7 @@ function init() {
     if (cutEl) cutEl.style.opacity = "1";
     setTimeout(() => {
       boxMode = false;
-      boxGroup.visible = false;
+      boxGroup.visible = false; if (boxJaws) boxJaws.visible = false;
       orient.position.y = 0;
       if (groundMesh) groundMesh.visible = true;
       objTurnArmed = false;                            // the object phase re-arms → re-opens on a whole piece
@@ -1988,21 +2013,33 @@ function init() {
   function updateBox() {
     const t = reduce ? 99 : idle - boxT0;
     // THE PIECE: it never falls. A slight rise as the mode opens — it lets go of the page — then
-    // a slow weightless bob, as if suspended in the display field.
+    // a slow weightless bob, riding low over the plate.
     const float = smooth(0, 1.6, t);
-    orient.position.y = float * (0.1 * modelR + (reduce ? 0 : 0.045 * modelR * Math.sin(idle * 0.5)));
-    // THE BOX: rises from far below and swallows the floating piece — slow in, slow out, the rim
-    // passing the bracelet mid-travel. One soft rising breath of air as it begins.
-    const eng = smooth(BOX_ENGULF_AT, BOX_ENGULF_AT + BOX_ENGULF_T, t);
-    boxGroup.position.y = (1 - eng) * (-3.4 * modelR);
-    if (!boxSounded && t >= BOX_ENGULF_AT) { boxSounded = true; if (!reduce) dropRise(); }
-    // the turntable: an unhurried display turn; selecting a person eases their bead to the front
+    orient.position.y = float * (0.06 * modelR + (reduce ? 0 : 0.035 * modelR * Math.sin(idle * 0.5)));
+    // THE BASE rises from below with a soft breath of air…
+    const rise = smooth(BOX_RISE_AT, BOX_RISE_AT + BOX_RISE_T, t);
+    boxGroup.position.y = (1 - rise) * (-3.0 * modelR);
+    if (!boxSounded && t >= BOX_RISE_AT) { boxSounded = true; if (!reduce) dropRise(); }
+    // …then the glass JAWS take the piece from the sides: a slow approach that accelerates into
+    // the strike (cubic ease-IN — the predator profile), one clack as they meet, and a short
+    // damped bite-shudder while they settle shut.
+    const ju = clamp((t - BOX_JAW_AT) / BOX_JAW_T, 0, 1);
+    let off = (1 - ju * ju * ju) * 1.7 * boxSide;
+    if (ju >= 1) {
+      if (!boxSnapped) { boxSnapped = true;
+        if (!reduce) { noiseWhoosh(0.1, 2400, 800, 0.05); try { if (navigator.vibrate) navigator.vibrate([0, 30]); } catch (e) {} } }
+      const sh = t - BOX_JAW_AT - BOX_JAW_T;
+      off = -Math.exp(-6 * sh) * Math.sin(sh * 34) * 0.012 * boxSide;   // the bite: a hair inward, then still
+    }
+    boxJawL.position.x = -off; boxJawR.position.x = off;
+    // NO display turn — the piece holds still in the glass. It rotates only when a person is
+    // selected, easing their bead round to the front to be worked on.
     const dt = 0.016;
     if (boxSpinTgt != null) {
       const d = angDelta(boxSpin, boxSpinTgt);
       boxSpin += d * Math.min(1, 5 * dt);
       if (Math.abs(d) < 0.012) boxSpinTgt = null;
-    } else boxSpin += BOX_TURN * dt;
+    }
     spin.rotation.y = boxSpin;
     // lights: each person's platform breathes; a pulse flares the tapped bead briefly
     for (const node in boxPlatMat) {
@@ -2015,7 +2052,7 @@ function init() {
       }
       m.emissiveIntensity = v;
     }
-    boxPlate.material.emissiveIntensity = 0.34 + 0.025 * Math.sin(idle * 0.7);
+    boxPlate.material.emissiveIntensity = 0.1 + 0.01 * Math.sin(idle * 0.7);
     boxCamera(reduce ? 1 : smooth(0, BOX_CAM_T, t));
   }
 

@@ -325,6 +325,19 @@
     });
 
     nameIn.addEventListener("input", function () { D.setName(selected, nameIn.value); });
+
+    /* The bead-by-bead flow: finish one person, press Next, and the piece turns the next bead
+       into frame to be worked on — the ONLY rotation the bracelet does in the box. */
+    var nextBtn = $(".cfg-next", root);
+    if (nextBtn) nextBtn.addEventListener("click", function () {
+      var i = (selected + 1) % D.SLOTS;
+      select(i, true);
+      var st = D.get();
+      pulse(D.beadOf(st.people[i].sym), st.people[i].glow);
+    });
+
+    /* The box has closed and the panel is up: present the selected person's bead. */
+    window.addEventListener("makoma:boxopen", function () { select(selected, false); });
     var resetBtn = $(".cfg-reset", root);
     if (resetBtn) resetBtn.addEventListener("click", function () {
       D.reset(); selected = 0; buildRoster(); select(0, true); toast("Started over.");
