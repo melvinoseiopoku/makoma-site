@@ -1196,7 +1196,9 @@ function init() {
     ready = true;
     if (loaderEl) loaderEl.classList.add("hide");
     poster.classList.add("hide");
-    onScroll(); render();
+    // NOTE: the first render is kicked from the loader callback, AFTER setupExplode(), not here.
+    // The object phase arms its turn off beadAsm.frontY, so a frame drawn before that rig exists
+    // would paint at SPIN_PHASE and then visibly snap ~53° on the next one.
   }
 
   // ---- overlay ----
@@ -1295,29 +1297,38 @@ function init() {
     subEl.style.opacity = String(op);
   }
 
-  /* One bead, opening and closing on a loop while the object turns.
+  /* THE ONE BEAD THAT OPENS — keyed to the TURN, not to a clock. akoma_ntoaso splits open only as
+     it comes round to face you, is fully open dead-front, and is closed again before it swings
+     away. So the reveal is something the rotation brings you rather than something that happens at
+     the object.
+
+     The input is the signed angle from the current turn to the angle that faces that bead
+     (beadAsm.frontY): it sweeps +OBJ_EX_WIN -> 0 -> -OBJ_EX_WIN as the bead passes front, and
+     anything beyond that window is off-frame and closed.
+
      IMPORTANT: `_e` is NOT "how open" — updateExplode carries its OWN open/hold/close envelope
      across e = 0 -> 1 (tilt up by .28, split out by .46, hold to .66, reassemble by .9). So e = 1
      is CLOSED AGAIN, not open. What this returns is therefore a RAMP through that envelope, with
-     the segment boundaries stretched so the open state gets the longest dwell — and a beat of rest
-     at each end, because the piece should read as jewellery before it reads as engineering. */
-  const OBJ_EX_PERIOD = 13.0;
+     the segments placed so the fully-open hold straddles u = 0.5 — dead-front. Both ends of the
+     sweep land on a closed state, which is also why the ±π wrap on the far side is invisible. */
   const OBJ_TURN = 0.16;                       // rad/s — the object's slow turn
-  let objTurn = SPIN_PHASE, objTurnPrev = 0;
+  const OBJ_EX_WIN = 0.95;                     // rad (~54°) either side of dead-front that counts as "in frame"
+  const OBJ_EX_LEAD = 0.30;                    // rad of closed turning before the bead first swings in (~2 s)
+  let objTurn = SPIN_PHASE, objTurnPrev = 0, objTurnArmed = false;
   const OBJ_EX_SEG = [
-    [0.00, 0.14, 0,    0   ],   // rest, assembled
-    [0.14, 0.34, 0,    0.46],   // tilt up + split out
-    [0.34, 0.62, 0.46, 0.66],   // held open — the long look
-    [0.62, 0.84, 0.66, 1   ],   // reassemble + tilt back
-    [0.84, 1.00, 1,    1   ]    // rest (e = 1 is assembled)
+    [0.00, 0.10, 0,    0   ],   // swinging in — still shut
+    [0.10, 0.35, 0,    0.46],   // tilt up + split out
+    [0.35, 0.62, 0.46, 0.66],   // held open, straddling dead-front
+    [0.62, 0.88, 0.66, 1   ],   // reassemble + tilt back
+    [0.88, 1.00, 1,    1   ]    // swinging away — shut again (e = 1 is assembled)
   ];
-  function objExplodeEnv(t) {
-    const u = (t % OBJ_EX_PERIOD) / OBJ_EX_PERIOD;
+  function objExplodeEnv(d) {
+    const u = clamp((OBJ_EX_WIN - d) / (2 * OBJ_EX_WIN), 0, 1);
     for (const [u0, u1, e0, e1] of OBJ_EX_SEG) {
       if (u >= u1) continue;
       return e0 === e1 ? e0 : e0 + (e1 - e0) * smooth(u0, u1, u);
     }
-    return 0;
+    return 1;
   }
 
   function update(rawP0) {
@@ -1372,18 +1383,34 @@ function init() {
       if (remaining > 0) a += remaining * r;
       anim = clamp(a, 0, 1);
     }
-    // OBJECT PHASE: while the finished bracelet turns, ONE bead opens and closes on a slow loop —
-    // the hero's own exploded-bead rig, not a second one. This has to be set HERE, before the
-    // updateExplode pass below: the loop above resets every reveal's _e to 0 each frame, so an
-    // assignment made after that pass is silently discarded.
-    // beadAsm.presentSpin is null, so updateExplode does NOT seize the spin for its own staging —
-    // the bead tilts its axis up and splits flat while the piece keeps turning. (The object branch
-    // near the end of update() then eases that turn so the open bead is facing the camera.)
-    if (inObject && beadAsm) beadAsm._e = objExplodeEnv(idle);
+    // OBJECT PHASE: the finished bracelet turns, and the ONE bead that opens does so as it comes
+    // round — the hero's own exploded-bead rig, not a second one. Both the turn and the explode
+    // phase are worked out HERE, before the updateExplode pass below, because that pass resets
+    // every reveal's _e to 0 each frame (so a later assignment is silently discarded) AND reads
+    // spin's orientation to decide which way to tilt the assembly.
+    // beadAsm.presentSpin is null, so updateExplode never seizes the spin for its own staging: the
+    // bead tilts its axis up and splits flat while the piece keeps turning at a constant rate.
+    if (inObject) {
+      // Arm the turn just SHORT of the window the first time in, so the hero opens on a whole,
+      // assembled piece and the bead swings in about two seconds later. Left at SPIN_PHASE it
+      // starts 0.33 rad from front — INSIDE the window — so the very first frame would already be
+      // a half-split bead. (SPIN_PHASE is tuned for the threading timeline, not for this.)
+      if (!objTurnArmed && beadAsm) { objTurnArmed = true; objTurn = beadAsm.frontY - OBJ_EX_WIN - OBJ_EX_LEAD; objTurnPrev = idle; }
+
+      objTurn += Math.min(0.1, Math.max(0, idle - objTurnPrev)) * OBJ_TURN;   // own accumulator, so the entry phase can be set without a jump
+      objTurnPrev = idle;
+      if (beadAsm) beadAsm._e = objExplodeEnv(angDelta(objTurn, beadAsm.frontY));
+    } else {
+      // Disarm on the way out, so coming BACK to the top re-arms and opens on a whole piece again.
+      // Latched, a return landed on the frozen angle — mid-split in one frame if they left mid-
+      // reveal, or nothing at all for most of a revolution if they left just past it. The re-arm
+      // is invisible: the phase boundary is already a hard cut (the phone story owns that frame).
+      objTurnArmed = false;
+    }
     const settle = smooth(SETTLE0, 1, anim);       // 0 through the scroll, ramps to 1 at the very end (the pan-out)
     let spinY = SPIN_PHASE + anim * TAU * SPIN_TURNS;
     if (settle > 0) { let dd = endSpin - spinY; dd = ((dd + Math.PI) % TAU + TAU) % TAU - Math.PI; spinY += dd * settle; }   // ease to hub-at-back
-    spin.rotation.y = spinY;
+    spin.rotation.y = inObject ? objTurn : spinY;   // the object phase owns its turn (set just above); the timeline owns it everywhere else
     const f = Math.min(1, anim * 1.8);             // trace draws faster than the spin so it keeps pace — threading begins only when the bead scroll (hero phase) does
     if (cordMesh) {
       cordMesh.geometry.setDrawRange(0, Math.floor(cordTotal * f));
@@ -1409,7 +1436,7 @@ function init() {
     placeCamera(settle, objectMode ? gRecvPres : fg, camY);
     threadAmbient(smooth(0.04, 0.16, anim) * (1 - smooth(0.86, 1.0, anim)) * (1 - Math.min(1, fg * 3)));   // slight ambient pad while the bracelet threads (off during phone / drop)
     for (const rv of reveals) {
-      if (!inObject && rv._e > 0.06 && (rv._prevE || 0) <= 0.06) explodeSound();   // the CAD assembly opens → a slight airy reveal whoosh (once, on the scripted reveal — not every loop of the object phase)
+      if (!inObject && rv._e > 0.06 && (rv._prevE || 0) <= 0.06) explodeSound();   // the CAD assembly opens → a slight airy reveal whoosh. Muted in the object phase on purpose: that reveal is ambient, and the opening of the page should not make a noise nobody asked for.
       rv._prevE = rv._e;
       updateExplode(rv, rv._e);
     }
@@ -1433,23 +1460,10 @@ function init() {
     // place) so that tapping a bead can summon a receiver. Nothing is announced: the bracelet
     // just turns, and a touch is the only thing that reveals there is someone on the other end.
     objectMode = inObject;
-    if (inObject) {
-      // The turn runs on its own accumulator rather than straight off `idle`, so easing its rate
-      // below can't jump the phase.
-      const e = beadAsm ? beadAsm._e : 0;
-      // The SAME tilt curve updateExplode uses, so presentation tracks the split exactly.
-      const show = beadAsm ? clamp(Math.min(smooth(0.05, 0.28, e), 1 - smooth(0.74, 0.97, e)), 0, 1) : 0;
-      // While a bead is open the piece slows and brings that bead round to the front. Without this
-      // the reveal drifts: one turn takes ~39 s and the loop is 13 s, so every third cycle would
-      // have opened on the FAR side of the ring, hidden behind the hub. It never fully stops —
-      // the bias is capped under 1 so there is always a little motion.
-      objTurn += Math.min(0.1, Math.max(0, idle - objTurnPrev)) * OBJ_TURN * (1 - 0.78 * show);
-      objTurnPrev = idle;
-      let y = objTurn;
-      if (beadAsm && show > 0) y += angDelta(y, beadAsm.frontY) * show * 0.92;
-      spin.rotation.y = y;
-      gSpin[0] = y;                                      // keep the gather maths in step (gReach/frontFriend read gSpin[0])
-    }
+    // Keep the gather maths in step with the turn (gReach/frontFriend read gSpin[0]). The turn
+    // itself is advanced up in the reveal block; this runs after updatePhone(), which re-asserts
+    // phone-story state every frame.
+    if (inObject) gSpin[0] = objTurn;
     cycleObjectLine(inObject);
     updateGather(inObject ? 1 : fg);
   }
@@ -2153,6 +2167,7 @@ function init() {
     initPhone();        // collect the main model's bead/hub meshes BEFORE the first render, so frame 1 starts hidden
     build();
     setupExplode();
+    onScroll(); render();   // FIRST paint — deliberately after setupExplode(), see the note at the end of build()
     buildGather();      // clone the FINISHED hero bracelet (after setupExplode → glow + hub correct) for the circle
     // setupExplode queued the two board GLBs rather than fetching them. Pull them in once the main thread
     // goes quiet (the timeout is the backstop for browsers without requestIdleCallback, e.g. older Safari).
