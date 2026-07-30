@@ -1841,7 +1841,7 @@ function init() {
       new THREE.MeshBasicMaterial({ color: 0x08080a }));
     boxPlate.position.y = boxFloorY - boxBaseTh * 0.07;   // its TOP face is the floor under the piece
     const shadowCatch = new THREE.Mesh(new THREE.PlaneGeometry(boxSide, boxSide),
-      new THREE.ShadowMaterial({ opacity: 0.5 }));
+      new THREE.ShadowMaterial({ opacity: 0.38 }));
     shadowCatch.rotation.x = -Math.PI / 2;
     shadowCatch.position.y = boxFloorY + 0.006;
     shadowCatch.receiveShadow = true;
@@ -1851,11 +1851,13 @@ function init() {
     // into frosted milk. Glass over a black stage is sold by absence + edges instead: panes at
     // near-zero opacity with a faint cool tint and a whisper of env sheen, and BRIGHT edge lines.
     const glassMat = new THREE.MeshPhysicalMaterial({ color: 0xedf1f7, metalness: 0, roughness: 0.05,
-      transparent: true, opacity: 0.028, envMapIntensity: 0.03, specularIntensity: 0.08,
+      transparent: true, opacity: 0.024, envMapIntensity: 0.03, specularIntensity: 0,
       side: THREE.DoubleSide, depthWrite: false });
-      // env nearly OFF: at grazing angles the fresnel-boosted sky reflection painted everything
-      // seen through a pane slate-blue — over a black stage the EDGES carry the glass, not sheen
-    const lineMat = new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.85 });
+      // env nearly OFF and direct-light specular FULLY off: the fresnel-boosted sky painted
+      // everything behind a pane slate-blue, and the vitrine spot printed a bright dot on the
+      // glass (a point light on a smooth pane always does). Over a black stage the EDGES carry
+      // the glass, not sheen.
+    const lineMat = new THREE.LineBasicMaterial({ color: 0xddf2e6, transparent: true, opacity: 0.85 });   // the faint green cast real glass shows on its cut edges
     // FOUR HINGED WALLS + A LID, exactly a box net. Each wall is a nested pair: an OUTER group
     // carries the base placement + yaw (so "outward" is always the hinge frame's local +z), and an
     // inner HINGE group does nothing but rotate about its local X — rotation.x = π/2 is the pane
@@ -1893,7 +1895,9 @@ function init() {
     const spot = new THREE.SpotLight(0xffe9c4, 1.7, 0, 0.48, 0.7, 1.1);   // warm, restrained, and TIGHT — the cone hugs the floating piece so its pool doesn't paint the black plate grey
     spot.position.set(boxSide * 0.35, boxFloorY + boxWallH * 2.1, boxSide * 0.4);
     spot.target.position.set(0, boxFloorY, 0);
-    spot.castShadow = true; spot.shadow.mapSize.set(2048, 2048); spot.shadow.bias = -0.0005; spot.shadow.normalBias = 0.04; spot.shadow.radius = 4;
+    spot.castShadow = true; spot.shadow.mapSize.set(2048, 2048); spot.shadow.bias = -0.002; spot.shadow.normalBias = 0.15; spot.shadow.radius = 6;
+    // bias tuned against the ShadowMaterial catcher: a pure-shadow surface shows acne the old lit
+    // plate hid, and the small bias printed sawtooth bands across the plinth
     spot.shadow.camera.near = 5; spot.shadow.camera.far = 40;   // the REAL stair-step fix: the default far plane (500) on a ~30-unit scene left the shadow depth too coarse to resolve
     boxLight = new THREE.Group(); boxLight.add(spot, spot.target);
     boxLight.visible = false;
