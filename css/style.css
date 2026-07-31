@@ -139,7 +139,7 @@ h1,h2,h3{ font-family:var(--serif); font-weight:500; line-height:1.04; letter-sp
 }
 
 /* ============ HERO — scroll-driven 3D ============ */
-.hero3d{ position:relative; height:100vh; height:100svh; background:var(--black); }   /* ONE viewport: the scroll-driven timeline is retired — the hero holds the object phase, and scrolling opens the box (hero3d.js onScroll) */
+.hero3d{ position:relative; height:260vh; background:var(--black); }   /* the designer OWNS scroll territory: ~first third is the object phase, the rest is the box segment — a real place on the page, not a modal (hero3d.js maps progress; no scroll locks) */
 .hero3d.no3d{ height:100svh; }
 .hero3d-sticky{ position:sticky; top:0; height:100svh; height:100dvh; overflow:hidden;
   /* a focused warm POOL behind the bracelet + a darker vignette frame, so the bracelet pops off the page

@@ -29,17 +29,13 @@ const SPIN_TURNS = 1;               // full revolutions across the scroll (8 bea
 const SPIN_PHASE = 169.6 * DEG;    // start rotation: the Akoma (heart) bead faces front at p=0
 
 // [0..OBJECT_FRAC] = THE OBJECT. Before a single word of tech, the finished bracelet simply
-// turns, with one bead opening as it comes round. It is jewellery first. The rest of the timeline
-// is compressed into what remains, so every downstream phase keeps its existing tuning untouched.
-const OBJECT_FRAC = 0.13;
-// The phone-in-the-noise story used to own the next 20% of the scroll — a 3-D phone flooded with
-// notifications whose five pinned people flew out and became the beads. It is gone: the page now
-// leads with the object and the invitation to customise it, and does not open by arguing.
-// THE SEAM IT LEFT: that story also supplied the threading phase's entry state (beads present,
-// cord not yet drawn). Without it the object phase's finished bracelet would cut straight to an
-// unthreaded ring — same beads, no cord, different framing. CUT_WIN below dips the frame to black
-// across the boundary, which is what the cut wants anyway: a hero shot, then how it is made.
-const CUT_WIN = 0.012;             // raw-scroll half-window of the dip-to-black at the object → threading cut
+// turns, with one bead opening as it comes round. It is jewellery first. Beyond OBJECT_FRAC the
+// scroll belongs to the BOX SEGMENT: the designer is a PLACE on the page — crossing the boundary
+// plays the fold on its own clock, and everything below the hero is reached by simply scrolling
+// on through. (The old threading timeline stays dormant behind the pinned rawP.)
+const OBJECT_FRAC = 0.32;
+// (The phone-in-the-noise story that once owned the next 20% of the scroll is deleted, and the
+// threading timeline it fed into is dormant — the box segment owns everything past the object.)
 
 // ---- GATHER phase: after the hero settles, more scroll fades the text and brings in 5 clones of the
 //      bracelet around the centre one — all in the SAME scene (no viewports). ----
@@ -868,33 +864,14 @@ function init() {
 
   let ready = false, progress = 0, target = 0, idle = 0, inView = true;
   function onScroll() {
-    // The scroll-driven timeline is RETIRED: the hero is one viewport tall and holds the object
-    // phase; scrolling doesn't scrub an animation any more, it opens the box (below). The mapping
-    // is kept for safety should the section ever be given travel again, pinned to 0 otherwise —
-    // without the guard, zero travel makes -rect.top / 1 jump the whole timeline in a few pixels.
+    // Plain mapping: the hero's travel is the timeline. [0..OBJECT_FRAC] the object phase,
+    // beyond it the box segment — the render loop watches `progress` cross the boundary and
+    // plays the fold (or its reverse) on its own clock. No locks, no gesture interception:
+    // the designer is a place you scroll into and out of like any section.
     const rect = section.getBoundingClientRect();
     const total = section.offsetHeight - window.innerHeight;
     target = total > 4 ? clamp(-rect.top / total, 0, 1) : 0;
-    // THE BOX IS A STOP ON THE JOURNEY, BOTH WAYS. A real gesture (wheel/touch/keys — tracked
-    // below, so an anchor link's smooth scroll can't trigger it) opens it whenever the page
-    // crosses the hero boundary: scrolling DOWN out of the top, or scrolling UP back into it
-    // from the sections below. Closing starts a short cooldown (set in closeBox) so the exit
-    // gesture's own momentum and the post-close smooth scroll can't bounce it straight back open.
-    const sy = window.scrollY || 0;
-    const gestureFresh = performance.now() - scrollIntentT < 260;
-    if (!boxMode && ready && gestureFresh && performance.now() > boxNoReopenUntil &&
-        !section.classList.contains("no3d") &&
-        ((sy > 30 && _prevSy <= 30) || (sy < 30 && _prevSy >= 30))) {
-      openBox();
-    }
-    _prevSy = sy;
   }
-  let _prevSy = 0, scrollIntentT = -1e9, boxNoReopenUntil = 0;
-  window.addEventListener("wheel", () => { scrollIntentT = performance.now(); }, { passive: true });
-  window.addEventListener("touchmove", () => { scrollIntentT = performance.now(); }, { passive: true });
-  window.addEventListener("keydown", (e) => {
-    if (["ArrowDown", "PageDown", "ArrowUp", "PageUp"].includes(e.key) || (e.key === " " && !e.shiftKey)) scrollIntentT = performance.now();
-  });
   function resize() {
     // size to the canvas's ACTUAL displayed box, not window.innerHeight — on mobile the URL bar makes
     // innerHeight taller than the 100dvh canvas, and a taller buffer squished into a shorter box stretches
@@ -1104,14 +1081,8 @@ function init() {
     // the object phase, clears it as the phone story arrives, and keeps it cleared.
     const introDrive = 0.035 + 0.05 * smooth(OBJECT_FRAC * 0.72, OBJECT_FRAC, rawP0);
     overlay(anim, introDrive, fg);   // intro/cue fade on RAW scroll; the "Five people" outro fades as the FALL starts (held through DROP_HOLD_F)
-    // THE CUT. The object phase ends on a finished, threaded bracelet in its own framing; the
-    // timeline resumes on the same beads with no cord yet, at a different angle and distance.
-    // Three discontinuities at once, so rather than pretend otherwise, dip the whole frame to
-    // black through the boundary and let it read as an edit.
-    if (cutEl) {
-      const dc = Math.abs(rawP0 - OBJECT_FRAC);
-      cutEl.style.opacity = String(clamp(1 - smooth(0, CUT_WIN, dc), 0, 1));
-    }
+    // (the old dip-to-black at the object → threading boundary is gone with the boundary itself:
+    // OBJECT_FRAC now hands off to the box segment, which has its own transition — the fold)
     // Hand the object phase to the gather rig (YOU == the hero bracelet, unchanged in size or
     // place) so that tapping a bead can summon a receiver. Nothing is announced: the bracelet
     // just turns, and a touch is the only thing that reveals there is someone on the other end.
@@ -1130,7 +1101,15 @@ function init() {
     idle += 0.016;
     progress += (target - progress) * 0.09;
     if (Math.abs(target - progress) < 0.0002) progress = target;
-    if (ready && inView) { if (boxMode) updateBox(); else update(progress); composer.render(); }
+    if (ready && inView) {
+      // the boundary is watched HERE, on eased progress, with hysteresis so the edge can't flap
+      if (!section.classList.contains("no3d")) {
+        if (!boxMode && progress >= OBJECT_FRAC) enterBox();
+        else if (boxMode && boxExitT0 == null && progress < OBJECT_FRAC - 0.02) closeBox({ reverse: true });
+      }
+      if (boxMode) updateBox(); else update(progress);
+      composer.render();
+    }
   }
 
   window.__hero = {
@@ -1831,7 +1810,7 @@ function init() {
   const BOX_RISE_AT = 0.2, BOX_RISE_T = 1.5;                 // the base + open net, up from below
   const BOX_FOLD_AT = 1.5, BOX_FOLD_T = 2.3;                 // all four walls at once, slow
   const BOX_CAM_T = 2.8, BOX_PANEL_AT = 4.0;
-  let boxMode = false, boxT0 = 0, boxExitT0 = null, boxGroup = null, boxLight = null, boxPlate = null;
+  let boxMode = false, boxT0 = 0, boxExitT0 = null, boxPanelShown = false, boxGroup = null, boxLight = null, boxPlate = null;
   let boxFolds = [], boxSpread = 1;                          // 1 = net fully open (the camera gives it room)
   let boxSide = 0, boxWallH = 0, boxBaseTh = 0, boxFloorY = 0, boxCY = 0;
   let boxSpin = 0, boxSpinTgt = null, boxSounded = false, boxSnapped = false, boxCamFrom = null, boxFront = null, boxFlare = null;
@@ -2075,43 +2054,39 @@ function init() {
     },
   };
 
-  const lockScroll = (on) => {
-    document.documentElement.style.overflow = on ? "hidden" : "";
-    document.body.style.overflow = on ? "hidden" : "";
-  };
 
+  // the public door: GO to the designer's place on the page — the crossing does the rest
   function openBox() {
-    if (boxMode) return;
     const cust = $("#customize"); if (!cust) return;
     audioCtx();                                        // wake audio inside the gesture
     if (section.classList.contains("no3d")) {          // no-WebGL fallback: the panel alone, over the poster
-      lockScroll(true); section.classList.add("in-box"); cust.classList.add("is-open");
+      section.classList.add("in-box"); cust.classList.add("is-open");
       return;
     }
-    window.scrollTo(0, 0);
-    target = progress = 0;
-    update(0);                                         // settle the object-phase state before freezing it
-    for (const rv of reveals) { rv._e = 0; rv._prevE = 0; updateExplode(rv, 0); }   // the open bead closes for the drop
+    const total = section.offsetHeight - window.innerHeight;
+    window.scrollTo({ top: section.offsetTop + (OBJECT_FRAC + 0.28) * total, behavior: reduce ? "auto" : "smooth" });
+  }
+  // the state change the boundary crossing performs
+  function enterBox() {
+    if (boxMode) return;
+    const cust = $("#customize"); if (!cust) return;
+    for (const rv of reveals) { rv._e = 0; rv._prevE = 0; updateExplode(rv, 0); }   // the open bead closes for the catch
     for (const id of ["#hubLabels", "#beadLabels", "#beadWords"]) { const h = $(id); if (h) h.style.opacity = "0"; }
     buildVitrine();
     if (groundMesh) groundMesh.visible = false;
     if (gatherGroup) gatherGroup.visible = false;
     spin.visible = true;
-    if (cutEl) cutEl.style.opacity = "0";
     ensureCutEngine();                                 // warm the cut stack the moment the designer opens
-    boxMode = true; boxT0 = idle; boxSounded = false; boxSnapped = false; boxFlare = null; boxSpread = 1;
+    boxMode = true; boxT0 = idle; boxSounded = false; boxSnapped = false; boxFlare = null; boxSpread = 1; boxPanelShown = false;
     applyDesign();                                     // AFTER boxMode flips: unchosen beads present blank in here
     boxSpin = spin.rotation.y; boxSpinTgt = null;
     boxGroup.visible = true; boxLight.visible = true;
     for (const f of boxFolds) { f.done = false; f.hinge.rotation.x = Math.PI / 2; }
     boxCamFrom = { pos: camera.position.clone(), tgt: new THREE.Vector3(0, 0, 0) };
-    lockScroll(true); section.classList.add("in-box");
-    window.scrollTo(0, 0);   // again, post-lock: a fast flick can land more scroll between the first reset and the lock
-    // the panel arrives once the glass has closed; "makoma:boxopen" tells the configurator to
-    // present the currently-selected person's bead (the only rotation the piece does in here)
-    const showPanel = () => { if (!boxMode) return; cust.classList.add("is-open"); window.dispatchEvent(new CustomEvent("makoma:boxopen")); };
-    if (reduce) showPanel();
-    else setTimeout(showPanel, BOX_PANEL_AT * 1000);
+    section.classList.add("in-box");
+    // the dock's arrival is keyed to the BOX CLOCK inside updateBox, not a wall-clock timer —
+    // a setTimeout can fire while rAF is paused (hidden tab, heavy load) and pop the dock in
+    // before the fold has visually finished
   }
 
   function finalizeClose() {
@@ -2121,27 +2096,24 @@ function init() {
     orient.position.y = 0;
     if (groundMesh) groundMesh.visible = true;
     objTurnArmed = false;                              // the object phase re-arms → re-opens on a whole piece
-    lockScroll(false); section.classList.remove("in-box");
+    section.classList.remove("in-box");
     update(progress);                                  // repaint the object phase
   }
   function closeBox(opts) {
     const cust = $("#customize");
     if (section.classList.contains("no3d")) {
-      lockScroll(false); section.classList.remove("in-box"); if (cust) cust.classList.remove("is-open");
+      section.classList.remove("in-box"); if (cust) cust.classList.remove("is-open");
       return;
     }
     if (!boxMode || boxExitT0 != null) return;
-    boxNoReopenUntil = performance.now() + 1400;   // the exit gesture's momentum + the post-close smooth scroll must not re-open it
     if (cust) cust.classList.remove("is-open");
     if (opts && opts.reverse && !reduce) {
-      // UPWARD exit: the catch plays backwards — walls unfold to the open net, the base sinks
-      // away, the piece settles out of its float — and the hero is simply there again. No cut.
+      // scrolling back above the boundary: the catch plays backwards — walls unfold to the open
+      // net, the base sinks away, the piece settles out of its float — and the hero is there.
       boxExitT0 = idle;
       return;
     }
-    // DOWNWARD exit / X / Escape: a quick dip to black covers the cut back to the object framing
-    if (cutEl) cutEl.style.opacity = "1";
-    setTimeout(finalizeClose, reduce ? 0 : 380);
+    finalizeClose();
   }
 
   function boxCamera(blend) {
@@ -2210,6 +2182,13 @@ function init() {
     for (const f of boxFolds) f.hinge.rotation.x = (1 - e) * Math.PI / 2;
     boxSpread = 1 - e;                                         // the camera gives the open net room
     if (u >= 1 && !boxSnapped) { boxSnapped = true; if (!reduce) noiseWhoosh(0.35, 700, 380, 0.022); }
+    // the dock arrives once the glass has closed; "makoma:boxopen" tells the configurator to
+    // present the currently-selected person's bead (the only rotation the piece does in here)
+    if (!boxPanelShown && t >= BOX_PANEL_AT) {
+      boxPanelShown = true;
+      const cust = $("#customize");
+      if (cust) { cust.classList.add("is-open"); window.dispatchEvent(new CustomEvent("makoma:boxopen")); }
+    }
     // NO display turn — the piece holds still in the glass. It rotates only when a person is
     // selected, easing their bead round to the front to be worked on.
     const dt = 0.016;
@@ -2249,48 +2228,17 @@ function init() {
   for (const el of document.querySelectorAll('a[href="#yourfive"], [data-open-box]')) {
     el.addEventListener("click", (e) => { e.preventDefault(); openBox(); });
   }
+  const backToTop = () => {
+    if (section.classList.contains("no3d")) { closeBox(); return; }
+    window.scrollTo({ top: 0, behavior: reduce ? "auto" : "smooth" });   // the crossing plays the reverse fold
+  };
   const boxCloseBtn = document.getElementById("boxClose");
-  if (boxCloseBtn) boxCloseBtn.addEventListener("click", closeBox);
-  document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeBox(); });
-  // GETTING OUT BY SCROLL — the box must never trap. A deliberate wheel/touch gesture over the
-  // STAGE closes it: downward carries on to the sections below (quick dip cut), upward plays the
-  // whole fold IN REVERSE back to the hero. The panel is exempt (it scrolls its own content);
-  // gestures are IGNORED for the entire opening cinematic, so continued scrolling while the
-  // transition runs can never skip it; and stale momentum decays so only a fresh, deliberate
-  // gesture crosses the threshold.
-  let exitAcc = 0, exitLastT = 0;
-  function boxExitGesture(dy, target) {
-    if (!boxMode || boxExitT0 != null) return;
-    if (idle - boxT0 < BOX_PANEL_AT + 0.25) return;          // the transition is sacred — scrolling through it does nothing
-    const sheet = document.querySelector("#customize .box-sheet");
-    if (sheet && target instanceof Node && sheet.contains(target)) return;
-    const now = performance.now();
-    if (now - exitLastT > 350) exitAcc = 0;
-    exitLastT = now; exitAcc += dy;
-    if (Math.abs(exitAcc) < 170) return;
-    const dir = exitAcc > 0 ? 1 : -1; exitAcc = 0;
-    if (dir < 0) { closeBox({ reverse: true }); return; }    // up: unfold, sink, hand the hero back
-    closeBox();
-    setTimeout(() => {                                       // down: continue the journey they were on
-      const y = document.getElementById("yourfive");
-      if (y) y.scrollIntoView({ behavior: reduce ? "auto" : "smooth" });
-    }, 430);
-  }
-  window.addEventListener("wheel", (e) => boxExitGesture(e.deltaY, e.target), { passive: true });
-  let boxTouchY = null;
-  window.addEventListener("touchstart", (e) => { boxTouchY = e.touches[0].clientY; }, { passive: true });
-  window.addEventListener("touchmove", (e) => {
-    if (boxTouchY == null) return;
-    const y = e.touches[0].clientY, dy = boxTouchY - y; boxTouchY = y;
-    boxExitGesture(dy, e.target);
-  }, { passive: true });
-  document.addEventListener("keydown", (e) => {
-    if (!boxMode) return;
-    const t = e.target;
-    if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA")) return;   // typing a name, not leaving
-    if (e.key === "PageDown" || e.key === "ArrowDown" || (e.key === " " && !e.shiftKey)) boxExitGesture(400, document.body);
-    if (e.key === "PageUp" || e.key === "ArrowUp") boxExitGesture(-400, document.body);
-  });
+  if (boxCloseBtn) boxCloseBtn.addEventListener("click", backToTop);
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape" && boxMode) backToTop(); });
+  // Getting out is just SCROLLING: down continues past the hero into the sections (the pinned
+  // canvas and the dock scroll away like any section ending), up crosses the boundary and plays
+  // the fold in reverse. The X and Escape simply take you back to the top of the page.
+
   // live re-apply while designing (and keep the design on the hero afterwards)
   if (window.MAKOMA_DESIGN) window.MAKOMA_DESIGN.subscribe(() => { if (designApplied) applyDesign(); });
 
