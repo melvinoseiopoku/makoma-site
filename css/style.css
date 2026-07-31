@@ -1781,6 +1781,31 @@ section{ position:relative; z-index:2; }
 .cfg-shell i{ width:34px; height:34px; }
 .cfg-light.is-on,.cfg-shell.is-on{ box-shadow:0 0 0 1.5px var(--gold); }
 
+/* ---- the mark chooser: three ways to cut a bead ---- */
+@font-face{ font-family:"Allerta Stencil"; src:url("../assets/vendor/text/AllertaStencil-Regular.ttf") format("truetype");
+  font-display:swap; }   /* fetched only when a rule below first applies — panel-only */
+.cfg-marknote{ color:var(--ink-mute); text-transform:none; letter-spacing:.02em; font-size:.9em; }
+.cfg-marknote::before{ content:"· "; opacity:.6; }
+.cfg-cuttabs{ display:flex; gap:8px; margin-bottom:14px; }
+.cfg-cuttab{ background:none; border:1px solid var(--line-soft); border-radius:999px; color:var(--ink-soft);
+  font-size:.78rem; letter-spacing:.04em; padding:7px 14px; cursor:pointer; transition:color .2s var(--ease), border-color .2s var(--ease); }
+.cfg-cuttab.is-on{ color:var(--gold); border-color:var(--gold); }
+.cfg-inirow{ display:flex; gap:10px; flex-wrap:wrap; margin-bottom:8px; }
+.cfg-ini{ min-width:56px; height:56px; padding:0 12px; border-radius:50%; background:radial-gradient(circle at 38% 30%, #1a1a1e, #08080a);
+  border:0; cursor:pointer; color:var(--gold); font-family:"Allerta Stencil", var(--serif); font-size:1.25rem; letter-spacing:.06em;
+  box-shadow:inset 0 -3px 8px rgba(0,0,0,.6); transition:box-shadow .2s var(--ease); }
+.cfg-ini.is-on{ box-shadow:inset 0 -3px 8px rgba(0,0,0,.6), 0 0 0 1.5px var(--gold); }
+.cfg-inihelp{ font-size:.72rem; color:var(--ink-mute); margin:4px 0 0; }
+.cfg-chipini{ font-family:"Allerta Stencil", var(--serif); font-size:1.05rem; color:var(--lit,var(--gold));
+  text-shadow:0 0 6px color-mix(in srgb, var(--lit,var(--gold)) 60%, transparent); }
+.cfg-upbtn{ position:relative; display:inline-flex; align-items:center; cursor:pointer; }
+.cfg-upstatus{ font-size:.78rem; color:var(--ink-soft); margin:10px 0 0; min-height:1.2em; }
+.cfg-upstatus.is-warn{ color:#e0a52a; }
+.cfg-cutfile{ margin:10px 0 0; font-size:.75rem; }
+.cfg-cutfile a{ color:var(--ink-mute); text-decoration:underline; text-underline-offset:3px; }
+.cfg-cutfile a:hover{ color:var(--gold); }
+.cfg-cutpane[hidden]{ display:none; }
+
 .cfg-next{ margin-top:20px; width:100%; justify-content:center; }
 .cfg-finish{ border-top:1px solid var(--line-soft); margin-top:24px; padding-top:20px; }
 .cfg-actions{ display:flex; align-items:center; gap:16px; margin-top:26px; flex-wrap:wrap; }

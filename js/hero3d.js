@@ -1957,7 +1957,7 @@ function init() {
     const st = D.get();
     matBlack.color.set(D.shellDef(st.shell).hex);
     const lit = {};
-    st.people.forEach((p) => { lit[D.beadOf(p.sym)] = p.glow; });
+    st.people.forEach((p, i) => { lit[D.beadNode(i)] = p.glow; });
     for (let node = 0; node < 8; node++) {
       const plat = model.getObjectByName("PLATFORM" + (node === 0 ? "" : String(node))); if (!plat) continue;
       let m = boxPlatMat[node];
@@ -1968,7 +1968,103 @@ function init() {
       plat.material = m;
     }
     designApplied = true;
+    scheduleCuts(st);
   }
+
+  // ==================================================================
+  // CUSTOM CUTS. Each person's bead carries whatever they chose — an
+  // Adinkra symbol, stencil initials, or their own traced artwork — as a
+  // REAL cut through the cap (js/beadcut.js: blank redesigned cap minus
+  // the extruded artwork, boolean CSG). Everything here is lazy: the CSG
+  // stack, the font and the blank cap only load on first actual use, and
+  // a bead whose choice equals the symbol BAKED onto it just shows the
+  // pristine original mesh (the default bracelet costs zero CSG).
+  // ==================================================================
+  const SYMBOLS_ALPHA = ["akoma", "akoma_ntoaso", "aya", "gye_nyame", "nkonsonkonson", "nkyinkyim", "nsoroma", "sankofa"];
+  let cutMod = null, cutEngine = null, cutEnginePromise = null;
+  const cutKey = {};                 // node -> JSON of the spec currently applied ("" = original cap)
+  let cutQueue = Promise.resolve();  // cuts serialise — CSG is fast but the store can churn faster
+
+  function ensureCutEngine() {
+    if (!cutEnginePromise) {
+      cutEnginePromise = import("./beadcut.js").then(async (mod) => {
+        cutMod = mod;
+        while (!model || !ready) await new Promise((r) => setTimeout(r, 120));   // warm-up can outrun the GLB
+        cutEngine = await mod.createCutEngine({
+          model, matShell: matBlack,
+          onReplace(node, newMesh, origMesh) {
+            if (newMesh) newMesh.name = "FB_CAP" + String(node) + "_CUT";   // beadNodeOf parses the leading digits → taps still select the person
+            if (String(node) === EXPLODE_NODE && beadAsm) {
+              // the hero's exploding bead must lift whatever cap is CURRENT — swap the rig's ref.
+              // Zero the rig FIRST: a cut can finish applying while the object-phase reveal is
+              // mid-open, and attach() against a tilted pivot would bake the explode offset into
+              // the new rest. The very next update() re-applies the live _e, so this is invisible.
+              updateExplode(beadAsm, 0); beadAsm._e = 0;
+              const part = beadAsm.parts.find((pt) => pt.obj === origMesh || pt.obj === beadAsm._cutObj);
+              if (part) {
+                if (!beadAsm._origRest) beadAsm._origRest = part.rest.clone();
+                if (newMesh) {
+                  origMesh.parent.attach(newMesh);                      // ride the explode pivot like the cap it replaces
+                  part.obj = newMesh; part.rest = newMesh.position.clone(); beadAsm._cutObj = newMesh;
+                } else {
+                  part.obj = origMesh; part.rest = beadAsm._origRest.clone(); beadAsm._cutObj = null;
+                }
+              }
+            }
+          },
+        });
+        return cutEngine;
+      });
+      cutEnginePromise.catch((e) => {
+        console.warn("[beadcut] engine init failed, will retry:", e);
+        // retry, but not as a per-keystroke fetch storm — repaints call in constantly
+        setTimeout(() => { cutEnginePromise = null; }, 5000);
+      });
+    }
+    return cutEnginePromise;
+  }
+
+  async function svgForSpec(spec) {
+    if (spec.type === "adinkra") return cutMod.adinkraSVG(spec.sym);
+    if (spec.type === "initials") return await cutMod.initialsSVG(spec.text);
+    if (spec.type === "upload") return spec.svg;
+    return null;
+  }
+
+  function scheduleCuts(st) {
+    const D = window.MAKOMA_DESIGN; if (!D) return;
+    st.people.forEach((p, i) => {
+      const node = D.beadNode(i);
+      const spec = p.cut || null;
+      // the baked default costs nothing: the original mesh IS that symbol's cut
+      const isBaked = !spec || (spec.type === "adinkra" && spec.sym === SYMBOLS_ALPHA[node]);
+      const key = isBaked ? "" : JSON.stringify(spec);
+      if (cutKey[node] === key) return;
+      cutKey[node] = key;
+      cutQueue = cutQueue.then(async () => {
+        if (cutKey[node] !== key) return;            // superseded while queued
+        try {
+          if (isBaked) { if (cutEngine) cutEngine.restore(node); return; }
+          const eng = await ensureCutEngine();
+          if (cutKey[node] !== key) return;
+          const svg = await svgForSpec(spec);
+          if (!svg || cutKey[node] !== key) return;
+          await eng.applyCut(node, svg, spec.type === "upload" ? { dropHoles: true } : {});
+        } catch (e) { console.warn("[beadcut]", node, e); if (cutKey[node] === key) cutKey[node] = undefined; }   // a failed cut must stay retryable
+      });
+    });
+  }
+
+  // the panel's bridge (configurator.js is a classic script and cannot import the module)
+  window.__hero.cut = {
+    warm: () => { ensureCutEngine(); },
+    initialsSVG: async (text) => { await ensureCutEngine(); return cutMod.initialsSVG(text); },
+    manufacturingSVG: async (spec, label) => {
+      await ensureCutEngine();
+      const svg = await svgForSpec(spec);
+      return svg ? cutMod.manufacturingSVG(svg, label) : null;
+    },
+  };
 
   const lockScroll = (on) => {
     document.documentElement.style.overflow = on ? "hidden" : "";
@@ -1994,6 +2090,7 @@ function init() {
     if (gatherGroup) gatherGroup.visible = false;
     spin.visible = true;
     if (cutEl) cutEl.style.opacity = "0";
+    ensureCutEngine();                                 // warm the cut stack the moment the designer opens
     boxMode = true; boxT0 = idle; boxSounded = false; boxSnapped = false; boxFlare = null; boxSpread = 1;
     boxSpin = spin.rotation.y; boxSpinTgt = null;
     boxGroup.visible = true; boxLight.visible = true;

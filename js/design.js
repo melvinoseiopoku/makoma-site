@@ -2,7 +2,14 @@
    M'AKOMA — bracelet design state
    ------------------------------------------------------------
    The single shared store for what the visitor designs: one shell colour,
-   and five people (name + Adinkra symbol + glow colour).
+   and five people (name + glow colour + a CUT — what is cut clean through
+   their bead: an Adinkra symbol, stencil initials, or their own artwork).
+
+   v2: a person OWNS a fixed bead (SLOT_BEAD) and the cut is pure choice.
+   In v1 the symbol decided which bead a person sat on; now the bead in
+   frame is theirs and anything can be cut into it — which is the whole
+   point of the designer. Duplicate symbols across people are ALLOWED
+   (two beads with the same cut is physically fine).
 
    Loaded as a CLASSIC script BEFORE main.js, because main.js is a classic
    IIFE and hero3d.js is an ES module — neither can import the other, so a
@@ -52,10 +59,14 @@
   SYMBOLS.forEach(function (s, i) { BEAD_OF[s] = i; });
 
   var SLOTS = 5;
+  /* Person i's bead, fixed. Chosen so the DEFAULT design (each person's cut = the symbol
+     already baked onto their bead) renders the pristine model with zero geometry work,
+     and matches the spread the ring always used. */
+  var SLOT_BEAD = [0, 3, 1, 4, 6];
 
   function defaults() {
     return {
-      v: 1,
+      v: 2,
       shell: "onyx",
       touched: false,               // did they actually choose a shell? (see toMetadata)
       /* `ghost` is a placeholder only — it renders in the input's placeholder and in italic
@@ -63,14 +74,22 @@
          finished piece of jewellery rather than an empty form. The symbols are spread
          around the ring (beads 0,3,1,4,6) so the lit beads don't clump on one side. */
       people: [
-        { name: "", ghost: "Mum",         sym: "akoma",         glow: "#e8c57a" },
-        { name: "", ghost: "Dad",         sym: "gye_nyame",     glow: "#f1e9d2" },
-        { name: "", ghost: "Sis",         sym: "akoma_ntoaso",  glow: "#ecb07a" },
-        { name: "", ghost: "Best friend", sym: "nkonsonkonson", glow: "#5fd3e0" },
-        { name: "", ghost: "My person",   sym: "nsoroma",       glow: "#f4d58d" }
+        { name: "", ghost: "Mum",         cut: { type: "adinkra", sym: "akoma" },         glow: "#e8c57a" },
+        { name: "", ghost: "Dad",         cut: { type: "adinkra", sym: "gye_nyame" },     glow: "#f1e9d2" },
+        { name: "", ghost: "Sis",         cut: { type: "adinkra", sym: "akoma_ntoaso" },  glow: "#ecb07a" },
+        { name: "", ghost: "Best friend", cut: { type: "adinkra", sym: "nkonsonkonson" }, glow: "#5fd3e0" },
+        { name: "", ghost: "My person",   cut: { type: "adinkra", sym: "nsoroma" },       glow: "#f4d58d" }
       ],
       updatedAt: null
     };
+  }
+
+  function validCut(c) {
+    if (!c || typeof c !== "object") return false;
+    if (c.type === "adinkra")  return SYMBOLS.indexOf(c.sym) !== -1;
+    if (c.type === "initials") return typeof c.text === "string" && /^[A-Z0-9]{1,3}$/.test(c.text);
+    if (c.type === "upload")   return typeof c.svg === "string" && c.svg.length > 30 && c.svg.length < 300000 && c.svg.indexOf("<svg") === 0;
+    return false;
   }
 
   var state = load();
@@ -81,7 +100,7 @@
       var raw = localStorage.getItem(KEY);
       if (!raw) return defaults();
       var d = JSON.parse(raw);
-      if (!d || d.v !== 1 || !Array.isArray(d.people)) return defaults();
+      if (!d || (d.v !== 1 && d.v !== 2) || !Array.isArray(d.people)) return defaults();
       var base = defaults();
       // merge defensively so a partial/corrupt object can never break the page
       base.shell   = validShell(d.shell) ? d.shell : base.shell;
@@ -89,29 +108,16 @@
       for (var i = 0; i < SLOTS; i++) {
         var p = d.people[i]; if (!p) continue;
         if (typeof p.name === "string") base.people[i].name = p.name.slice(0, 24);
-        if (SYMBOLS.indexOf(p.sym) !== -1) base.people[i].sym = p.sym;
         if (/^#[0-9a-f]{6}$/i.test(p.glow || "")) base.people[i].glow = p.glow;
+        if (d.v === 1) {   // migrate: the old symbol becomes the cut; the person moves to their fixed bead
+          if (SYMBOLS.indexOf(p.sym) !== -1) base.people[i].cut = { type: "adinkra", sym: p.sym };
+        } else if (validCut(p.cut)) base.people[i].cut = p.cut;
       }
-      dedupe(base);
       return base;
     } catch (e) { return defaults(); }
   }
 
   function validShell(id) { return SHELLS.some(function (s) { return s.id === id; }); }
-
-  /* Symbols must stay distinct across the five — that is the whole reason a
-     person can map onto one real bead. If a restored or set() value collides,
-     push the loser to the first free symbol rather than silently showing two
-     people on one bead. */
-  function dedupe(d) {
-    var seen = {};
-    d.people.forEach(function (p) {
-      if (!seen[p.sym]) { seen[p.sym] = 1; return; }
-      for (var i = 0; i < SYMBOLS.length; i++) {
-        if (!seen[SYMBOLS[i]]) { p.sym = SYMBOLS[i]; seen[SYMBOLS[i]] = 1; return; }
-      }
-    });
-  }
 
   function save() {
     state.updatedAt = new Date().toISOString();
@@ -123,7 +129,8 @@
     SHELLS: SHELLS,
     SYMBOLS: SYMBOLS,
     SLOTS: SLOTS,
-    beadOf: function (sym) { return BEAD_OF[sym]; },
+    beadOf: function (sym) { return BEAD_OF[sym]; },        // symbol -> the bead it is BAKED on (alphabetical); v2 keeps it for glyph lookups
+    beadNode: function (i) { return SLOT_BEAD[i]; },         // person -> their fixed bead
     shellDef: function (id) {
       for (var i = 0; i < SHELLS.length; i++) if (SHELLS[i].id === (id || state.shell)) return SHELLS[i];
       return SHELLS[0];
@@ -144,15 +151,14 @@
       state.people[i].name = String(name || "").slice(0, 24);
       save();
     },
-    /* Assigning a symbol already in use SWAPS the two people, so the set stays
-       distinct and the visitor never loses a choice they already made. */
-    setSymbol: function (i, sym) {
-      if (!state.people[i] || SYMBOLS.indexOf(sym) === -1) return;
-      var holder = -1;
-      state.people.forEach(function (p, j) { if (p.sym === sym && j !== i) holder = j; });
-      if (holder !== -1) state.people[holder].sym = state.people[i].sym;
-      state.people[i].sym = sym;
+    /* v2: the cut is pure choice on the person's own bead — no swapping, duplicates fine. */
+    setCut: function (i, cut) {
+      if (!state.people[i] || !validCut(cut)) return;
+      state.people[i].cut = cut;
       save();
+    },
+    setSymbol: function (i, sym) {                            // legacy sugar (kept for main.js/back-compat)
+      if (SYMBOLS.indexOf(sym) !== -1) API.setCut(i, { type: "adinkra", sym: sym });
     },
     setGlow: function (i, hex) {
       if (!state.people[i] || !/^#[0-9a-f]{6}$/i.test(hex)) return;
@@ -173,7 +179,9 @@
       return {
         shell:   state.shell,
         cfg:     state.touched ? "custom" : "default",
-        symbols: state.people.map(function (p) { return p.sym; }).join(","),
+        // the cut signal only: an adinkra choice ships its symbol name (useful demand signal);
+        // initials/uploads ship ONLY the type — never text, never artwork
+        cuts:    state.people.map(function (p) { return p.cut.type === "adinkra" ? p.cut.sym : p.cut.type; }).join(","),
         glows:   state.people.map(function (p) { return p.glow.replace("#", ""); }).join(","),
         slots:   String(named)     // how many of the five they actually named
       };
