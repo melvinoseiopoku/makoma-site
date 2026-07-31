@@ -2163,15 +2163,20 @@ function init() {
     }
     camera.position.copy(pos);
     camera.lookAt(tgt);
-    // the controls float along the BOTTOM of the stage now (no side panel) — shift the scene
-    // up so the vitrine owns the upper frame, by translating the camera along its own down axis
+    // the controls congregate in ONE dock: a left column on desktop (scene shifts RIGHT so the
+    // vitrine owns the right of the frame), a bottom strip on phones (scene shifts up a touch)
     const w = canvas.clientWidth || 1, h = canvas.clientHeight || 1;
     const worldPerPx = d * Math.tan(camera.fov * 0.5 * DEG) / (h * 0.5);
     camera.updateMatrixWorld(true);
     const k = blend;                                   // the shift arrives with the framing
     const _s = new THREE.Vector3();
-    _s.setFromMatrixColumn(camera.matrixWorld, 1);
-    camera.position.addScaledVector(_s, -(w > h ? 0.14 : 0.06) * h * worldPerPx * k);   // portrait keeps the piece mid-frame, clear of the top name cluster
+    if (w > h) {
+      _s.setFromMatrixColumn(camera.matrixWorld, 0);   // camera-right: move the camera LEFT → the scene reads RIGHT
+      camera.position.addScaledVector(_s, -0.5 * Math.min(480, w * 0.41) * worldPerPx * k);
+    } else {
+      _s.setFromMatrixColumn(camera.matrixWorld, 1);
+      camera.position.addScaledVector(_s, -0.06 * h * worldPerPx * k);   // keep the piece mid-frame, clear of the top name cluster
+    }
   }
 
   function updateBox() {

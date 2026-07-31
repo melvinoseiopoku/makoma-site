@@ -1821,35 +1821,43 @@ section{ position:relative; z-index:2; }
 .cfg-toast.is-on{ opacity:1; transform:translate(-50%,0); }
 
 /* ===== CUSTOMIZE (box mode): the designer floats ON the stage =====
-   No sheet, no card. Two clusters over the vitrine: WHO (top-left — name, meta, cut file)
-   and CONTROLS (bottom strip — roster, mark chooser, shells, actions). hero3d.js shifts the
-   scene up so the piece owns the upper frame. */
+   No sheet, no card — and ONE congregated column. Desktop: everything (name, roster, mark
+   chooser, shells, actions) stacks in a single left-hand dock and hero3d.js shifts the scene
+   RIGHT so the vitrine owns the right of the frame — nothing overlaps the glass. Phones keep
+   the top/bottom rhythm (title+name up top, controls down low, the piece between). */
 .box-custom{ position:absolute; inset:0; z-index:8; padding:0; pointer-events:none;
   opacity:0; visibility:hidden; transition:opacity .45s var(--ease), visibility 0s linear .45s; }
 .box-custom.is-open{ opacity:1; visibility:visible; transition:opacity .45s var(--ease); }
 .box-custom .btn, .box-custom input, .box-custom button, .box-custom a{ pointer-events:auto; }
-.box-who{ position:absolute; left:clamp(22px,6vw,84px); top:clamp(66px,10vh,110px); max-width:340px;
-  transform:translateY(10px); opacity:0; transition:transform .55s var(--ease), opacity .55s var(--ease); }
-.box-custom.is-open .box-who{ transform:none; opacity:1; }
-.box-title{ font-family:var(--serif); font-weight:500; line-height:1.05; font-size:clamp(1.5rem,3vw,2rem); margin:.2em 0 .4em; }
+.box-dock{ position:absolute; left:clamp(22px,5vw,80px); top:50%; transform:translateY(calc(-50% + 12px));
+  width:min(400px, 36vw); opacity:0; transition:transform .55s var(--ease), opacity .55s var(--ease); }
+.box-custom.is-open .box-dock{ transform:translateY(-50%); opacity:1; }
+.box-title{ font-family:var(--serif); font-weight:500; line-height:1.05; font-size:clamp(1.5rem,2.6vw,1.9rem); margin:.2em 0 .45em; }
 .box-who .cfg-name{ pointer-events:auto; }
-.box-controls{ position:absolute; left:50%; bottom:clamp(16px,4vh,44px); transform:translate(-50%,12px);
-  width:min(720px, calc(100% - 32px)); text-align:center; opacity:0;
-  transition:transform .55s var(--ease) .1s, opacity .55s var(--ease) .1s; }
-.box-custom.is-open .box-controls{ transform:translate(-50%,0); opacity:1; }
-.box-controls .cfg-roster{ justify-content:center; padding:2px 0 10px;
+.box-who .cfg-namehelp{ margin-bottom:14px; }
+.box-who .cfg-symmeta{ margin:2px 0 4px; min-height:0; }
+.box-who .cfg-cutfile{ margin:2px 0 0; }
+.box-controls{ margin-top:14px; }
+.box-controls .cfg-roster{ justify-content:flex-start; gap:6px; padding:2px 0 8px;
   -webkit-mask-image:none; mask-image:none; }
-.box-controls .cfg-editor{ border-top:0; padding-top:4px; }
-.box-controls .cfg-cuttabs{ justify-content:center; margin-bottom:10px; pointer-events:auto; }
-.box-controls .cfg-symrail{ justify-content:center; padding-bottom:6px; pointer-events:auto;
-  -webkit-mask-image:none; mask-image:none; }
-.box-controls .cfg-inirow{ justify-content:center; }
+.box-controls .cfg-chip{ flex:0 0 60px; }
+.box-controls .cfg-chipface{ width:40px; height:40px; }
+.box-controls .cfg-chipname{ font-size:.78rem; max-width:60px; }
+.box-controls .cfg-editor{ border-top:1px solid var(--line-soft); padding-top:12px; }
+.box-controls .cfg-cuttabs{ margin-bottom:12px; pointer-events:auto; }
+.box-controls .cfg-symrail{ flex-wrap:wrap; row-gap:8px; padding-bottom:4px; pointer-events:auto;
+  overflow:visible; -webkit-mask-image:none; mask-image:none; }
+.box-controls .cfg-sym{ flex:0 0 46px; height:46px; }
+.box-controls .cfg-symface{ width:46px; height:46px; }
+.box-controls .cfg-ini{ min-width:48px; height:48px; font-size:1.1rem; }
 .box-controls .cfg-inihelp, .box-controls .cfg-upstatus{ text-shadow:0 1px 10px rgba(0,0,0,.8); }
-.box-controls .cfg-finish{ border-top:0; margin-top:8px; padding-top:0; display:flex; gap:10px;
-  align-items:center; justify-content:center; }
+.box-controls .cfg-finish{ border-top:0; margin-top:12px; padding-top:0; display:flex; gap:10px;
+  align-items:center; }
 .box-controls .cfg-shells{ margin-bottom:0; flex-wrap:nowrap; }
+.box-controls .cfg-shell{ padding:4px; }
+.box-controls .cfg-shell i{ width:26px; height:26px; }
 .box-controls .cfg-shellname{ font-size:.75rem; color:var(--ink-mute); }
-.box-controls .cfg-actions{ justify-content:center; margin-top:12px; }
+.box-controls .cfg-actions{ margin-top:14px; gap:12px; }
 .box-controls .cfg-next{ width:auto; margin-top:0; }
 .box-close{ position:absolute; top:calc(72px + 2vh); right:clamp(18px,4vw,44px); width:40px; height:40px; border-radius:50%;
   background:rgba(9,8,8,.5); border:1px solid var(--line-soft); color:var(--ink-soft); font-size:1.3rem; line-height:1;
@@ -1860,10 +1868,22 @@ section{ position:relative; z-index:2; }
 .hero3d.in-box .gather-guide, .hero3d.in-box .hero-progress, .hero3d.in-box .hero-sub{
   opacity:0 !important; pointer-events:none !important; }
 @media (max-width:820px){
-  .box-who{ left:18px; right:18px; top:calc(60px + 2vh); max-width:none; }
+  /* phones: the dock splits back into top (who) and bottom (controls); the piece sits between */
+  .box-dock{ position:static; transform:none; width:auto; opacity:1; transition:none; }
+  .box-custom.is-open .box-dock{ transform:none; }
+  .box-dock{ pointer-events:none; }
+  .box-who{ position:absolute; left:18px; right:18px; top:calc(60px + 2vh);
+    opacity:0; transition:opacity .55s var(--ease); }
+  .box-custom.is-open .box-who{ opacity:1; }
   .box-who .cfg-namehelp{ display:none; }
-  .box-controls{ bottom:12px; width:calc(100% - 20px); }
-  .box-controls .cfg-roster{ justify-content:flex-start; }   /* six chips need the native scroll on phones */
+  .box-controls{ position:absolute; left:10px; right:10px; bottom:12px; margin-top:0;
+    text-align:center; opacity:0; transition:opacity .55s var(--ease) .1s; }
+  .box-custom.is-open .box-controls{ opacity:1; }
+  .box-controls .cfg-roster{ justify-content:flex-start; }   /* six chips keep the native scroll */
+  .box-controls .cfg-chip{ flex:0 0 72px; }
+  .box-controls .cfg-symrail{ flex-wrap:nowrap; justify-content:flex-start; overflow-x:auto; }
+  .box-controls .cfg-cuttabs, .box-controls .cfg-inirow, .box-controls .cfg-finish,
+  .box-controls .cfg-actions{ justify-content:center; }
   .box-close{ top:calc(60px + 2vh); right:14px; }
 }
 
