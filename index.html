@@ -184,66 +184,59 @@
            is the hero's own 3-D model, dropped into the manufacturing vitrine (hero3d.js box mode).
            Same .cfg classes as before the move, so the panel styling carries over wholesale;
            configurator.js drives it and hero3d.js renders the consequences. -->
+      <!-- CUSTOMIZE — the designer lives ON the stage with the piece: floating clusters over
+           the vitrine, no sheet. Top-left carries who is being named; the bottom strip carries
+           the roster, the mark chooser and the actions. hero3d.js shifts the scene upward so the
+           vitrine owns the upper frame. Same .cfg classes; configurator.js drives it. -->
       <div class="cfg box-custom" id="customize" aria-hidden="true">
-        <aside class="box-sheet">
-          <button type="button" class="box-close" id="boxClose" aria-label="Close the designer">&times;</button>
-          <header class="box-head">
-            <p class="eyebrow">Make it yours</p>
-            <h2 class="box-title">Who are your <span class="gold-ink">five?</span></h2>
-          </header>
-<div class="cfg-panel">
-        <p class="eyebrow cfg-lbl">Your five</p>
-        <div class="cfg-roster" role="tablist" aria-label="Your five people"></div>
+        <button type="button" class="box-close" id="boxClose" aria-label="Close the designer">&times;</button>
 
-        <div class="cfg-editor" role="tabpanel">
+        <div class="box-who">
+          <p class="eyebrow">Make it yours</p>
+          <h2 class="box-title">Who are your <span class="gold-ink">six?</span></h2>
           <input class="cfg-name" id="cfgName" type="text" maxlength="24"
                  autocomplete="off" autocorrect="off" spellcheck="false"
                  aria-label="Their name" />
           <p class="cfg-namehelp">First name, or whatever you actually call them.</p>
-
-          <p class="eyebrow cfg-lbl">Their mark <span class="cfg-marknote">cut through the bead</span></p>
-          <!-- what gets CUT clean through this person's bead: an Adinkra symbol, stencil
-               initials from their name, or the visitor's own artwork (traced in-browser;
-               the image never leaves the device) -->
-          <div class="cfg-cuttabs" role="tablist" aria-label="Mark type">
-            <button type="button" class="cfg-cuttab is-on" data-tab="adinkra" role="tab">Symbols</button>
-            <button type="button" class="cfg-cuttab" data-tab="initials" role="tab">Initials</button>
-            <button type="button" class="cfg-cuttab" data-tab="upload" role="tab">Your own</button>
-          </div>
-          <div class="cfg-cutpane" data-pane="adinkra">
-            <div class="cfg-symrail" role="radiogroup" aria-label="Adinkra symbol"></div>
-          </div>
-          <div class="cfg-cutpane" data-pane="initials" hidden>
-            <div class="cfg-inirow" role="radiogroup" aria-label="Initials"></div>
-            <p class="cfg-inihelp">Stencil letters, from their name — bridges keep every piece attached.</p>
-          </div>
-          <div class="cfg-cutpane" data-pane="upload" hidden>
-            <label class="btn btn-line cfg-upbtn">Choose an image
-              <input type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" hidden></label>
-            <p class="cfg-upstatus" aria-live="polite"></p>
-          </div>
           <p class="cfg-symmeta" aria-live="polite"></p>
           <p class="cfg-cutfile"></p>
-
-          <p class="eyebrow cfg-lbl">Their light <span class="cfg-lightname"></span></p>
-          <div class="cfg-lights" role="radiogroup" aria-label="Their light"></div>
-
-          <!-- the bead-by-bead flow: done with this person → the piece turns the next bead into frame -->
-          <button type="button" class="btn btn-line cfg-next">Next bead</button>
         </div>
 
-        <div class="cfg-finish">
-          <p class="eyebrow cfg-lbl">The bracelet <span class="cfg-shellname"></span></p>
-          <div class="cfg-shells" role="radiogroup" aria-label="Bracelet colour"></div>
+        <div class="box-controls">
+          <div class="cfg-roster" role="tablist" aria-label="Your six people"></div>
+
+          <div class="cfg-editor" role="tabpanel">
+            <div class="cfg-cuttabs" role="tablist" aria-label="Mark type">
+              <button type="button" class="cfg-cuttab is-on" data-tab="adinkra" role="tab">Symbols</button>
+              <button type="button" class="cfg-cuttab" data-tab="initials" role="tab">Initials</button>
+              <button type="button" class="cfg-cuttab" data-tab="upload" role="tab">Your own</button>
+            </div>
+            <div class="cfg-cutpane" data-pane="adinkra">
+              <div class="cfg-symrail" role="radiogroup" aria-label="Adinkra symbol"></div>
+            </div>
+            <div class="cfg-cutpane" data-pane="initials" hidden>
+              <div class="cfg-inirow" role="radiogroup" aria-label="Initials"></div>
+              <p class="cfg-inihelp">Stencil letters, from their name — bridges keep every piece attached.</p>
+            </div>
+            <div class="cfg-cutpane" data-pane="upload" hidden>
+              <label class="btn btn-line cfg-upbtn">Choose an image
+                <input type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" hidden></label>
+              <p class="cfg-upstatus" aria-live="polite"></p>
+            </div>
+          </div>
+
+          <div class="cfg-finish">
+            <div class="cfg-shells" role="radiogroup" aria-label="Bracelet colour"></div>
+            <span class="cfg-shellname"></span>
+          </div>
+
+          <div class="cfg-actions">
+            <button type="button" class="btn btn-line cfg-next">Next bead</button>
+            <button type="button" class="btn btn-gold cfg-cta">Save my six</button>
+            <button type="button" class="cfg-reset">Start over</button>
+          </div>
         </div>
 
-        <div class="cfg-actions">
-          <button type="button" class="btn btn-gold cfg-cta">Save my five</button>
-          <button type="button" class="cfg-reset">Start over</button>
-        </div>
-        <p class="cfg-ctasub">Joins the waitlist and keeps this exact bracelet against your name.</p>
-      </div>
-        </aside>
         <p class="cfg-toast" role="status"></p>
         <p class="sr-only cfg-sr" aria-live="polite"></p>
       </div>
@@ -321,8 +314,8 @@
   <div class="wrap">
     <header class="cfg-head reveal">
       <p class="eyebrow">Make it yours</p>
-      <h1 class="cfg-title">Who are your <span class="gold-ink">five?</span></h1>
-      <p class="cfg-sub">Name them. Give each a symbol and a light. This is the bracelet we&rsquo;d string for you.</p>
+      <h1 class="cfg-title">Who are your <span class="gold-ink">six?</span></h1>
+      <p class="cfg-sub">Name them. Give each a mark, cut clean through their bead. This is the bracelet we&rsquo;d string for you.</p>
     </header>
     <!-- the designing itself happens up in the hero: this button drops the bracelet into the
          manufacturing box and opens the panel (#customize). The section stays as the scroll

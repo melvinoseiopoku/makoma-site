@@ -174,7 +174,12 @@ export async function createCutEngine(ctx) {
     return { mesh, islands };
   }
 
-  return { applyCut, restore, frames, WINDOW_MM, MIN_CUT_MM };
+  /* the un-cut blank — how the box presents a bead nobody has chosen for yet */
+  function applyBlank(node) {
+    return install(node, capGeo.clone());
+  }
+
+  return { applyCut, applyBlank, restore, frames, WINDOW_MM, MIN_CUT_MM };
 }
 
 /* ---- helpers shared with the panel (no three.js needed) ---- */

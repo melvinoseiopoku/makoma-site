@@ -58,11 +58,10 @@
   var BEAD_OF = {};
   SYMBOLS.forEach(function (s, i) { BEAD_OF[s] = i; });
 
-  var SLOTS = 5;
-  /* Person i's bead, fixed. Chosen so the DEFAULT design (each person's cut = the symbol
-     already baked onto their bead) renders the pristine model with zero geometry work,
-     and matches the spread the ring always used. */
-  var SLOT_BEAD = [0, 3, 1, 4, 6];
+  var SLOTS = 6;
+  /* Person i's bead, fixed — six people, six beads (the founder's call: the piece is for six).
+     Two beads (aya, nkyinkyim) stay unassigned house symbols. */
+  var SLOT_BEAD = [0, 3, 1, 4, 6, 7];
 
   function defaults() {
     return {
@@ -73,12 +72,15 @@
          on the chip, and is NEVER stored as a name. It exists so the section reads as a
          finished piece of jewellery rather than an empty form. The symbols are spread
          around the ring (beads 0,3,1,4,6) so the lit beads don't clump on one side. */
+      /* cut: null = "not chosen yet" — the box presents that bead BLANK; the hero outside
+         still shows the finished display piece (the baked symbol). */
       people: [
-        { name: "", ghost: "Mum",         cut: { type: "adinkra", sym: "akoma" },         glow: "#e8c57a" },
-        { name: "", ghost: "Dad",         cut: { type: "adinkra", sym: "gye_nyame" },     glow: "#f1e9d2" },
-        { name: "", ghost: "Sis",         cut: { type: "adinkra", sym: "akoma_ntoaso" },  glow: "#ecb07a" },
-        { name: "", ghost: "Best friend", cut: { type: "adinkra", sym: "nkonsonkonson" }, glow: "#5fd3e0" },
-        { name: "", ghost: "My person",   cut: { type: "adinkra", sym: "nsoroma" },       glow: "#f4d58d" }
+        { name: "", ghost: "Mum",         cut: null, glow: "#e8c57a" },
+        { name: "", ghost: "Dad",         cut: null, glow: "#f1e9d2" },
+        { name: "", ghost: "Sis",         cut: null, glow: "#ecb07a" },
+        { name: "", ghost: "Best friend", cut: null, glow: "#5fd3e0" },
+        { name: "", ghost: "My person",   cut: null, glow: "#f4d58d" },
+        { name: "", ghost: "Brother",     cut: null, glow: "#a78bfa" }
       ],
       updatedAt: null
     };
@@ -111,7 +113,7 @@
         if (/^#[0-9a-f]{6}$/i.test(p.glow || "")) base.people[i].glow = p.glow;
         if (d.v === 1) {   // migrate: the old symbol becomes the cut; the person moves to their fixed bead
           if (SYMBOLS.indexOf(p.sym) !== -1) base.people[i].cut = { type: "adinkra", sym: p.sym };
-        } else if (validCut(p.cut)) base.people[i].cut = p.cut;
+        } else if (validCut(p.cut)) base.people[i].cut = p.cut;   // null stays null — not chosen yet
       }
       return base;
     } catch (e) { return defaults(); }
@@ -180,10 +182,10 @@
         shell:   state.shell,
         cfg:     state.touched ? "custom" : "default",
         // the cut signal only: an adinkra choice ships its symbol name (useful demand signal);
-        // initials/uploads ship ONLY the type — never text, never artwork
-        cuts:    state.people.map(function (p) { return p.cut.type === "adinkra" ? p.cut.sym : p.cut.type; }).join(","),
-        glows:   state.people.map(function (p) { return p.glow.replace("#", ""); }).join(","),
-        slots:   String(named)     // how many of the five they actually named
+        // initials/uploads ship ONLY the type — never text, never artwork. Lights left the
+        // designer (they're set in the app), so glows no longer ship.
+        cuts:    state.people.map(function (p) { return !p.cut ? "none" : p.cut.type === "adinkra" ? p.cut.sym : p.cut.type; }).join(","),
+        slots:   String(named)     // how many of the six they actually named
       };
     }
   };

@@ -2033,26 +2033,35 @@ function init() {
 
   function scheduleCuts(st) {
     const D = window.MAKOMA_DESIGN; if (!D) return;
-    st.people.forEach((p, i) => {
-      const node = D.beadNode(i);
-      const spec = p.cut || null;
-      // the baked default costs nothing: the original mesh IS that symbol's cut
-      const isBaked = !spec || (spec.type === "adinkra" && spec.sym === SYMBOLS_ALPHA[node]);
-      const key = isBaked ? "" : JSON.stringify(spec);
-      if (cutKey[node] === key) return;
+    // The box is the MANUFACTURING context: a bead nobody has chosen for yet presents BLANK
+    // there (including the two unassigned house beads), and gains its mark as it is chosen.
+    // Outside the box the hero shows the finished display piece — unchosen beads wear their
+    // baked symbols. cut = null distinguishes "not chosen" from an explicit choice.
+    const specOf = {};
+    st.people.forEach((p, i) => { specOf[D.beadNode(i)] = p.cut || null; });
+    for (let node = 0; node < 8; node++) {
+      const spec = node in specOf ? specOf[node] : null;    // 2 & 5 are nobody's — house beads
+      const isBaked = spec && spec.type === "adinkra" && spec.sym === SYMBOLS_ALPHA[node];
+      let key, action;
+      if (spec && !isBaked) { key = JSON.stringify(spec); action = "cut"; }
+      else if (spec) { key = ""; action = "restore"; }      // an explicit choice of the baked symbol
+      else if (boxMode) { key = "BLANK"; action = "blank"; }
+      else { key = ""; action = "restore"; }
+      if (cutKey[node] === key) continue;
       cutKey[node] = key;
       cutQueue = cutQueue.then(async () => {
-        if (cutKey[node] !== key) return;            // superseded while queued
+        if (cutKey[node] !== key) return;                   // superseded while queued
         try {
-          if (isBaked) { if (cutEngine) cutEngine.restore(node); return; }
+          if (action === "restore") { if (cutEngine) cutEngine.restore(node); return; }
           const eng = await ensureCutEngine();
           if (cutKey[node] !== key) return;
+          if (action === "blank") { eng.applyBlank(node); return; }
           const svg = await svgForSpec(spec);
           if (!svg || cutKey[node] !== key) return;
           await eng.applyCut(node, svg, spec.type === "upload" ? { dropHoles: true } : {});
-        } catch (e) { console.warn("[beadcut]", node, e); if (cutKey[node] === key) cutKey[node] = undefined; }   // a failed cut must stay retryable
+        } catch (e) { console.warn("[beadcut]", node, e); if (cutKey[node] === key) cutKey[node] = undefined; }   // must stay retryable
       });
-    });
+    }
   }
 
   // the panel's bridge (configurator.js is a classic script and cannot import the module)
@@ -2085,13 +2094,13 @@ function init() {
     for (const rv of reveals) { rv._e = 0; rv._prevE = 0; updateExplode(rv, 0); }   // the open bead closes for the drop
     for (const id of ["#hubLabels", "#beadLabels", "#beadWords"]) { const h = $(id); if (h) h.style.opacity = "0"; }
     buildVitrine();
-    applyDesign();
     if (groundMesh) groundMesh.visible = false;
     if (gatherGroup) gatherGroup.visible = false;
     spin.visible = true;
     if (cutEl) cutEl.style.opacity = "0";
     ensureCutEngine();                                 // warm the cut stack the moment the designer opens
     boxMode = true; boxT0 = idle; boxSounded = false; boxSnapped = false; boxFlare = null; boxSpread = 1;
+    applyDesign();                                     // AFTER boxMode flips: unchosen beads present blank in here
     boxSpin = spin.rotation.y; boxSpinTgt = null;
     boxGroup.visible = true; boxLight.visible = true;
     for (const f of boxFolds) { f.done = false; f.hinge.rotation.x = Math.PI / 2; }
@@ -2107,6 +2116,7 @@ function init() {
 
   function finalizeClose() {
     boxMode = false; boxExitT0 = null;
+    if (designApplied) applyDesign();                  // unchosen beads go back to their baked display symbols
     boxGroup.visible = false; if (boxLight) boxLight.visible = false;
     orient.position.y = 0;
     if (groundMesh) groundMesh.visible = true;
@@ -2153,15 +2163,15 @@ function init() {
     }
     camera.position.copy(pos);
     camera.lookAt(tgt);
-    // shift the scene clear of the panel (right side on desktop, bottom sheet on phones) —
-    // translate the camera along its own axes so the aim is preserved
+    // the controls float along the BOTTOM of the stage now (no side panel) — shift the scene
+    // up so the vitrine owns the upper frame, by translating the camera along its own down axis
     const w = canvas.clientWidth || 1, h = canvas.clientHeight || 1;
     const worldPerPx = d * Math.tan(camera.fov * 0.5 * DEG) / (h * 0.5);
     camera.updateMatrixWorld(true);
     const k = blend;                                   // the shift arrives with the framing
     const _s = new THREE.Vector3();
-    if (w > h) { _s.setFromMatrixColumn(camera.matrixWorld, 0); camera.position.addScaledVector(_s, 0.5 * Math.min(420, w * 0.4) * worldPerPx * k); }
-    else { _s.setFromMatrixColumn(camera.matrixWorld, 1); camera.position.addScaledVector(_s, -0.24 * h * worldPerPx * k); }
+    _s.setFromMatrixColumn(camera.matrixWorld, 1);
+    camera.position.addScaledVector(_s, -(w > h ? 0.14 : 0.06) * h * worldPerPx * k);   // portrait keeps the piece mid-frame, clear of the top name cluster
   }
 
   function updateBox() {

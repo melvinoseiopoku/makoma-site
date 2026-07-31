@@ -41,18 +41,7 @@
     sankofa:       { name: "Sankofa",       lit: "Return & retrieve",     light: "#a78bfa", note: 523.25 }
   };
 
-  var LIGHTS = [
-    { hex: "#e8c57a", name: "Warm Gold" },
-    { hex: "#ecb07a", name: "Soft Amber" },
-    { hex: "#6fcf97", name: "Steady Green" },
-    { hex: "#6aa6ff", name: "Calm Blue" },
-    { hex: "#a78bfa", name: "Quiet Violet" },
-    { hex: "#5fd3e0", name: "Still Teal" }
-  ];
-  var lightName = function (hex) {
-    for (var i = 0; i < LIGHTS.length; i++) if (LIGHTS[i].hex.toLowerCase() === String(hex).toLowerCase()) return LIGHTS[i].name;
-    return "Custom";
-  };
+  /* lights left the designer — presence colours are set in the app, not at purchase */
 
   var root = $("#customize");
   if (!root) return;
@@ -67,8 +56,6 @@
   var nameIn  = $("#cfgName");
   var symRail = $(".cfg-symrail", root);
   var symMeta = $(".cfg-symmeta", root);
-  var lightRow= $(".cfg-lights", root);
-  var lightLbl= $(".cfg-lightname", root);
   var shellRow= $(".cfg-shells", root);
   var shellLbl= $(".cfg-shellname", root);
   var toastEl = $(".cfg-toast", root);
@@ -97,7 +84,7 @@
     if (cut && cut.type === "adinkra") return glyphSVG(cut.sym, "cfg-glyph");
     if (cut && cut.type === "initials") return '<span class="cfg-chipini">' + cut.text + "</span>";
     if (cut && cut.type === "upload") return '<span class="cfg-chipini">✦</span>';
-    return "";
+    return '<span class="cfg-chipblank">+</span>';       // not chosen yet — the bead is blank in the box
   }
 
   function buildRoster() {
@@ -150,24 +137,6 @@
     });
   }
 
-  function buildLights() {
-    lightRow.innerHTML = "";
-    LIGHTS.forEach(function (l) {
-      var b = document.createElement("button");
-      b.type = "button";
-      b.className = "cfg-light";
-      b.dataset.hex = l.hex;
-      b.setAttribute("role", "radio");
-      b.setAttribute("aria-label", l.name);
-      b.innerHTML = '<i style="background:' + l.hex + '"></i>';
-      b.addEventListener("click", function () {
-        D.setGlow(selected, l.hex);
-        pulse(D.beadNode(selected), l.hex);
-      });
-      lightRow.appendChild(b);
-    });
-  }
-
   function buildShells() {
     shellRow.innerHTML = "";
     D.SHELLS.forEach(function (s) {
@@ -212,17 +181,19 @@
     if (document.activeElement !== nameIn) nameIn.value = real;   // never fight the caret mid-type
     nameIn.placeholder = p.ghost;
 
-    var cut = p.cut || { type: "adinkra", sym: "akoma" };
+    var cut = p.cut || null;
     [].forEach.call(symRail.children, function (b) {
       var key = b.dataset.sym;
-      var mine = cut.type === "adinkra" && key === cut.sym;
+      var mine = !!cut && cut.type === "adinkra" && key === cut.sym;
       b.classList.toggle("is-on", mine);
       b.setAttribute("aria-checked", mine ? "true" : "false");
       b.querySelector(".cfg-symface").style.setProperty("--lit", mine ? p.glow : "transparent");
     });
-    showTab(tabOverride || (cut.type === "initials" ? "initials" : cut.type === "upload" ? "upload" : "adinkra"), false);
+    showTab(tabOverride || (!cut ? "adinkra" : cut.type === "initials" ? "initials" : cut.type === "upload" ? "upload" : "adinkra"), false);
     paintInitials(p, cut);
-    if (cut.type === "adinkra") {
+    if (!cut) {
+      symMeta.innerHTML = "<b>Blank</b><span>Choose their mark — it is cut clean through the bead</span>";
+    } else if (cut.type === "adinkra") {
       symMeta.innerHTML = '<b>' + SYM[cut.sym].name + "</b><span>" + SYM[cut.sym].lit + "</span>";
     } else if (cut.type === "initials") {
       symMeta.innerHTML = "<b>" + cut.text + "</b><span>Stencil initials, cut clean through</span>";
@@ -230,13 +201,6 @@
       symMeta.innerHTML = "<b>Your artwork</b><span>Traced on your device — it never leaves this browser</span>";
     }
     paintCutFile(p, cut);
-
-    [].forEach.call(lightRow.children, function (b) {
-      var on = b.dataset.hex.toLowerCase() === p.glow.toLowerCase();
-      b.classList.toggle("is-on", on);
-      b.setAttribute("aria-checked", on ? "true" : "false");
-    });
-    lightLbl.textContent = lightName(p.glow);
 
     [].forEach.call(shellRow.children, function (b) {
       var on = b.dataset.id === st.shell;
@@ -250,9 +214,8 @@
 
     if (srLive) {
       srLive.textContent = "Five beads on " + (/^[aeiou]/i.test(sd.name) ? "an " : "a ") + sd.name.toLowerCase() +
-        " bracelet. Now editing " + (real || p.ghost) + ", " +
-        (cut.type === "adinkra" ? SYM[cut.sym].name : cut.type === "initials" ? "initials " + cut.text : "their own artwork") +
-        ", " + lightName(p.glow) + ".";
+        " bracelet. Now editing " + (real || p.ghost) + ": " +
+        (!cut ? "blank, no mark chosen yet" : cut.type === "adinkra" ? SYM[cut.sym].name : cut.type === "initials" ? "initials " + cut.text : "their own artwork") + ".";
     }
   }
 
@@ -419,6 +382,7 @@
     if (!cutFile) return;
     cutFile.innerHTML = "";
     if (!window.__hero || !window.__hero.cut) return;
+    if (!cut) return;                                     // nothing chosen — nothing to manufacture
     var stamp = ++cutFileT;
     var who = (p.name.trim() || p.ghost);
     window.__hero.cut.manufacturingSVG(cut, who).then(function (svg) {
@@ -470,7 +434,6 @@
   function init() {
     buildRoster();
     buildSymRail();
-    buildLights();
     buildShells();
 
     /* Settling the rail on a chip selects that person — which turns the piece in the box.
