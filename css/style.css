@@ -1708,17 +1708,9 @@ section{ position:relative; z-index:2; }
    Mobile-first. The stage is pure CSS/SVG — no second WebGL context.
    `--shell` is the bracelet colourway, `--lit` each bead's light.
    ============================================================ */
-.cfg{ padding:clamp(84px,11vw,150px) 0 clamp(60px,8vw,110px); position:relative; }
-.cfg-head{ text-align:center; max-width:640px; margin:0 auto clamp(26px,4vw,42px); }
-.cfg-title{ font-family:var(--serif); font-weight:500; line-height:1.02; letter-spacing:-.01em;
-  font-size:clamp(2.1rem,8vw,3.6rem); margin:.24em 0 .3em; }
-.cfg-sub{ color:var(--ink-soft); font-size:clamp(.92rem,2.4vw,1.02rem); margin:0; }
-
-.cfg-grid{ display:block; }
-
-/* the CSS ring stage is retired — the designing happens on the hero's real 3-D bracelet
-   (box mode). Only the panel rules remain below. */
-.cfg-open{ text-align:center; margin:6px 0 0; }
+/* .cfg now exists only as the designer dock inside the hero (#customize) — the standalone
+   invitation section is gone with the scroll-place rework. */
+.cfg{ position:relative; }
 
 .cfg-lbl{ margin:0 0 10px; }
 .cfg-lbl span{ color:var(--gold); letter-spacing:.06em; text-transform:none; font-size:.92em; }

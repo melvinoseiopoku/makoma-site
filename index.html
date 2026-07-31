@@ -297,34 +297,10 @@
   </div>
 </section>
 
-<!-- SECTION 3 - MAKE IT YOURS. It follows the hero rather than splitting it: the hero is one
-     continuous pinned timeline that already carries "why it exists" (the phone story) and "look
-     inside" (the CAD explosion), and cutting it in half to interleave this would rebuild a working
-     2,000-line animation for no gain. By the time a visitor arrives here they have seen the object,
-     the reason and the engineering - which is when "now make it yours" lands hardest anyway. -->
-<!-- ============ WHO ARE YOUR FIVE — the configurator OPENS the page ============
-     The visitor designs their own bracelet before they are told anything: naming
-     the five is the hook, and the meaning arrives through the interaction instead
-     of ahead of it. The hero below then answers "why" (the phone story) and "is it
-     real" (the CAD explosion) for someone already invested.
+<!-- (the old "Make it yours" invitation section is gone: the designer now OWNS scroll
+     territory inside the hero itself — #yourfive links are intercepted by hero3d.js and simply
+     scroll you to that place) -->
 
-     No WebGL here on purpose — see js/configurator.js. The stage is 8 positioned
-     divs on an ellipse; the roster rail is a NATIVE horizontal scroller and IS the
-     rotation control, which is what keeps a sideways-looking gesture from ever
-     fighting the page scroll. -->
-<section class="cfg" id="yourfive">
-  <div class="wrap">
-    <header class="cfg-head reveal">
-      <p class="eyebrow">Make it yours</p>
-      <h1 class="cfg-title">Who are your <span class="gold-ink">six?</span></h1>
-      <p class="cfg-sub">Name them. Give each a mark, cut clean through their bead. This is the bracelet we&rsquo;d string for you.</p>
-    </header>
-    <!-- the designing itself happens up in the hero: this button drops the bracelet into the
-         manufacturing box and opens the panel (#customize). The section stays as the scroll
-         landmark and the non-JS fallback target. -->
-    <p class="cfg-open reveal"><button type="button" class="btn btn-gold" data-open-box>Design your bracelet</button></p>
-  </div>
-</section>
 
 <!-- ============ SECTION 5 - WHAT ELSE IT CAN DO ============
      The platform angle, deliberately placed HERE and not in the hero: leading with it would make
