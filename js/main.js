@@ -367,6 +367,32 @@
   ------------------------------------------------------------------ */
   const JOIN_ENDPOINT = "https://buttondown.com/api/emails/embed-subscribe/makoma";
 
+  /* The designer's save step joins the SAME list with the SAME design metadata — one
+     subscribe path, two doors. `extra` carries fields the visitor typed about THEMSELVES
+     (their own name, source) — freely given here; the six people's names still never leave. */
+  window.MAKOMA_JOIN = async function (emailValue, extra) {
+    const v = String(emailValue || "").trim();
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v)) return { ok: false, reason: "email" };
+    const design = (window.MAKOMA_DESIGN && window.MAKOMA_DESIGN.toMetadata()) || null;
+    try {
+      const k = "makoma_waitlist";
+      const list = JSON.parse(localStorage.getItem(k) || "[]");
+      list.push({ email: v, extra: extra || null, design, at: new Date().toISOString() });
+      localStorage.setItem(k, JSON.stringify(list));
+    } catch (_) {}
+    if (!JOIN_ENDPOINT) return { ok: true };
+    try {
+      const params = new URLSearchParams();
+      params.append("email", v);
+      params.append("embed", "1");
+      params.append("tag", "designer");
+      if (extra) Object.keys(extra).forEach((k2) => { if (extra[k2]) params.append("metadata__" + k2, String(extra[k2]).slice(0, 120)); });
+      if (design) Object.keys(design).forEach((k2) => params.append("metadata__" + k2, design[k2]));
+      await fetch(JOIN_ENDPOINT, { method: "POST", mode: "no-cors", body: params });
+      return { ok: true };
+    } catch (err) { return { ok: false, reason: "network" }; }
+  };
+
   function setupForm() {
     const form = $("#joinForm"), status = $("#joinStatus"),
           email = $("#joinEmail"), submit = $("#joinSubmit"), sugg = $("#joinSuggestion");

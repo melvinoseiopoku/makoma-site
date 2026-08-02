@@ -49,6 +49,12 @@
   var roster  = $(".cfg-roster", root);
   var editor  = $(".cfg-editor", root);
   var cutTabs = $(".cfg-cuttabs", root);
+  var boxTitle= $(".box-title", root);
+  var boxEyebrow = $(".box-eyebrow", root);
+  var saveName= $(".cfg-savename", root);
+  var saveEmail = $(".cfg-saveemail", root);
+  var saveBtn = $(".cfg-savebtn", root);
+  var saveStatus = $(".cfg-savestatus", root);
   var iniRow  = $(".cfg-inirow", root);
   var upInput = $(".cfg-upbtn input", root);
   var upStatus= $(".cfg-upstatus", root);
@@ -183,6 +189,7 @@
     var p = st.people[selected];
     tabOverride = null;                       // a new person starts on the pane their cut lives in
     boxFocus(D.beadNode(selected));
+    paintNext();
     paintEditor();
     paintRoster();
     if (scrollChip && roster.children[selected]) {
@@ -209,14 +216,11 @@
     });
     showTab(tabOverride || (!cut ? "adinkra" : cut.type === "initials" ? "initials" : cut.type === "upload" ? "upload" : "adinkra"), false);
     paintInitials(p, cut);
-    if (!cut) {
-      symMeta.innerHTML = "<b>Blank</b><span>Choose their mark — it is cut clean through the bead</span>";
-    } else if (cut.type === "adinkra") {
-      symMeta.innerHTML = '<b>' + SYM[cut.sym].name + "</b><span>" + SYM[cut.sym].lit + "</span>";
-    } else if (cut.type === "initials") {
-      symMeta.innerHTML = "<b>" + cut.text + "</b><span>Stencil initials, cut clean through</span>";
-    } else {
-      symMeta.innerHTML = "<b>Your artwork</b><span>Traced on your device — it never leaves this browser</span>";
+    if (symMeta) {   // the meta block left the dock (founder's call) — kept null-safe if it returns
+      symMeta.innerHTML = !cut ? "<b>Blank</b>"
+        : cut.type === "adinkra" ? "<b>" + SYM[cut.sym].name + "</b><span>" + SYM[cut.sym].lit + "</span>"
+        : cut.type === "initials" ? "<b>" + cut.text + "</b>"
+        : "<b>Your artwork</b>";
     }
     paintCutFile(p, cut);
 
@@ -241,6 +245,28 @@
         " bracelet. Now editing " + (real || p.ghost) + ": " +
         (!cut ? "blank, no mark chosen yet" : cut.type === "adinkra" ? SYM[cut.sym].name : cut.type === "initials" ? "initials " + cut.text : "their own artwork") + ".";
     }
+  }
+
+  /* ---------- the wizard: colours → the six beads → save ---------- */
+  var step = "colors";
+  var STEP_COPY = {
+    colors: { eyebrow: "Make it yours", title: 'Choose your <span class="gold-ink">colours.</span>' },
+    beads:  { eyebrow: "Make it yours", title: 'Who are your <span class="gold-ink">six?</span>' },
+    save:   { eyebrow: "Almost done",   title: 'Save your <span class="gold-ink">six.</span>' }
+  };
+  function setStep(sname) {
+    step = sname;
+    root.dataset.step = sname;
+    if (boxEyebrow) boxEyebrow.textContent = STEP_COPY[sname].eyebrow;
+    if (boxTitle) boxTitle.innerHTML = STEP_COPY[sname].title;
+    paintNext();
+    if (sname === "beads") select(selected, false);
+  }
+  function paintNext() {
+    var nextBtn = $(".cfg-next", root);
+    if (!nextBtn) return;
+    nextBtn.textContent = step === "colors" ? "Next — your six"
+                        : selected < D.SLOTS - 1 ? "Next bead" : "Finish";
   }
 
   /* ---------- the mark chooser: tabs, initials, upload ---------- */
@@ -515,17 +541,46 @@
        into frame to be worked on — the ONLY rotation the bracelet does in the box. */
     var nextBtn = $(".cfg-next", root);
     if (nextBtn) nextBtn.addEventListener("click", function () {
-      var i = (selected + 1) % D.SLOTS;
-      select(i, true);
-      var st = D.get();
-      pulse(D.beadNode(i), st.people[i].glow);
+      if (step === "colors") { setStep("beads"); return; }
+      if (step !== "beads") return;
+      if (selected < D.SLOTS - 1) {
+        var i = selected + 1;
+        select(i, true);
+        pulse(D.beadNode(i), D.get().people[i].glow);
+      } else {
+        setStep("save");
+      }
+    });
+
+    if (saveBtn) saveBtn.addEventListener("click", function () {
+      var em = (saveEmail && saveEmail.value || "").trim();
+      var who = (saveName && saveName.value || "").trim();
+      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em)) {
+        saveStatus.textContent = "A real email, please — it keeps your design saved.";
+        saveStatus.classList.add("is-error");
+        if (saveEmail) saveEmail.focus();
+        return;
+      }
+      saveStatus.classList.remove("is-error");
+      saveStatus.textContent = "Saving your design…";
+      saveBtn.disabled = true;
+      var join = window.MAKOMA_JOIN || function () { return Promise.resolve({ ok: true }); };
+      join(em, { name: who, source: "designer" }).then(function (r) {
+        saveBtn.disabled = false;
+        if (r && r.ok) {
+          saveStatus.textContent = "Saved — your six are on the waitlist with you. Watch your inbox.";
+        } else {
+          saveStatus.classList.add("is-error");
+          saveStatus.textContent = r && r.reason === "email" ? "A real email, please." : "Hmm — that didn’t go through. Try again in a moment?";
+        }
+      });
     });
 
     /* The box has closed and the panel is up: present the selected person's bead. */
-    window.addEventListener("makoma:boxopen", function () { select(selected, false); });
+    window.addEventListener("makoma:boxopen", function () { setStep(step); });
     var resetBtn = $(".cfg-reset", root);
     if (resetBtn) resetBtn.addEventListener("click", function () {
-      D.reset(); selected = 0; buildRoster(); select(0, true); toast("Started over.");
+      D.reset(); selected = 0; buildRoster(); setStep("colors"); toast("Started over.");
     });
 
     /* Focusing the name field opens the soft keyboard; the bottom sheet grows to make
@@ -547,6 +602,7 @@
     D.subscribe(function () { paintEditor(); paintRoster(); });
 
     select(0, false);
+    setStep("colors");
     root.classList.add("is-ready");
   }
 

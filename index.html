@@ -193,14 +193,12 @@
 
         <div class="box-dock">
         <div class="box-who">
-          <p class="eyebrow">Make it yours</p>
-          <h2 class="box-title">Who are your <span class="gold-ink">six?</span></h2>
+          <p class="eyebrow box-eyebrow">Make it yours</p>
+          <h2 class="box-title"></h2>
           <input class="cfg-name" id="cfgName" type="text" maxlength="24"
                  autocomplete="off" autocorrect="off" spellcheck="false"
                  aria-label="Their name" />
           <p class="cfg-namehelp">First name, or whatever you actually call them.</p>
-          <p class="cfg-symmeta" aria-live="polite"></p>
-          <p class="cfg-cutfile"></p>
         </div>
 
         <div class="box-controls">
@@ -217,7 +215,6 @@
             </div>
             <div class="cfg-cutpane" data-pane="initials" hidden>
               <div class="cfg-inirow" role="radiogroup" aria-label="Initials"></div>
-              <p class="cfg-inihelp">Stencil letters, from their name — bridges keep every piece attached.</p>
             </div>
             <div class="cfg-cutpane" data-pane="upload" hidden>
               <label class="btn btn-line cfg-upbtn">Choose an image
@@ -236,9 +233,21 @@
           </div>
 
           <div class="cfg-actions">
-            <button type="button" class="btn btn-line cfg-next">Next bead</button>
-            <button type="button" class="btn btn-gold cfg-cta">Save my six</button>
+            <button type="button" class="btn btn-gold cfg-next">Next</button>
             <button type="button" class="cfg-reset">Start over</button>
+          </div>
+
+          <!-- the last step: their OWN name + email — saves the design against the waitlist.
+               (Their own details, freely given here; the six people's names still never leave.) -->
+          <div class="cfg-save">
+            <input class="cfg-name cfg-savename" type="text" maxlength="40" autocomplete="name"
+                   placeholder="Your name" aria-label="Your name" />
+            <input class="cfg-name cfg-saveemail" type="email" maxlength="80" autocomplete="email"
+                   placeholder="you@example.com" aria-label="Your email" />
+            <div class="cfg-actions">
+              <button type="button" class="btn btn-gold cfg-savebtn">Save my design</button>
+            </div>
+            <p class="cfg-savestatus" aria-live="polite"></p>
           </div>
         </div>
         </div>

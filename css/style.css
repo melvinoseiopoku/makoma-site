@@ -1847,6 +1847,19 @@ section{ position:relative; z-index:2; }
   align-items:center; }
 .box-controls .cfg-finish + .cfg-finish{ margin-top:2px; }
 .cfg-cordname{ font-size:.75rem; color:var(--ink-mute); }
+/* ---- the wizard: colours → the six beads → save. One step visible at a time. ---- */
+#customize[data-step="colors"] .cfg-roster, #customize[data-step="colors"] .cfg-editor,
+#customize[data-step="colors"] .box-who .cfg-name, #customize[data-step="colors"] .cfg-namehelp,
+#customize[data-step="colors"] .cfg-save{ display:none; }
+#customize[data-step="beads"] .cfg-finish, #customize[data-step="beads"] .cfg-save{ display:none; }
+#customize[data-step="save"] .cfg-roster, #customize[data-step="save"] .cfg-editor,
+#customize[data-step="save"] .cfg-finish, #customize[data-step="save"] .cfg-actions,
+#customize[data-step="save"] .box-who .cfg-name, #customize[data-step="save"] .cfg-namehelp{ display:none; }
+#customize[data-step="save"] .cfg-save .cfg-actions{ display:flex; }
+.cfg-save{ margin-top:14px; max-width:340px; }
+.cfg-save .cfg-name{ margin-bottom:14px; pointer-events:auto; }
+.cfg-savestatus{ font-size:.8rem; color:var(--ink-soft); margin:10px 0 0; min-height:1.2em; }
+.cfg-savestatus.is-error{ color:#e0a52a; }
 .box-controls .cfg-shells{ margin-bottom:0; flex-wrap:nowrap; }
 .box-controls .cfg-shell{ padding:4px; }
 .box-controls .cfg-shell i{ width:26px; height:26px; }
