@@ -1843,8 +1843,10 @@ section{ position:relative; z-index:2; }
 .box-controls .cfg-symface{ width:46px; height:46px; }
 .box-controls .cfg-ini{ min-width:48px; height:48px; font-size:1.1rem; }
 .box-controls .cfg-inihelp, .box-controls .cfg-upstatus{ text-shadow:0 1px 10px rgba(0,0,0,.8); }
-.box-controls .cfg-finish{ border-top:0; margin-top:12px; padding-top:0; display:flex; gap:10px;
+.box-controls .cfg-finish{ border-top:0; margin-top:8px; padding-top:0; display:flex; gap:10px;
   align-items:center; }
+.box-controls .cfg-finish + .cfg-finish{ margin-top:2px; }
+.cfg-cordname{ font-size:.75rem; color:var(--ink-mute); }
 .box-controls .cfg-shells{ margin-bottom:0; flex-wrap:nowrap; }
 .box-controls .cfg-shell{ padding:4px; }
 .box-controls .cfg-shell i{ width:26px; height:26px; }

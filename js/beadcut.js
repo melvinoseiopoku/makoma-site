@@ -34,6 +34,10 @@ import { Brush, Evaluator, SUBTRACTION } from "three-bvh-csg";
 
 const CAP_MM = { x: 14.3, y: 15.31, z: 7.25 };   // the blank cap's own extents
 const WINDOW_MM = 7.6;                            // max symbol diameter — sits inside the 8.7 mm platform disc
+const TARGET_INK_MM2 = 18;                        // every cut removes the SAME area of cap — a lone "M" and
+                                                  // a three-letter "MUM" carry equal visual weight. 18 mm² is
+                                                  // the centre of the adinkra masters' range (12.4–32.3 mm²
+                                                  // under the old fit), so the family barely moves.
 const MIN_CUT_MM = 0.8;                           // narrowest cut that survives manufacturing at bead scale
 
 export async function createCutEngine(ctx) {
@@ -98,13 +102,22 @@ export async function createCutEngine(ctx) {
     if (!shapes.length) return { shapes: [], islands: 0 };
     let islands = 0;
     for (const sh of shapes) { islands += sh.holes.length; if (dropHoles) sh.holes = []; }
-    // fit: uniform scale into the window, centred
+    // fit: EQUAL INK AREA, capped by the window. Scaling every bbox to the window made sparse
+    // artwork enormous (one initial dwarfed three); scaling so the CUT AREA is constant gives
+    // every mark the same visual weight on the bead, and the window cap keeps wide art inside
+    // the platform disc.
     const pts = [];
     for (const sh of shapes) { pts.push(...sh.getPoints(24)); for (const h of sh.holes) pts.push(...h.getPoints(24)); }
     let minX = 1e9, maxX = -1e9, minY = 1e9, maxY = -1e9;
     for (const p of pts) { minX = Math.min(minX, p.x); maxX = Math.max(maxX, p.x); minY = Math.min(minY, p.y); maxY = Math.max(maxY, p.y); }
     const w = Math.max(maxX - minX, 1e-6), h = Math.max(maxY - minY, 1e-6);
-    const s = WINDOW_MM / Math.max(w, h);
+    let inkUnit = 0;
+    for (const sh of shapes) {
+      inkUnit += Math.abs(THREE.ShapeUtils.area(sh.getPoints(48)));
+      for (const hh of sh.holes) inkUnit -= Math.abs(THREE.ShapeUtils.area(hh.getPoints(48)));
+    }
+    inkUnit = Math.max(inkUnit, 1e-6);
+    const s = Math.min(Math.sqrt(TARGET_INK_MM2 / inkUnit), WINDOW_MM / Math.max(w, h));
     const cx = (minX + maxX) / 2, cy = (minY + maxY) / 2;
     const m = new THREE.Matrix3().set(s, 0, -cx * s, 0, -s, cy * s, 0, 0, 1);   // -s on Y: SVG y-down → cap y-up
     const xf = (v) => { const x = v.x, y = v.y; v.x = m.elements[0] * x + m.elements[3] * y + m.elements[6]; v.y = m.elements[1] * x + m.elements[4] * y + m.elements[7]; };

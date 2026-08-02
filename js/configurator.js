@@ -58,6 +58,8 @@
   var symMeta = $(".cfg-symmeta", root);
   var shellRow= $(".cfg-shells", root);
   var shellLbl= $(".cfg-shellname", root);
+  var cordRow = $(".cfg-cordsw", root);
+  var cordLbl = $(".cfg-cordname", root);
   var toastEl = $(".cfg-toast", root);
   var srLive  = $(".cfg-sr", root);
 
@@ -137,6 +139,22 @@
     });
   }
 
+  function buildCords() {
+    if (!cordRow) return;
+    cordRow.innerHTML = "";
+    D.CORDS.forEach(function (c) {
+      var b = document.createElement("button");
+      b.type = "button";
+      b.className = "cfg-shell cfg-cordbtn";
+      b.dataset.id = c.id;
+      b.setAttribute("role", "radio");
+      b.setAttribute("aria-label", c.name + " cord");
+      b.innerHTML = '<i style="background:' + c.hex + '"></i>';
+      b.addEventListener("click", function () { D.setCord(c.id); });
+      cordRow.appendChild(b);
+    });
+  }
+
   function buildShells() {
     shellRow.innerHTML = "";
     D.SHELLS.forEach(function (s) {
@@ -207,6 +225,12 @@
       b.classList.toggle("is-on", on);
       b.setAttribute("aria-checked", on ? "true" : "false");
     });
+    if (cordRow) [].forEach.call(cordRow.children, function (b) {
+      var on = b.dataset.id === st.cord;
+      b.classList.toggle("is-on", on);
+      b.setAttribute("aria-checked", on ? "true" : "false");
+    });
+    if (cordLbl) cordLbl.textContent = D.cordDef(st.cord).name + " cord";
     var sd = D.shellDef(st.shell);
     shellLbl.textContent = sd.name;
     root.style.setProperty("--shell", sd.hex);
@@ -435,6 +459,7 @@
     buildRoster();
     buildSymRail();
     buildShells();
+    buildCords();
 
     /* Settling the rail on a chip selects that person — which turns the piece in the box.
        Passive listener; the browser keeps full ownership of the gesture. */

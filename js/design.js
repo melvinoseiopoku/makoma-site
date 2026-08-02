@@ -51,6 +51,16 @@
      Because each person picks a DISTINCT symbol, a person maps to exactly
      one bead index — which is why no geometry has to be swapped to show a
      custom design. */
+  /* cord colourways — the macramé itself. Muted, rope-real tones; black is the house default. */
+  var CORDS = [
+    { id: "black", name: "Black",  hex: "#0a0a0a" },
+    { id: "cocoa", name: "Cocoa",  hex: "#4a3624" },
+    { id: "sand",  name: "Sand",   hex: "#a98d5f" },
+    { id: "ivory", name: "Ivory",  hex: "#cfc4b0" },
+    { id: "navy",  name: "Navy",   hex: "#1c2c47" },
+    { id: "wine",  name: "Wine",   hex: "#5a2733" }
+  ];
+
   var SYMBOLS = [
     "akoma", "akoma_ntoaso", "aya", "gye_nyame",
     "nkonsonkonson", "nkyinkyim", "nsoroma", "sankofa"
@@ -67,6 +77,7 @@
     return {
       v: 2,
       shell: "onyx",
+      cord: "black",
       touched: false,               // did they actually choose a shell? (see toMetadata)
       /* `ghost` is a placeholder only — it renders in the input's placeholder and in italic
          on the chip, and is NEVER stored as a name. It exists so the section reads as a
@@ -106,6 +117,7 @@
       var base = defaults();
       // merge defensively so a partial/corrupt object can never break the page
       base.shell   = validShell(d.shell) ? d.shell : base.shell;
+      base.cord    = CORDS.some(function (c) { return c.id === d.cord; }) ? d.cord : base.cord;
       base.touched = !!d.touched;
       for (var i = 0; i < SLOTS; i++) {
         var p = d.people[i]; if (!p) continue;
@@ -129,6 +141,7 @@
 
   var API = {
     SHELLS: SHELLS,
+    CORDS: CORDS,
     SYMBOLS: SYMBOLS,
     SLOTS: SLOTS,
     beadOf: function (sym) { return BEAD_OF[sym]; },        // symbol -> the bead it is BAKED on (alphabetical); v2 keeps it for glyph lookups
@@ -136,6 +149,14 @@
     shellDef: function (id) {
       for (var i = 0; i < SHELLS.length; i++) if (SHELLS[i].id === (id || state.shell)) return SHELLS[i];
       return SHELLS[0];
+    },
+    cordDef: function (id) {
+      for (var i = 0; i < CORDS.length; i++) if (CORDS[i].id === (id || state.cord)) return CORDS[i];
+      return CORDS[0];
+    },
+    setCord: function (id) {
+      if (!CORDS.some(function (c) { return c.id === id; })) return;
+      state.cord = id; save();
     },
     get: function () { return JSON.parse(JSON.stringify(state)); },
 
@@ -180,6 +201,7 @@
       // `cfg` reports ONLY whether a shell was explicitly chosen — see setShell.
       return {
         shell:   state.shell,
+        cord:    state.cord,
         cfg:     state.touched ? "custom" : "default",
         // the cut signal only: an adinkra choice ships its symbol name (useful demand signal);
         // initials/uploads ship ONLY the type — never text, never artwork. Lights left the

@@ -1935,6 +1935,7 @@ function init() {
     const D = window.MAKOMA_DESIGN; if (!D || !model) return;
     const st = D.get();
     matBlack.color.set(D.shellDef(st.shell).hex);
+    if (D.cordDef) matCord.color.set(D.cordDef(st.cord).hex);   // the macramé itself — cord, braid, clasp tails share the material
     const lit = {};
     st.people.forEach((p, i) => { lit[D.beadNode(i)] = p.glow; });
     for (let node = 0; node < 8; node++) {
