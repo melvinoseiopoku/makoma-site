@@ -1849,7 +1849,7 @@ function init() {
     // under this pipeline (alpha canvas + EffectComposer) resolves WHITE and turned every pane
     // into frosted milk. Glass over a black stage is sold by absence + edges instead: panes at
     // near-zero opacity with a faint cool tint and a whisper of env sheen, and BRIGHT edge lines.
-    const glassMat = new THREE.MeshPhysicalMaterial({ color: 0xedf1f7, metalness: 0, roughness: 0.05,
+    const glassMat = new THREE.MeshPhysicalMaterial({ color: 0xe9f4ee, metalness: 0, roughness: 0.05,
       transparent: true, opacity: 0.011, envMapIntensity: 0.03, specularIntensity: 0,
       side: THREE.DoubleSide, depthWrite: false });
       // 0.011, down from 0.024: a view line crosses 2-3 panes (DoubleSide + overlapping walls),
@@ -1858,11 +1858,11 @@ function init() {
       // everything behind a pane slate-blue, and the vitrine spot printed a bright dot on the
       // glass (a point light on a smooth pane always does). Over a black stage the EDGES carry
       // the glass, not sheen.
-    // real, THICK edges: thin bright bars instead of 1px GL lines (linewidth is ignored by
-    // WebGL), and deliberately NO bottom bar — the old bottom edge drew a white line straight
-    // across the plinth face
-    const edgeMat = new THREE.MeshBasicMaterial({ color: 0xddf2e6, transparent: true, opacity: 0.9 });
-    const EDGE_T = 0.07;
+    // real, THICK edges that read as GLASS, not white piping: the cut face of a real pane
+    // glows a translucent sea-green (see the reference vitrine) — so the bars carry that green
+    // at half opacity. Still deliberately NO bottom bar (it drew a line across the plinth).
+    const edgeMat = new THREE.MeshBasicMaterial({ color: 0x9fd8bd, transparent: true, opacity: 0.55, depthWrite: false });
+    const EDGE_T = 0.085;
     // FOUR HINGED WALLS + A LID, exactly a box net. Each wall is a nested pair: an OUTER group
     // carries the base placement + yaw (so "outward" is always the hinge frame's local +z), and an
     // inner HINGE group does nothing but rotate about its local X — rotation.x = π/2 is the pane
@@ -2138,8 +2138,8 @@ function init() {
     const k = blend;                                   // the shift arrives with the framing
     const _s = new THREE.Vector3();
     if (w > h) {
-      _s.setFromMatrixColumn(camera.matrixWorld, 0);   // camera-right: move the camera LEFT → the scene reads RIGHT
-      camera.position.addScaledVector(_s, -0.5 * Math.min(480, w * 0.41) * worldPerPx * k);
+      _s.setFromMatrixColumn(camera.matrixWorld, 0);   // camera-right: move the camera RIGHT → the scene reads LEFT (dock lives on the right now)
+      camera.position.addScaledVector(_s, 0.5 * Math.min(480, w * 0.41) * worldPerPx * k);
     } else {
       _s.setFromMatrixColumn(camera.matrixWorld, 1);
       camera.position.addScaledVector(_s, -0.06 * h * worldPerPx * k);   // keep the piece mid-frame, clear of the top name cluster

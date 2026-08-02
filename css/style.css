@@ -1821,7 +1821,7 @@ section{ position:relative; z-index:2; }
   opacity:0; visibility:hidden; transition:opacity .45s var(--ease), visibility 0s linear .45s; }
 .box-custom.is-open{ opacity:1; visibility:visible; transition:opacity .45s var(--ease); }
 .box-custom .btn, .box-custom input, .box-custom button, .box-custom a{ pointer-events:auto; }
-.box-dock{ position:absolute; left:clamp(22px,5vw,80px); top:50%; transform:translateY(calc(-50% + 12px));
+.box-dock{ position:absolute; right:clamp(22px,5vw,80px); top:50%; transform:translateY(calc(-50% + 12px));
   width:min(400px, 36vw); opacity:0; transition:transform .55s var(--ease), opacity .55s var(--ease); }
 .box-custom.is-open .box-dock{ transform:translateY(-50%); opacity:1; }
 .box-title{ font-family:var(--serif); font-weight:500; line-height:1.05; font-size:clamp(1.5rem,2.6vw,1.9rem); margin:.2em 0 .45em; }
@@ -1866,7 +1866,7 @@ section{ position:relative; z-index:2; }
 .box-controls .cfg-shellname{ font-size:.75rem; color:var(--ink-mute); }
 .box-controls .cfg-actions{ margin-top:14px; gap:12px; }
 .box-controls .cfg-next{ width:auto; margin-top:0; }
-.box-close{ position:absolute; top:calc(72px + 2vh); right:clamp(18px,4vw,44px); width:40px; height:40px; border-radius:50%;
+.box-close{ position:absolute; top:calc(72px + 2vh); left:clamp(18px,4vw,44px); width:40px; height:40px; border-radius:50%;
   background:rgba(9,8,8,.5); border:1px solid var(--line-soft); color:var(--ink-soft); font-size:1.3rem; line-height:1;
   cursor:pointer; pointer-events:auto; transition:color .2s var(--ease), border-color .2s var(--ease); }
 .box-close:hover{ color:var(--gold); border-color:var(--gold); }
@@ -1891,7 +1891,7 @@ section{ position:relative; z-index:2; }
   .box-controls .cfg-symrail{ flex-wrap:nowrap; justify-content:flex-start; overflow-x:auto; }
   .box-controls .cfg-cuttabs, .box-controls .cfg-inirow, .box-controls .cfg-finish,
   .box-controls .cfg-actions{ justify-content:center; }
-  .box-close{ top:calc(60px + 2vh); right:14px; }
+  .box-close{ top:calc(60px + 2vh); left:auto; right:14px; }
 }
 
 /* The opening CTAs, pinned to the bottom of the hero frame (the bracelet owns the centre).

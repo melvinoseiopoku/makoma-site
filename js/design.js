@@ -69,11 +69,11 @@
   SYMBOLS.forEach(function (s, i) { BEAD_OF[s] = i; });
 
   var SLOTS = 6;
-  /* Person i's bead, fixed — six people on six PHYSICALLY ADJACENT beads. The ring's cord
-     order (measured from the model's bead centroids) is 0→1→2→5→3→4→6→7 with the hub closing
-     the loop, so the roster walks the bracelet the way a finger would: Mum sits first after
-     the hub, Brother last, and nsoroma + sankofa remain the two house beads flanking the hub. */
-  var SLOT_BEAD = [0, 1, 2, 5, 3, 4];
+  /* Person i's bead, fixed — six people on the six MIDDLE beads. The ring's cord order
+     (measured from the model's bead centroids) is 0→1→2→5→3→4→6→7 with the hub closing the
+     loop; the FIRST bead after the hub (0) and the LAST before it (7) stay blank by the
+     founder's call, so the roster walks the middle of the bracelet the way a finger would. */
+  var SLOT_BEAD = [1, 2, 5, 3, 4, 6];
 
   function defaults() {
     return {
