@@ -69,9 +69,11 @@
   SYMBOLS.forEach(function (s, i) { BEAD_OF[s] = i; });
 
   var SLOTS = 6;
-  /* Person i's bead, fixed — six people, six beads (the founder's call: the piece is for six).
-     Two beads (aya, nkyinkyim) stay unassigned house symbols. */
-  var SLOT_BEAD = [0, 3, 1, 4, 6, 7];
+  /* Person i's bead, fixed — six people on six PHYSICALLY ADJACENT beads. The ring's cord
+     order (measured from the model's bead centroids) is 0→1→2→5→3→4→6→7 with the hub closing
+     the loop, so the roster walks the bracelet the way a finger would: Mum sits first after
+     the hub, Brother last, and nsoroma + sankofa remain the two house beads flanking the hub. */
+  var SLOT_BEAD = [0, 1, 2, 5, 3, 4];
 
   function defaults() {
     return {

@@ -1813,7 +1813,7 @@ function init() {
   let boxMode = false, boxT0 = 0, boxExitT0 = null, boxPanelShown = false, boxGroup = null, boxLight = null, boxPlate = null;
   let boxFolds = [], boxSpread = 1;                          // 1 = net fully open (the camera gives it room)
   let boxSide = 0, boxWallH = 0, boxBaseTh = 0, boxFloorY = 0, boxCY = 0;
-  let boxSpin = 0, boxSpinTgt = null, boxSounded = false, boxSnapped = false, boxCamFrom = null, boxFront = null, boxFlare = null;
+  let boxSpin = 0, boxSpinTgt = null, boxSounded = false, boxSnapped = false, boxCamFrom = null, boxFlare = null;
   let groundMesh = null, designApplied = false;
   const boxPlatMat = {};                    // node -> this mode's own platform material (colourable per person)
 
@@ -1858,7 +1858,11 @@ function init() {
       // everything behind a pane slate-blue, and the vitrine spot printed a bright dot on the
       // glass (a point light on a smooth pane always does). Over a black stage the EDGES carry
       // the glass, not sheen.
-    const lineMat = new THREE.LineBasicMaterial({ color: 0xddf2e6, transparent: true, opacity: 0.85 });   // the faint green cast real glass shows on its cut edges
+    // real, THICK edges: thin bright bars instead of 1px GL lines (linewidth is ignored by
+    // WebGL), and deliberately NO bottom bar — the old bottom edge drew a white line straight
+    // across the plinth face
+    const edgeMat = new THREE.MeshBasicMaterial({ color: 0xddf2e6, transparent: true, opacity: 0.9 });
+    const EDGE_T = 0.07;
     // FOUR HINGED WALLS + A LID, exactly a box net. Each wall is a nested pair: an OUTER group
     // carries the base placement + yaw (so "outward" is always the hinge frame's local +z), and an
     // inner HINGE group does nothing but rotate about its local X — rotation.x = π/2 is the pane
@@ -1872,8 +1876,14 @@ function init() {
       const hinge = new THREE.Group();
       const g = new THREE.PlaneGeometry(w, h);
       const m = new THREE.Mesh(g, glassMat); m.position.y = h / 2; m.renderOrder = 3;
-      const e = new THREE.LineSegments(new THREE.EdgesGeometry(g), lineMat); e.position.y = h / 2; e.renderOrder = 4;
-      hinge.add(m, e);
+      hinge.add(m);
+      const bar = (sx, sy, px, py) => {
+        const b = new THREE.Mesh(new THREE.BoxGeometry(sx, sy, EDGE_T), edgeMat);
+        b.position.set(px, py, 0); b.renderOrder = 4; hinge.add(b);
+      };
+      bar(EDGE_T, h + EDGE_T, -w / 2, h / 2);        // left upright
+      bar(EDGE_T, h + EDGE_T,  w / 2, h / 2);        // right upright
+      bar(w + EDGE_T, EDGE_T, 0, h);                 // top rail — no bottom rail on purpose
       return hinge;
     };
     boxFolds = [];
@@ -1906,24 +1916,8 @@ function init() {
     boxGroup.add(base, boxPlate);
     boxGroup.visible = false;
     scene.add(boxGroup);
-    // per-node front angles for THIS camera azimuth (frontAngleOf was sampled for the gather
-    // camera and only covers the six gather nodes; a person may sit on any of the eight)
-    boxFront = {};
-    const camDir = new THREE.Vector3(Math.cos(BOX_AZ * DEG), 0, Math.sin(BOX_AZ * DEG));
-    const sav = spin.rotation.y, v = new THREE.Vector3();
-    for (let node = 0; node < 8; node++) {
-      const plat = model.getObjectByName("PLATFORM" + (node === 0 ? "" : String(node))); if (!plat) continue;
-      plat.geometry.computeBoundingBox();
-      const c = plat.geometry.boundingBox.getCenter(new THREE.Vector3());
-      let best = -Infinity, bth = 0;
-      for (let k = 0; k < 180; k++) {
-        const th = k / 180 * TAU; spin.rotation.y = th; spin.updateMatrixWorld(true);
-        v.copy(c).applyMatrix4(plat.matrixWorld);
-        const d = v.dot(camDir); if (d > best) { best = d; bth = th; }
-      }
-      boxFront[node] = bth;
-    }
-    spin.rotation.y = sav; spin.updateMatrixWorld(true);
+    // (no cached per-node front table any more — box.focus() measures against the LIVE camera,
+    // dock shift included, each time a bead is selected)
   }
 
   // The stored design onto the REAL model: the shell colourway recolours the shared shell
@@ -2217,7 +2211,29 @@ function init() {
     open: openBox,
     close: closeBox,
     get isOpen() { return boxMode; },
-    focus(node) { if (boxMode && boxFront && boxFront[node] != null) boxSpinTgt = boxFront[node]; },
+    focus(node) {
+      if (!boxMode || !model) return;
+      // aim the bead at where the camera ACTUALLY is (including the dock's screen shift) —
+      // the old cached per-azimuth table left far-side beads half out of frame
+      const plat = model.getObjectByName("PLATFORM" + (node === 0 ? "" : String(node)));
+      if (!plat) return;
+      plat.geometry.computeBoundingBox();
+      const pc = plat.geometry.boundingBox.getCenter(new THREE.Vector3());
+      const camP = camera.getWorldPosition(new THREE.Vector3());
+      const ctr = spin.getWorldPosition(new THREE.Vector3());
+      const dir = camP.sub(ctr); dir.y = 0; dir.normalize();
+      const sav = spin.rotation.y, v = new THREE.Vector3();
+      let best = -Infinity, bth = boxSpin;
+      for (let k = 0; k < 144; k++) {
+        const th = k / 144 * TAU;
+        spin.rotation.y = th; spin.updateMatrixWorld(true);
+        v.copy(pc).applyMatrix4(plat.matrixWorld).sub(ctr); v.y = 0; v.normalize();
+        const d = v.dot(dir);
+        if (d > best) { best = d; bth = th; }
+      }
+      spin.rotation.y = sav; spin.updateMatrixWorld(true);
+      boxSpinTgt = bth;
+    },
     pulse(node, hex) {
       if (!boxMode) return;
       if (hex && boxPlatMat[node]) { boxPlatMat[node].color.set(hex); boxPlatMat[node].emissive.set(hex); }
