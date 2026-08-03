@@ -1824,7 +1824,7 @@ function init() {
   // obscurity, so a colour change is hidden mid-swap and REVEALED as the smoke clears.
   // Driven by the box clock in updateBox (never a timer — throttled timers pop effects late).
   let smokeGroup = null, smokeSeeds = null, smokeT0 = null, smokeCb = null;
-  const SMOKE_DUR = 1.15, SMOKE_REVEAL = 0.34;         // reveal fraction: swap while fully shrouded
+  const SMOKE_DUR = 1.7, SMOKE_REVEAL = 0.38;          // reveal fraction: swap while fully shrouded
   const BOX_IDLE_RATE = 0.14;                          // rad/s — a full, unhurried turn in ~45s
   const engageBox = () => { if (boxMode) boxEngaged = true; };
   document.addEventListener("pointerdown", (e) => { if (e.target && e.target.closest && e.target.closest(".box-dock")) engageBox(); }, true);
@@ -1835,24 +1835,57 @@ function init() {
 
   function buildSmoke() {
     if (smokeGroup) return;
-    const cv = document.createElement("canvas"); cv.width = cv.height = 128;
-    const g = cv.getContext("2d");
-    const gr = g.createRadialGradient(64, 64, 6, 64, 64, 62);
-    gr.addColorStop(0, "rgba(255,255,255,0.85)");
-    gr.addColorStop(0.45, "rgba(255,255,255,0.36)");
-    gr.addColorStop(1, "rgba(255,255,255,0)");
-    g.fillStyle = gr; g.fillRect(0, 0, 128, 128);
-    const tex = new THREE.CanvasTexture(cv);
+    // ink-in-water billow (the founder's reference): dense TURBULENT charcoal, not soft fog.
+    // Each texture variant is a cauliflower cluster — big dark lobes shaded by smaller light
+    // grey highlight lobes riding their upper edges — so overlapping sprites read as roiling
+    // volume with internal structure. Greys, not black: on this black stage, pitch-black
+    // smoke would simply vanish; the lighter turbulent detail is what carries the look.
+    const variants = [];
+    for (let v = 0; v < 3; v++) {
+      const cv = document.createElement("canvas"); cv.width = cv.height = 256;
+      const g = cv.getContext("2d");
+      const lobe = (x, y, r, rgb, a0) => {
+        const gr = g.createRadialGradient(x, y, r * 0.08, x, y, r);
+        gr.addColorStop(0, "rgba(" + rgb + "," + a0 + ")");
+        gr.addColorStop(0.6, "rgba(" + rgb + "," + (a0 * 0.45).toFixed(2) + ")");
+        gr.addColorStop(1, "rgba(" + rgb + ",0)");
+        g.fillStyle = gr; g.beginPath(); g.arc(x, y, r, 0, TAU); g.fill();
+      };
+      for (let i = 0; i < 11; i++) {                                 // dark body lobes — the ink
+        const a = Math.random() * TAU, d = 12 + Math.random() * 62;
+        lobe(128 + Math.cos(a) * d, 128 + Math.sin(a) * d, 42 + Math.random() * 52, "38,40,45", 0.55 + 0.25 * Math.random());
+      }
+      for (let i = 0; i < 6; i++) {                                  // restrained lighter turbulence — structure, not fog
+        const a = Math.random() * TAU, d = 26 + Math.random() * 70;
+        lobe(128 + Math.cos(a) * d, 120 + Math.sin(a) * d * 0.8, 12 + Math.random() * 22, "120,126,133", 0.16 + 0.12 * Math.random());
+      }
+      const tex = new THREE.CanvasTexture(cv);
+      variants.push(tex);
+    }
     smokeGroup = new THREE.Group(); smokeSeeds = [];
-    for (let i = 0; i < 16; i++) {
-      const m = new THREE.SpriteMaterial({ map: tex, color: 0xb9a98c, transparent: true, opacity: 0, depthWrite: false, rotation: Math.random() * TAU });
+    // 64 puffs seeded across the WHOLE interior — wall to wall, floor to the open top,
+    // INCLUDING in front of the beads (the piece rides at ~0.46×side radius; puffs whose
+    // centres never reach past ~0.28 left the bracelet crisply visible at the rim of one
+    // central blob). At peak the overlap is effectively opaque and the piece disappears.
+    for (let i = 0; i < 64; i++) {
+      // depthTest OFF: billboard puffs can never sit nearer the camera than the front beads
+      // (centres are capped inside the glass), so depth-tested smoke always lost to the piece
+      // and the bracelet stayed crisp through the shroud. Untested, the veil composites over
+      // the piece unconditionally; the glass edges draw later and still paint on top.
+      const m = new THREE.SpriteMaterial({ map: variants[i % 3], transparent: true, opacity: 0, depthWrite: false, depthTest: false, rotation: Math.random() * TAU });
+      m.color.setHSL(0, 0, 0.42 + 0.26 * Math.random());             // charcoal-to-grey depth variety
       const sp = new THREE.Sprite(m);
-      const r = boxSide * (0.08 + 0.27 * Math.random()), a = Math.random() * TAU;
-      sp.position.set(Math.cos(a) * r, boxFloorY + boxWallH * (0.16 + 0.52 * Math.random()), Math.sin(a) * r);
-      const sc = boxSide * (0.34 + 0.30 * Math.random());
+      const bx = (Math.random() - 0.5) * boxSide * 0.80;             // wall to wall
+      const bz = (Math.random() - 0.5) * boxSide * 0.80;
+      const by = boxFloorY + boxWallH * (0.06 + 0.80 * Math.random());
+      sp.position.set(bx, by, bz);
+      const sc = boxSide * (0.20 + 0.18 * Math.random());            // smaller puffs, many more — coverage without ballooning past the glass
       sp.scale.set(sc, sc, 1);
-      sp.renderOrder = 2;                              // over the plate + blob, under the glass
-      smokeSeeds.push({ m, sp, sc, spin: (Math.random() - 0.5) * 1.6, peak: 0.32 + 0.18 * Math.random() });
+      sp.renderOrder = 2;                                            // over the plate + blob, under the glass
+      smokeSeeds.push({ m, sp, sc, bx, by, bz,
+        spin: (Math.random() - 0.5) * 1.4,
+        ph: Math.random() * TAU, churn: boxSide * (0.015 + 0.03 * Math.random()),
+        peak: 0.75 + 0.2 * Math.random() });
       smokeGroup.add(sp);
     }
     smokeGroup.visible = false;
@@ -1864,14 +1897,19 @@ function init() {
     if (smokeCb && u >= SMOKE_REVEAL) { const cb = smokeCb; smokeCb = null; cb(); }
     if (u >= 1) { smokeT0 = null; smokeGroup.visible = false; return; }
     smokeGroup.visible = true;
-    const env = smooth(0, 0.26, u) * (1 - smooth(0.5, 0.92, u));   // quick billow, brisk clear
+    const env = smooth(0, 0.2, u) * (1 - smooth(0.6, 0.97, u));      // fast flood, HELD dense, then clears
     for (const sd of smokeSeeds) {
       sd.m.opacity = sd.peak * env;
       sd.m.rotation += sd.spin * 0.016;
-      const k = 1 + 0.32 * u;                          // gentle swell — big growth ballooned out of the open top
+      const k = 1 + 0.28 * u;
       sd.sp.scale.set(sd.sc * k, sd.sc * k, 1);
+      // slow per-puff churn — the roil that makes it ink, not fog
+      sd.sp.position.set(
+        sd.bx + Math.sin(idle * 1.1 + sd.ph) * sd.churn,
+        sd.by + Math.sin(idle * 0.8 + sd.ph * 2.1) * sd.churn * 0.7 + boxWallH * 0.06 * u,
+        sd.bz + Math.cos(idle * 0.9 + sd.ph) * sd.churn);
     }
-    smokeGroup.position.y = boxWallH * 0.08 * u;       // the whole billow drifts gently upward
+    smokeGroup.position.y = boxWallH * 0.05 * u;
   }
   function buildVitrine() {
     if (boxGroup) return;
@@ -2367,7 +2405,7 @@ function init() {
       smokeT0 = idle; smokeCb = cb || null;            // re-fire replaces a pending billow (last click wins)
       smokeGroup.position.y = 0;
       for (const sd of smokeSeeds) sd.m.rotation = Math.random() * TAU;   // a fresh billow every time
-      noiseWhoosh(0.45, 420, 240, 0.014);              // a soft breath, quieter than the fold's
+      noiseWhoosh(0.7, 360, 180, 0.02);                // a fuller, lower breath for the dense billow
     },
   };
   // "Customize bracelet" / "Design yours" / the #yourfive button all open the box (the anchor
