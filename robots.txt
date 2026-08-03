@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://makoma.io/sitemap.xml

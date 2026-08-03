@@ -1830,21 +1830,33 @@ function init() {
     boxGroup = new THREE.Group();
     const base = new THREE.Mesh(new THREE.BoxGeometry(boxSide * 1.06, boxBaseTh, boxSide * 1.06),
       new THREE.MeshStandardMaterial({ color: 0x060608, roughness: 0.7, metalness: 0.1, envMapIntensity: 0.02 }));
-    base.position.y = boxFloorY - boxBaseTh / 2;
+    // top face BURIED inside the plate (not coplanar with either plate face): the base and
+    // plate tops both sat exactly at boxFloorY, and the lit base fought through the black
+    // plate as a stepped z-fighting staircase — the "glitchy floor". 0.09×th puts the base
+    // top between the plate's bottom (0.14×th) and top, hidden by the opaque plate.
+    base.position.y = boxFloorY - boxBaseTh * 0.09 - boxBaseTh / 2;
     // BLACK, by founder decree (white → grey → black across rounds). And UNLIT black on purpose:
     // a lit plate — however dark its paint — reflects the studio key specularly at this camera's
     // near-grazing view and renders slate-grey. MeshBasic ignores lighting entirely, so the plate
-    // is simply black; a ShadowMaterial catcher lies on top of it to keep the piece's contact
-    // shadow (Basic can't receive shadows).
+    // is simply black; the piece's contact shadow is a painted blob on top (see below).
     boxPlate = new THREE.Mesh(new THREE.BoxGeometry(boxSide, boxBaseTh * 0.14, boxSide),
       new THREE.MeshBasicMaterial({ color: 0x08080a }));
     boxPlate.position.y = boxFloorY - boxBaseTh * 0.07;   // its TOP face is the floor under the piece
-    const shadowCatch = new THREE.Mesh(new THREE.PlaneGeometry(boxSide, boxSide),
-      new THREE.ShadowMaterial({ opacity: 0.38 }));
-    shadowCatch.rotation.x = -Math.PI / 2;
-    shadowCatch.position.y = boxFloorY + 0.006;
-    shadowCatch.receiveShadow = true;
-    boxGroup.add(shadowCatch);
+    // contact shadow: a soft PAINTED radial blob, not a shadow map. The real catcher rendered
+    // blocky rectangles on the plate (both lights printed onto it, and the key's 44-unit shadow
+    // frustum is far too coarse here) — glaring in the light theme. A floating piece only needs
+    // a soft pool of dark beneath it, and paint has no acne.
+    const blobCv = document.createElement("canvas"); blobCv.width = blobCv.height = 256;
+    const bg2 = blobCv.getContext("2d");
+    const grad = bg2.createRadialGradient(128, 128, 12, 128, 128, 122);
+    grad.addColorStop(0, "rgba(0,0,0,0.5)"); grad.addColorStop(0.55, "rgba(0,0,0,0.26)"); grad.addColorStop(1, "rgba(0,0,0,0)");
+    bg2.fillStyle = grad; bg2.fillRect(0, 0, 256, 256);
+    const blob = new THREE.Mesh(new THREE.PlaneGeometry(boxSide * 0.88, boxSide * 0.72),
+      new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(blobCv), transparent: true, depthWrite: false }));
+    blob.rotation.x = -Math.PI / 2;
+    blob.position.y = boxFloorY + 0.012;
+    blob.renderOrder = 1;
+    boxGroup.add(blob);
     // GLASS. Not `transmission` — that renders through the renderer's transmission buffer, which
     // under this pipeline (alpha canvas + EffectComposer) resolves WHITE and turned every pane
     // into frosted milk. Glass over a black stage is sold by absence + edges instead: panes at
@@ -1858,11 +1870,36 @@ function init() {
       // everything behind a pane slate-blue, and the vitrine spot printed a bright dot on the
       // glass (a point light on a smooth pane always does). Over a black stage the EDGES carry
       // the glass, not sheen.
-    // real, THICK edges that read as GLASS, not white piping: the cut face of a real pane
-    // glows a translucent sea-green (see the reference vitrine) — so the bars carry that green
-    // at half opacity. Still deliberately NO bottom bar (it drew a line across the plinth).
-    const edgeMat = new THREE.MeshBasicMaterial({ color: 0x9fd8bd, transparent: true, opacity: 0.55, depthWrite: false });
-    const EDGE_T = 0.085;
+    // real, THICK edges that read as GLASS: a real pane's cut face is never one flat colour —
+    // it shimmers along its length, deep teal through aqua to near-white glints, from light
+    // bouncing inside the slab (the founder's reference photo). A uniform tint read as cartoon
+    // piping, so the bars carry a streaky noise texture in those tones, tiled along each bar
+    // with a per-bar offset so no two edges repeat. Unlit (Basic) so it reads the same in both
+    // themes. Still deliberately NO bottom bar (it drew a line across the plinth).
+    const edgeTex = (() => {
+      const cv = document.createElement("canvas"); cv.width = 512; cv.height = 16;
+      const g2 = cv.getContext("2d");
+      // base is the BRIGHT aqua of the reference's cut face; streaks only MODULATE it gently
+      // (darker dips + rare near-white glints). Dark-base-with-bright-chunks read as a string
+      // of fairy-light dashes, not glass.
+      g2.fillStyle = "#5ecbaa"; g2.fillRect(0, 0, 512, 16);
+      let ex = 0;
+      while (ex < 512) {
+        const ew = 8 + Math.random() * 30, et = Math.random();
+        g2.fillStyle = et < 0.50 ? "rgba(18,92,72,"    + (0.12 + 0.22 * Math.random()).toFixed(2) + ")"
+                     : et < 0.85 ? "rgba(150,235,205," + (0.15 + 0.25 * Math.random()).toFixed(2) + ")"
+                     :             "rgba(235,255,247," + (0.30 + 0.30 * Math.random()).toFixed(2) + ")";
+        g2.fillRect(ex, 0, ew, 16);
+        ex += ew;
+      }
+      g2.globalAlpha = 0.6; g2.filter = "blur(3px)"; g2.drawImage(cv, 0, 0);
+      g2.filter = "none"; g2.globalAlpha = 1;
+      const tx = new THREE.CanvasTexture(cv);
+      tx.wrapS = THREE.RepeatWrapping; tx.colorSpace = THREE.SRGBColorSpace;
+      return tx;
+    })();
+    let edgeSeed = 0;
+    const EDGE_T = 0.095;
     // FOUR HINGED WALLS + A LID, exactly a box net. Each wall is a nested pair: an OUTER group
     // carries the base placement + yaw (so "outward" is always the hinge frame's local +z), and an
     // inner HINGE group does nothing but rotate about its local X — rotation.x = π/2 is the pane
@@ -1878,7 +1915,13 @@ function init() {
       const m = new THREE.Mesh(g, glassMat); m.position.y = h / 2; m.renderOrder = 3;
       hinge.add(m);
       const bar = (sx, sy, px, py) => {
-        const b = new THREE.Mesh(new THREE.BoxGeometry(sx, sy, EDGE_T), edgeMat);
+        const len = Math.max(sx, sy), th = Math.min(sx, sy);
+        const tex = edgeTex.clone(); tex.needsUpdate = true;
+        tex.repeat.set(len * 0.32, 1);                 // long, slow streaks — internal reflections, not dashes
+        tex.offset.x = (edgeSeed++) * 0.37;            // no two edges shimmer alike
+        const b = new THREE.Mesh(new THREE.BoxGeometry(len, th, EDGE_T),
+          new THREE.MeshBasicMaterial({ map: tex, transparent: true, opacity: 0.9, depthWrite: false }));
+        if (sy > sx) b.rotation.z = Math.PI / 2;       // geometry is long-in-X (so streaks flow along it); stand uprights up here
         b.position.set(px, py, 0); b.renderOrder = 4; hinge.add(b);
       };
       bar(EDGE_T, h + EDGE_T, -w / 2, h / 2);        // left upright
@@ -1906,10 +1949,8 @@ function init() {
     const spot = new THREE.SpotLight(0xffe9c4, 1.7, 0, 0.48, 0.7, 1.1);   // warm, restrained, and TIGHT — the cone hugs the floating piece so its pool doesn't paint the black plate grey
     spot.position.set(boxSide * 0.35, boxFloorY + boxWallH * 2.1, boxSide * 0.4);
     spot.target.position.set(0, boxFloorY, 0);
-    spot.castShadow = true; spot.shadow.mapSize.set(2048, 2048); spot.shadow.bias = -0.002; spot.shadow.normalBias = 0.15; spot.shadow.radius = 6;
-    // bias tuned against the ShadowMaterial catcher: a pure-shadow surface shows acne the old lit
-    // plate hid, and the small bias printed sawtooth bands across the plinth
-    spot.shadow.camera.near = 5; spot.shadow.camera.far = 40;   // the REAL stair-step fix: the default far plane (500) on a ~30-unit scene left the shadow depth too coarse to resolve
+    // no shadow map: the contact shadow is PAINTED (the blob above). Every bias/near-far tuning
+    // round still left blocky bands on the plate, so the map is off for good.
     boxLight = new THREE.Group(); boxLight.add(spot, spot.target);
     boxLight.visible = false;
     scene.add(boxLight);
