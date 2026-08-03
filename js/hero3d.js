@@ -1827,8 +1827,18 @@ function init() {
   const SMOKE_DUR = 3.2, SMOKE_REVEAL = 0.52;          // reveal fraction: swap once the chamber has filled
   const BOX_IDLE_RATE = 0.14;                          // rad/s — a full, unhurried turn in ~45s
   const engageBox = () => { if (boxMode) boxEngaged = true; };
-  document.addEventListener("pointerdown", (e) => { if (e.target && e.target.closest && e.target.closest(".box-dock")) engageBox(); }, true);
-  document.addEventListener("focusin", (e) => { if (e.target && e.target.closest && e.target.closest(".box-dock")) engageBox(); });
+  // colour buttons (.cfg-shell covers shells AND cords) deliberately do NOT engage: choosing
+  // colours is part of the show — the case keeps revolving and the smoke reveal plays on the
+  // turning turntable (the smoke group is a boxGroup child, so it rides the rotation).
+  // The turntable stops only for the real work: Next, the roster, cuts, inputs, bead taps.
+  const dockTouch = (e) => {
+    if (!e.target || !e.target.closest) return;
+    if (!e.target.closest(".box-dock")) return;
+    if (e.target.closest(".cfg-shell")) return;
+    engageBox();
+  };
+  document.addEventListener("pointerdown", dockTouch, true);
+  document.addEventListener("focusin", dockTouch);
   window.addEventListener("makoma:pick", engageBox);
   let groundMesh = null, designApplied = false;
   const boxPlatMat = {};                    // node -> this mode's own platform material (colourable per person)
