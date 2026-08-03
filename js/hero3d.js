@@ -1824,7 +1824,7 @@ function init() {
   // obscurity, so a colour change is hidden mid-swap and REVEALED as the smoke clears.
   // Driven by the box clock in updateBox (never a timer — throttled timers pop effects late).
   let smokeGroup = null, smokeSeeds = null, smokeT0 = null, smokeCb = null;
-  const SMOKE_DUR = 1.8, SMOKE_REVEAL = 0.4;           // reveal fraction: swap while fully shrouded
+  const SMOKE_DUR = 3.2, SMOKE_REVEAL = 0.52;          // reveal fraction: swap once the chamber has filled
   const BOX_IDLE_RATE = 0.14;                          // rad/s — a full, unhurried turn in ~45s
   const engageBox = () => { if (boxMode) boxEngaged = true; };
   document.addEventListener("pointerdown", (e) => { if (e.target && e.target.closest && e.target.closest(".box-dock")) engageBox(); }, true);
@@ -1888,7 +1888,11 @@ function init() {
       sp.scale.set(sc * 0.25, sc * 0.25, 1);
       sp.renderOrder = 2;                                            // over the plate + blob, under the glass
       smokeSeeds.push({ m, sp, sc, sx, sy, sz, tx, ty, tz,
-        delay: 0.14 * Math.random(),                                 // a gushing stagger, not one synchronized puff
+        // launches STRATIFIED across most of the effect — the corners keep injecting fresh
+        // smoke the whole time (a fog machine steadily filling the chamber), instead of one
+        // synchronized burst that instantly conglomerates. i%4 interleaves the corners, so
+        // each corner emits a continuous evenly-spaced stream.
+        delay: (i / 72) * 0.55 + 0.03 * Math.random(),
         spin: (Math.random() - 0.5) * 1.4,
         ph: Math.random() * TAU, churn: boxSide * (0.015 + 0.03 * Math.random()),
         peak: 0.85 + 0.15 * Math.random() });
@@ -1903,18 +1907,21 @@ function init() {
     if (smokeCb && u >= SMOKE_REVEAL) { const cb = smokeCb; smokeCb = null; cb(); }
     if (u >= 1) { smokeT0 = null; smokeGroup.visible = false; return; }
     smokeGroup.visible = true;
-    const env = smooth(0, 0.16, u) * (1 - smooth(0.62, 0.98, u));    // hard flood, HELD dense, then clears
+    // no global density gate on the way IN — each puff carries its own fade-in, so density
+    // ACCUMULATES steadily as the stream keeps arriving. Only the clear is global.
+    const clearEnv = 1 - smooth(0.74, 0.99, u);
     for (const sd of smokeSeeds) {
-      const uj = clamp((u - sd.delay) / (1 - sd.delay), 0, 1);       // this puff's own clock (staggered launch)
-      const fly = 1 - Math.pow(1 - Math.min(1, uj / 0.42), 3);       // SHOT out of the corner: fast, then decelerating
-      sd.m.opacity = sd.peak * env * smooth(0, 0.10, uj);
+      const tj = u - sd.delay;                                       // time since THIS puff left its corner
+      if (tj <= 0) { sd.m.opacity = 0; continue; }
+      const fly = 1 - Math.pow(1 - Math.min(1, tj / 0.5), 2);        // a slow steady drift across the case, not a shot
+      sd.m.opacity = sd.peak * smooth(0, 0.05, tj) * clearEnv;
       sd.m.rotation += sd.spin * 0.016;
-      const k = 0.25 + 0.75 * fly + 0.22 * u;                        // grows as it flies, keeps swelling while it hovers
+      const k = 0.3 + 0.7 * fly + 0.1 * u;                           // grows as it drifts, gently keeps swelling
       sd.sp.scale.set(sd.sc * k, sd.sc * k, 1);
-      // launch → cross the case → hover in a slow churn
+      // corner → across the case → hover in a slow churn
       sd.sp.position.set(
         sd.sx + (sd.tx - sd.sx) * fly + Math.sin(idle * 1.1 + sd.ph) * sd.churn * fly,
-        sd.sy + (sd.ty - sd.sy) * fly + Math.sin(idle * 0.8 + sd.ph * 2.1) * sd.churn * 0.7 * fly + boxWallH * 0.05 * u,
+        sd.sy + (sd.ty - sd.sy) * fly + Math.sin(idle * 0.8 + sd.ph * 2.1) * sd.churn * 0.7 * fly + boxWallH * 0.04 * u,
         sd.sz + (sd.tz - sd.sz) * fly + Math.cos(idle * 0.9 + sd.ph) * sd.churn * fly);
     }
   }
@@ -2420,7 +2427,7 @@ function init() {
         sd.m.rotation = Math.random() * TAU;           // a fresh billow every time
         sd.m.color.setHSL(hsl.h, S, clamp(L + (Math.random() - 0.4) * 0.2, 0.3, 0.85));
       }
-      noiseWhoosh(0.6, 780, 210, 0.022);               // the pressurized psshh of four corner jets
+      noiseWhoosh(1.8, 640, 260, 0.014);               // a long steady hiss — the sound of continuous injection
     },
   };
   // "Customize bracelet" / "Design yours" / the #yourfive button all open the box (the anchor
