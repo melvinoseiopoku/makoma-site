@@ -77,9 +77,9 @@
   function boxFocus(node) { var b = box(); if (b) b.focus(node); }
   // colour changes play through the box's smoke reveal when it's open (the swap lands while
   // the piece is shrouded); anywhere else they just apply
-  function smokeSwap(apply) {
+  function smokeSwap(apply, hex) {
     var b = box();
-    if (b && b.isOpen && b.smoke) b.smoke(apply); else apply();
+    if (b && b.isOpen && b.smoke) b.smoke(apply, hex); else apply();
   }
   function boxPulse(node, hex) { var b = box(); if (b) b.pulse(node, hex); }
 
@@ -162,7 +162,7 @@
       b.setAttribute("role", "radio");
       b.setAttribute("aria-label", c.name + " cord");
       b.innerHTML = '<i style="background:' + c.hex + '"></i>';
-      b.addEventListener("click", function () { smokeSwap(function () { D.setCord(c.id); }); });
+      b.addEventListener("click", function () { smokeSwap(function () { D.setCord(c.id); }, c.hex); });
       cordRow.appendChild(b);
     });
   }
@@ -177,7 +177,7 @@
       b.setAttribute("role", "radio");
       b.setAttribute("aria-label", s.name);
       b.innerHTML = '<i style="background:' + s.hex + '"></i>';
-      b.addEventListener("click", function () { smokeSwap(function () { D.setShell(s.id); }); });
+      b.addEventListener("click", function () { smokeSwap(function () { D.setShell(s.id); }, s.hex); });
       shellRow.appendChild(b);
     });
   }

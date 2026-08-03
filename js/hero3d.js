@@ -1824,7 +1824,7 @@ function init() {
   // obscurity, so a colour change is hidden mid-swap and REVEALED as the smoke clears.
   // Driven by the box clock in updateBox (never a timer — throttled timers pop effects late).
   let smokeGroup = null, smokeSeeds = null, smokeT0 = null, smokeCb = null;
-  const SMOKE_DUR = 1.7, SMOKE_REVEAL = 0.38;          // reveal fraction: swap while fully shrouded
+  const SMOKE_DUR = 1.8, SMOKE_REVEAL = 0.4;           // reveal fraction: swap while fully shrouded
   const BOX_IDLE_RATE = 0.14;                          // rad/s — a full, unhurried turn in ~45s
   const engageBox = () => { if (boxMode) boxEngaged = true; };
   document.addEventListener("pointerdown", (e) => { if (e.target && e.target.closest && e.target.closest(".box-dock")) engageBox(); }, true);
@@ -1863,29 +1863,35 @@ function init() {
       variants.push(tex);
     }
     smokeGroup = new THREE.Group(); smokeSeeds = [];
-    // 64 puffs seeded across the WHOLE interior — wall to wall, floor to the open top,
-    // INCLUDING in front of the beads (the piece rides at ~0.46×side radius; puffs whose
-    // centres never reach past ~0.28 left the bracelet crisply visible at the rim of one
-    // central blob). At peak the overlap is effectively opaque and the piece disappears.
-    for (let i = 0; i < 64; i++) {
+    // 72 puffs fired as JETS from the four bottom corners of the glass: each launches at its
+    // corner and shoots diagonally ACROSS the case (toward the opposite side) while rising,
+    // decelerating into a hovering churn — four crossing gushes that flood the whole interior.
+    // At peak the overlap is effectively opaque and the piece disappears.
+    const CORNERS = [[1, 1], [1, -1], [-1, 1], [-1, -1]];
+    for (let i = 0; i < 72; i++) {
       // depthTest OFF: billboard puffs can never sit nearer the camera than the front beads
       // (centres are capped inside the glass), so depth-tested smoke always lost to the piece
       // and the bracelet stayed crisp through the shroud. Untested, the veil composites over
       // the piece unconditionally; the glass edges draw later and still paint on top.
       const m = new THREE.SpriteMaterial({ map: variants[i % 3], transparent: true, opacity: 0, depthWrite: false, depthTest: false, rotation: Math.random() * TAU });
-      m.color.setHSL(0, 0, 0.42 + 0.26 * Math.random());             // charcoal-to-grey depth variety
+      m.color.setHSL(0, 0, 0.42 + 0.26 * Math.random());             // repainted per fire — smoke() tints to the chosen colour
       const sp = new THREE.Sprite(m);
-      const bx = (Math.random() - 0.5) * boxSide * 0.80;             // wall to wall
-      const bz = (Math.random() - 0.5) * boxSide * 0.80;
-      const by = boxFloorY + boxWallH * (0.06 + 0.80 * Math.random());
-      sp.position.set(bx, by, bz);
-      const sc = boxSide * (0.20 + 0.18 * Math.random());            // smaller puffs, many more — coverage without ballooning past the glass
-      sp.scale.set(sc, sc, 1);
+      const c = CORNERS[i % 4];
+      const sx = c[0] * boxSide * 0.44, sz = c[1] * boxSide * 0.44;  // launch: the corner, at the floor
+      const sy = boxFloorY + boxWallH * (0.04 + 0.05 * Math.random());
+      // target: across the case toward the opposite side, risen — the four gushes cross mid-air
+      const tx = -c[0] * boxSide * (0.02 + 0.38 * Math.random()) + (Math.random() - 0.5) * boxSide * 0.22;
+      const tz = -c[1] * boxSide * (0.02 + 0.38 * Math.random()) + (Math.random() - 0.5) * boxSide * 0.22;
+      const ty = boxFloorY + boxWallH * (0.18 + 0.68 * Math.random());
+      sp.position.set(sx, sy, sz);
+      const sc = boxSide * (0.20 + 0.18 * Math.random());
+      sp.scale.set(sc * 0.25, sc * 0.25, 1);
       sp.renderOrder = 2;                                            // over the plate + blob, under the glass
-      smokeSeeds.push({ m, sp, sc, bx, by, bz,
+      smokeSeeds.push({ m, sp, sc, sx, sy, sz, tx, ty, tz,
+        delay: 0.14 * Math.random(),                                 // a gushing stagger, not one synchronized puff
         spin: (Math.random() - 0.5) * 1.4,
         ph: Math.random() * TAU, churn: boxSide * (0.015 + 0.03 * Math.random()),
-        peak: 0.75 + 0.2 * Math.random() });
+        peak: 0.85 + 0.15 * Math.random() });
       smokeGroup.add(sp);
     }
     smokeGroup.visible = false;
@@ -1897,19 +1903,20 @@ function init() {
     if (smokeCb && u >= SMOKE_REVEAL) { const cb = smokeCb; smokeCb = null; cb(); }
     if (u >= 1) { smokeT0 = null; smokeGroup.visible = false; return; }
     smokeGroup.visible = true;
-    const env = smooth(0, 0.2, u) * (1 - smooth(0.6, 0.97, u));      // fast flood, HELD dense, then clears
+    const env = smooth(0, 0.16, u) * (1 - smooth(0.62, 0.98, u));    // hard flood, HELD dense, then clears
     for (const sd of smokeSeeds) {
-      sd.m.opacity = sd.peak * env;
+      const uj = clamp((u - sd.delay) / (1 - sd.delay), 0, 1);       // this puff's own clock (staggered launch)
+      const fly = 1 - Math.pow(1 - Math.min(1, uj / 0.42), 3);       // SHOT out of the corner: fast, then decelerating
+      sd.m.opacity = sd.peak * env * smooth(0, 0.10, uj);
       sd.m.rotation += sd.spin * 0.016;
-      const k = 1 + 0.28 * u;
+      const k = 0.25 + 0.75 * fly + 0.22 * u;                        // grows as it flies, keeps swelling while it hovers
       sd.sp.scale.set(sd.sc * k, sd.sc * k, 1);
-      // slow per-puff churn — the roil that makes it ink, not fog
+      // launch → cross the case → hover in a slow churn
       sd.sp.position.set(
-        sd.bx + Math.sin(idle * 1.1 + sd.ph) * sd.churn,
-        sd.by + Math.sin(idle * 0.8 + sd.ph * 2.1) * sd.churn * 0.7 + boxWallH * 0.06 * u,
-        sd.bz + Math.cos(idle * 0.9 + sd.ph) * sd.churn);
+        sd.sx + (sd.tx - sd.sx) * fly + Math.sin(idle * 1.1 + sd.ph) * sd.churn * fly,
+        sd.sy + (sd.ty - sd.sy) * fly + Math.sin(idle * 0.8 + sd.ph * 2.1) * sd.churn * 0.7 * fly + boxWallH * 0.05 * u,
+        sd.sz + (sd.tz - sd.sz) * fly + Math.cos(idle * 0.9 + sd.ph) * sd.churn * fly);
     }
-    smokeGroup.position.y = boxWallH * 0.05 * u;
   }
   function buildVitrine() {
     if (boxGroup) return;
@@ -2397,15 +2404,23 @@ function init() {
       if (hex && boxPlatMat[node]) { boxPlatMat[node].color.set(hex); boxPlatMat[node].emissive.set(hex); }
       boxFlare = { node, t0: idle };
     },
-    smoke(cb) {
-      // the magical manufacturing box: shroud the piece, let cb swap the colour at peak,
-      // reveal as it clears. Anywhere the effect can't play, the change just applies.
+    smoke(cb, hex) {
+      // the magical manufacturing box: corner jets flood the case in the CHOSEN colour, cb
+      // swaps the piece at peak, the clearing smoke reveals it. Anywhere the effect can't
+      // play, the change just applies.
       if (!boxMode || reduce || section.classList.contains("no3d")) { if (cb) cb(); return; }
       buildSmoke();
       smokeT0 = idle; smokeCb = cb || null;            // re-fire replaces a pending billow (last click wins)
-      smokeGroup.position.y = 0;
-      for (const sd of smokeSeeds) sd.m.rotation = Math.random() * TAU;   // a fresh billow every time
-      noiseWhoosh(0.7, 360, 180, 0.02);                // a fuller, lower breath for the dense billow
+      // tint the billow to the colour being revealed — lifted into a smoke-visible lightness
+      // band (a pitch-dark shell would otherwise make invisible smoke on this black stage)
+      const base = new THREE.Color(hex || 0x9a9a9e), hsl = { h: 0, s: 0, l: 0 };
+      base.getHSL(hsl);
+      const L = clamp(hsl.l, 0.42, 0.72), S = Math.min(1, hsl.s * 1.25);
+      for (const sd of smokeSeeds) {
+        sd.m.rotation = Math.random() * TAU;           // a fresh billow every time
+        sd.m.color.setHSL(hsl.h, S, clamp(L + (Math.random() - 0.4) * 0.2, 0.3, 0.85));
+      }
+      noiseWhoosh(0.6, 780, 210, 0.022);               // the pressurized psshh of four corner jets
     },
   };
   // "Customize bracelet" / "Design yours" / the #yourfive button all open the box (the anchor
