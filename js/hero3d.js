@@ -1319,9 +1319,6 @@ function init() {
   // ---- adjustable macramé closure: the real Shamballa sliding clasp — two cord tails leaving the BACK of the hub,
   //      each cinched by a wrapped sennit knot, then a smoky-quartz bead, ending in a small knot bead. Built INTO
   //      `model` (children) so it clones into the gather cluster and rides every spin/settle like the rest. ----
-  // smoky-quartz accent bead: a SUBTLE dark-amber frosted bead. Kept dim (barely any emissive) + small so it reads as
-  // a quiet detail on the tail, not a glowing orb the bloom pass turns into a distracting halo.
-  const matQuartz = new THREE.MeshStandardMaterial({ color: 0x7c5f34, roughness: 0.44, metalness: 0.05, emissive: 0x140d04, emissiveIntensity: 0.18, envMapIntensity: 0.75 });
   let adjusters = null;
   function buildAdjusters() {
     if (adjusters) { model.remove(adjusters); adjusters = null; }
@@ -1357,8 +1354,10 @@ function init() {
       const pe = V(sign * 1.95, 1.72, z0);             // end knot bead at the tip
       const curve = new THREE.CatmullRomCurve3([embed, mouth, p1, pq, pe], false, "centripetal");
       adjusters.add(rope(curve, 100, 0.062, 0.055, 4));
-      const q = new THREE.Mesh(new THREE.SphereGeometry(0.22, 20, 16), matQuartz); q.position.copy(pq); q.castShadow = true; adjusters.add(q);
-      const e = new THREE.Mesh(new THREE.SphereGeometry(0.13, 14, 10), matBlack); e.position.copy(pe); e.castShadow = e.receiveShadow = true; adjusters.add(e);
+      // slider bead + end knot in the CORD material — any accent colour here (the old amber
+      // "smoky quartz" + black knot) read as a glitch at the tail tip against coloured shells
+      const q = new THREE.Mesh(new THREE.SphereGeometry(0.22, 20, 16), matCord); q.position.copy(pq); q.castShadow = true; adjusters.add(q);
+      const e = new THREE.Mesh(new THREE.SphereGeometry(0.13, 14, 10), matCord); e.position.copy(pe); e.castShadow = e.receiveShadow = true; adjusters.add(e);
     }
     adjusters.traverse((o) => { if (o.isMesh) o.userData.adjuster = true; });   // tagged so the clasp tails can be treated as part of the hub
     model.add(adjusters);
@@ -1814,6 +1813,18 @@ function init() {
   let boxFolds = [], boxSpread = 1;                          // 1 = net fully open (the camera gives it room)
   let boxSide = 0, boxWallH = 0, boxBaseTh = 0, boxFloorY = 0, boxCY = 0;
   let boxSpin = 0, boxSpinTgt = null, boxSounded = false, boxSnapped = false, boxCamFrom = null, boxFlare = null;
+  // idle turntable: once the glass closes, the WHOLE case (vitrine + piece, locked together)
+  // revolves slowly — a display on a turntable — until the visitor first touches the
+  // customization (dock press/focus, or a bead tap), then it settles square and stays put.
+  // boxIdleSpin is kept wrapped to (-π/4, π/4]: the square case is 4-fold symmetric, so each
+  // wrap shifts π/2 of case angle into boxSpin (piece total unchanged, box jump invisible) —
+  // the settle after engagement is therefore never more than a 45° ease back to 0.
+  let boxIdleSpin = 0, boxEngaged = false;
+  const BOX_IDLE_RATE = 0.14;                          // rad/s — a full, unhurried turn in ~45s
+  const engageBox = () => { if (boxMode) boxEngaged = true; };
+  document.addEventListener("pointerdown", (e) => { if (e.target && e.target.closest && e.target.closest(".box-dock")) engageBox(); }, true);
+  document.addEventListener("focusin", (e) => { if (e.target && e.target.closest && e.target.closest(".box-dock")) engageBox(); });
+  window.addEventListener("makoma:pick", engageBox);
   let groundMesh = null, designApplied = false;
   const boxPlatMat = {};                    // node -> this mode's own platform material (colourable per person)
 
@@ -1821,8 +1832,8 @@ function init() {
     if (boxGroup) return;
     orient.updateMatrixWorld(true);
     const bb = new THREE.Box3().setFromObject(orient);
-    boxSide = Math.max(bb.max.x - bb.min.x, bb.max.z - bb.min.z) * 1.14;
-    boxWallH = boxSide * 0.62;
+    boxSide = Math.max(bb.max.x - bb.min.x, bb.max.z - bb.min.z) * 1.08;   // snug: the piece owns the case
+    boxWallH = boxSide * 0.56;
     boxBaseTh = boxSide * 0.15;
     // the piece FLOATS, riding LOW in the glass — just clear of the plate, most of the air above
     boxFloorY = bb.min.y - boxWallH * 0.16;
@@ -1882,13 +1893,13 @@ function init() {
       // base is the BRIGHT aqua of the reference's cut face; streaks only MODULATE it gently
       // (darker dips + rare near-white glints). Dark-base-with-bright-chunks read as a string
       // of fairy-light dashes, not glass.
-      g2.fillStyle = "#5ecbaa"; g2.fillRect(0, 0, 512, 16);
+      g2.fillStyle = "#3f9478"; g2.fillRect(0, 0, 512, 16);
       let ex = 0;
       while (ex < 512) {
         const ew = 8 + Math.random() * 30, et = Math.random();
-        g2.fillStyle = et < 0.50 ? "rgba(18,92,72,"    + (0.12 + 0.22 * Math.random()).toFixed(2) + ")"
-                     : et < 0.85 ? "rgba(150,235,205," + (0.15 + 0.25 * Math.random()).toFixed(2) + ")"
-                     :             "rgba(235,255,247," + (0.30 + 0.30 * Math.random()).toFixed(2) + ")";
+        g2.fillStyle = et < 0.50 ? "rgba(14,70,55,"    + (0.12 + 0.22 * Math.random()).toFixed(2) + ")"
+                     : et < 0.85 ? "rgba(120,200,172," + (0.12 + 0.20 * Math.random()).toFixed(2) + ")"
+                     :             "rgba(220,250,240," + (0.20 + 0.22 * Math.random()).toFixed(2) + ")";
         g2.fillRect(ex, 0, ew, 16);
         ex += ew;
       }
@@ -1920,7 +1931,7 @@ function init() {
         tex.repeat.set(len * 0.32, 1);                 // long, slow streaks — internal reflections, not dashes
         tex.offset.x = (edgeSeed++) * 0.37;            // no two edges shimmer alike
         const b = new THREE.Mesh(new THREE.BoxGeometry(len, th, EDGE_T),
-          new THREE.MeshBasicMaterial({ map: tex, transparent: true, opacity: 0.9, depthWrite: false }));
+          new THREE.MeshBasicMaterial({ map: tex, transparent: true, opacity: 0.55, depthWrite: false }));
         if (sy > sx) b.rotation.z = Math.PI / 2;       // geometry is long-in-X (so streaks flow along it); stand uprights up here
         b.position.set(px, py, 0); b.renderOrder = 4; hinge.add(b);
       };
@@ -2114,6 +2125,7 @@ function init() {
     spin.visible = true;
     ensureCutEngine();                                 // warm the cut stack the moment the designer opens
     boxMode = true; boxT0 = idle; boxSounded = false; boxSnapped = false; boxFlare = null; boxSpread = 1; boxPanelShown = false;
+    boxIdleSpin = 0; boxEngaged = false; boxGroup.rotation.y = 0;   // fresh turntable on every entry
     applyDesign();                                     // AFTER boxMode flips: unchosen beads present blank in here
     boxSpin = spin.rotation.y; boxSpinTgt = null;
     boxGroup.visible = true; boxLight.visible = true;
@@ -2197,7 +2209,9 @@ function init() {
       boxSpread = e;
       boxGroup.position.y = -3.0 * modelR * smooth(0.5, 1, u);                // the base sinks away late
       orient.position.y = (1 - e) * 0.06 * modelR;                            // the float eases out
-      spin.rotation.y = boxSpin;
+      boxIdleSpin *= 1 - e;                                                   // the turntable unwinds with the fold
+      boxGroup.rotation.y = boxIdleSpin;
+      spin.rotation.y = boxSpin + boxIdleSpin;
       boxCamera(1 - e);                                                       // the hero framing returns
       if (u >= 1) finalizeClose();
       return;
@@ -2225,15 +2239,23 @@ function init() {
       const cust = $("#customize");
       if (cust) { cust.classList.add("is-open"); window.dispatchEvent(new CustomEvent("makoma:boxopen")); }
     }
-    // NO display turn — the piece holds still in the glass. It rotates only when a person is
-    // selected, easing their bead round to the front to be worked on.
     const dt = 0.016;
+    // THE TURNTABLE: case + piece revolve as one once the glass has closed, until first touch.
+    if (!boxEngaged && !reduce && t >= BOX_PANEL_AT) {
+      boxIdleSpin += BOX_IDLE_RATE * dt;
+      if (boxIdleSpin > Math.PI / 4) { boxIdleSpin -= Math.PI / 2; boxSpin += Math.PI / 2; }   // 4-fold wrap: box jump invisible, piece total unchanged
+    } else if (boxIdleSpin !== 0) {
+      boxIdleSpin *= Math.max(0, 1 - 2.5 * dt);                    // touched: settle square
+      if (Math.abs(boxIdleSpin) < 0.002) boxIdleSpin = 0;
+    }
+    boxGroup.rotation.y = boxIdleSpin;
+    // the piece itself turns only when a person is selected, easing their bead to the front
     if (boxSpinTgt != null) {
-      const d = angDelta(boxSpin, boxSpinTgt);
+      const d = angDelta(boxSpin + boxIdleSpin, boxSpinTgt);       // target is a WORLD angle: account for the turntable
       boxSpin += d * Math.min(1, 5 * dt);
       if (Math.abs(d) < 0.012) boxSpinTgt = null;
     }
-    spin.rotation.y = boxSpin;
+    spin.rotation.y = boxSpin + boxIdleSpin;
     // lights: each person's platform breathes; a pulse flares the tapped bead briefly
     for (const node in boxPlatMat) {
       const m = boxPlatMat[node], base = m.userData.base || 0;
