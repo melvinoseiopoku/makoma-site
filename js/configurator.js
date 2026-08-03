@@ -75,6 +75,12 @@
   /* the 3-D stage, when it's alive (hero3d.js box mode); every call is optional */
   function box() { return (window.__hero && window.__hero.box) || null; }
   function boxFocus(node) { var b = box(); if (b) b.focus(node); }
+  // colour changes play through the box's smoke reveal when it's open (the swap lands while
+  // the piece is shrouded); anywhere else they just apply
+  function smokeSwap(apply) {
+    var b = box();
+    if (b && b.isOpen && b.smoke) b.smoke(apply); else apply();
+  }
   function boxPulse(node, hex) { var b = box(); if (b) b.pulse(node, hex); }
 
   /* ---------- glyph rendering (from window.ADINKRA_PATHS, already loaded) ---------- */
@@ -156,7 +162,7 @@
       b.setAttribute("role", "radio");
       b.setAttribute("aria-label", c.name + " cord");
       b.innerHTML = '<i style="background:' + c.hex + '"></i>';
-      b.addEventListener("click", function () { D.setCord(c.id); });
+      b.addEventListener("click", function () { smokeSwap(function () { D.setCord(c.id); }); });
       cordRow.appendChild(b);
     });
   }
@@ -171,7 +177,7 @@
       b.setAttribute("role", "radio");
       b.setAttribute("aria-label", s.name);
       b.innerHTML = '<i style="background:' + s.hex + '"></i>';
-      b.addEventListener("click", function () { D.setShell(s.id); });
+      b.addEventListener("click", function () { smokeSwap(function () { D.setShell(s.id); }); });
       shellRow.appendChild(b);
     });
   }

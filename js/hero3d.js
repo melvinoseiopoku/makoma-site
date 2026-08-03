@@ -1820,6 +1820,11 @@ function init() {
   // wrap shifts π/2 of case angle into boxSpin (piece total unchanged, box jump invisible) —
   // the settle after engagement is therefore never more than a 45° ease back to 0.
   let boxIdleSpin = 0, boxEngaged = false;
+  // the smoke reveal: box.smoke(cb) billows warm smoke inside the case and runs cb at peak
+  // obscurity, so a colour change is hidden mid-swap and REVEALED as the smoke clears.
+  // Driven by the box clock in updateBox (never a timer — throttled timers pop effects late).
+  let smokeGroup = null, smokeSeeds = null, smokeT0 = null, smokeCb = null;
+  const SMOKE_DUR = 1.15, SMOKE_REVEAL = 0.34;         // reveal fraction: swap while fully shrouded
   const BOX_IDLE_RATE = 0.14;                          // rad/s — a full, unhurried turn in ~45s
   const engageBox = () => { if (boxMode) boxEngaged = true; };
   document.addEventListener("pointerdown", (e) => { if (e.target && e.target.closest && e.target.closest(".box-dock")) engageBox(); }, true);
@@ -1828,6 +1833,46 @@ function init() {
   let groundMesh = null, designApplied = false;
   const boxPlatMat = {};                    // node -> this mode's own platform material (colourable per person)
 
+  function buildSmoke() {
+    if (smokeGroup) return;
+    const cv = document.createElement("canvas"); cv.width = cv.height = 128;
+    const g = cv.getContext("2d");
+    const gr = g.createRadialGradient(64, 64, 6, 64, 64, 62);
+    gr.addColorStop(0, "rgba(255,255,255,0.85)");
+    gr.addColorStop(0.45, "rgba(255,255,255,0.36)");
+    gr.addColorStop(1, "rgba(255,255,255,0)");
+    g.fillStyle = gr; g.fillRect(0, 0, 128, 128);
+    const tex = new THREE.CanvasTexture(cv);
+    smokeGroup = new THREE.Group(); smokeSeeds = [];
+    for (let i = 0; i < 16; i++) {
+      const m = new THREE.SpriteMaterial({ map: tex, color: 0xb9a98c, transparent: true, opacity: 0, depthWrite: false, rotation: Math.random() * TAU });
+      const sp = new THREE.Sprite(m);
+      const r = boxSide * (0.08 + 0.27 * Math.random()), a = Math.random() * TAU;
+      sp.position.set(Math.cos(a) * r, boxFloorY + boxWallH * (0.16 + 0.52 * Math.random()), Math.sin(a) * r);
+      const sc = boxSide * (0.34 + 0.30 * Math.random());
+      sp.scale.set(sc, sc, 1);
+      sp.renderOrder = 2;                              // over the plate + blob, under the glass
+      smokeSeeds.push({ m, sp, sc, spin: (Math.random() - 0.5) * 1.6, peak: 0.32 + 0.18 * Math.random() });
+      smokeGroup.add(sp);
+    }
+    smokeGroup.visible = false;
+    boxGroup.add(smokeGroup);                          // inside the case — it rides the turntable
+  }
+  function updateSmoke() {
+    if (smokeT0 == null || !smokeGroup) return;
+    const u = (idle - smokeT0) / SMOKE_DUR;
+    if (smokeCb && u >= SMOKE_REVEAL) { const cb = smokeCb; smokeCb = null; cb(); }
+    if (u >= 1) { smokeT0 = null; smokeGroup.visible = false; return; }
+    smokeGroup.visible = true;
+    const env = smooth(0, 0.26, u) * (1 - smooth(0.5, 0.92, u));   // quick billow, brisk clear
+    for (const sd of smokeSeeds) {
+      sd.m.opacity = sd.peak * env;
+      sd.m.rotation += sd.spin * 0.016;
+      const k = 1 + 0.32 * u;                          // gentle swell — big growth ballooned out of the open top
+      sd.sp.scale.set(sd.sc * k, sd.sc * k, 1);
+    }
+    smokeGroup.position.y = boxWallH * 0.08 * u;       // the whole billow drifts gently upward
+  }
   function buildVitrine() {
     if (boxGroup) return;
     orient.updateMatrixWorld(true);
@@ -1862,7 +1907,7 @@ function init() {
     const grad = bg2.createRadialGradient(128, 128, 12, 128, 128, 122);
     grad.addColorStop(0, "rgba(0,0,0,0.5)"); grad.addColorStop(0.55, "rgba(0,0,0,0.26)"); grad.addColorStop(1, "rgba(0,0,0,0)");
     bg2.fillStyle = grad; bg2.fillRect(0, 0, 256, 256);
-    const blob = new THREE.Mesh(new THREE.PlaneGeometry(boxSide * 0.88, boxSide * 0.72),
+    const blob = new THREE.Mesh(new THREE.PlaneGeometry(boxSide * 0.82, boxSide * 0.82),   // SQUARE on purpose: an ellipse would flip its long axis on the turntable's invisible 90° wrap
       new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(blobCv), transparent: true, depthWrite: false }));
     blob.rotation.x = -Math.PI / 2;
     blob.position.y = boxFloorY + 0.012;
@@ -1921,6 +1966,9 @@ function init() {
     // after that wall has stood up.
     const hw = boxSide / 2, hy = boxFloorY + 0.02;             // hinge line a hair above the plate (z-fighting)
     const foldPane = (w, h) => {
+      edgeSeed = 0;   // per-PANE seed: all four walls carry identical bar textures, so the
+                      // turntable's invisible 90° wrap (see updateBox) stays truly invisible —
+                      // globally unique offsets made the wrap swap every bar's pattern in one frame
       const hinge = new THREE.Group();
       const g = new THREE.PlaneGeometry(w, h);
       const m = new THREE.Mesh(g, glassMat); m.position.y = h / 2; m.renderOrder = 3;
@@ -2171,7 +2219,10 @@ function init() {
     // fit the vitrine: its own half-extents, with room for the drop above it
     // while the net lies open it is far wider than the box — widen the fit with boxSpread and
     // let it tighten as the walls stand up
-    const hHalf = (boxWallH + boxBaseTh) * 0.64, wHalf = boxSide * 0.78 * (1 + 0.7 * boxSpread);
+    // 0.82, not 0.78: the turntable holds the case at up to 45° where its projected width is
+    // the DIAGONAL (~0.75×side half-width for the 1.06× base) — 0.78 clipped the near corner
+    // off-frame at the rotation extremes
+    const hHalf = (boxWallH + boxBaseTh) * 0.64, wHalf = boxSide * 0.82 * (1 + 0.7 * boxSpread);
     const wFill = portrait ? 0.86 : 0.6, hFill = portrait ? 0.42 : 0.72;
     const d = Math.max(wHalf / (vHalf * aspect * wFill), hHalf / (vHalf * hFill));
     const ce = Math.cos(el);
@@ -2212,6 +2263,7 @@ function init() {
       boxIdleSpin *= 1 - e;                                                   // the turntable unwinds with the fold
       boxGroup.rotation.y = boxIdleSpin;
       spin.rotation.y = boxSpin + boxIdleSpin;
+      updateSmoke();                                                          // a live billow just fades through the exit
       boxCamera(1 - e);                                                       // the hero framing returns
       if (u >= 1) finalizeClose();
       return;
@@ -2251,7 +2303,11 @@ function init() {
     boxGroup.rotation.y = boxIdleSpin;
     // the piece itself turns only when a person is selected, easing their bead to the front
     if (boxSpinTgt != null) {
-      const d = angDelta(boxSpin + boxIdleSpin, boxSpinTgt);       // target is a WORLD angle: account for the turntable
+      // engaged: target is a WORLD angle (turntable settling to 0). Un-engaged: target is
+      // RELATIVE to the turntable — chasing a world angle against the advancing rotation
+      // never converges (steady-state lag > the clear threshold) and pins the piece to the
+      // camera while the case revolves under it. Relative, the piece rides the turntable.
+      const d = angDelta(boxSpin + (boxEngaged ? boxIdleSpin : 0), boxSpinTgt);
       boxSpin += d * Math.min(1, 5 * dt);
       if (Math.abs(d) < 0.012) boxSpinTgt = null;
     }
@@ -2267,6 +2323,7 @@ function init() {
       }
       m.emissiveIntensity = v;
     }
+    updateSmoke();
     boxCamera(reduce ? 1 : smooth(0, BOX_CAM_T, t));
   }
 
@@ -2295,12 +2352,22 @@ function init() {
         if (d > best) { best = d; bth = th; }
       }
       spin.rotation.y = sav; spin.updateMatrixWorld(true);
-      boxSpinTgt = bth;
+      boxSpinTgt = boxEngaged ? bth : bth - boxIdleSpin;   // un-engaged: aim within the turntable's frame (see updateBox)
     },
     pulse(node, hex) {
       if (!boxMode) return;
       if (hex && boxPlatMat[node]) { boxPlatMat[node].color.set(hex); boxPlatMat[node].emissive.set(hex); }
       boxFlare = { node, t0: idle };
+    },
+    smoke(cb) {
+      // the magical manufacturing box: shroud the piece, let cb swap the colour at peak,
+      // reveal as it clears. Anywhere the effect can't play, the change just applies.
+      if (!boxMode || reduce || section.classList.contains("no3d")) { if (cb) cb(); return; }
+      buildSmoke();
+      smokeT0 = idle; smokeCb = cb || null;            // re-fire replaces a pending billow (last click wins)
+      smokeGroup.position.y = 0;
+      for (const sd of smokeSeeds) sd.m.rotation = Math.random() * TAU;   // a fresh billow every time
+      noiseWhoosh(0.45, 420, 240, 0.014);              // a soft breath, quieter than the fold's
     },
   };
   // "Customize bracelet" / "Design yours" / the #yourfive button all open the box (the anchor
