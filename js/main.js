@@ -355,6 +355,11 @@
   window.MAKOMA_JOIN = async function (emailValue, extra) {
     const v = String(emailValue || "").trim();
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v)) return { ok: false, reason: "email" };
+    // store any traced artwork FIRST, so toMetadata() reports its key instead of
+    // "unsent". Never rejects, so a storage outage cannot cost someone their signup.
+    if (window.MAKOMA_DESIGN && window.MAKOMA_DESIGN.flushUploads) {
+      try { await window.MAKOMA_DESIGN.flushUploads(); } catch (_) {}
+    }
     const design = (window.MAKOMA_DESIGN && window.MAKOMA_DESIGN.toMetadata()) || null;
     try {
       const k = "makoma_waitlist";
@@ -404,6 +409,11 @@
       // those are personal data about third parties who never visited this site.
       // What ships is the manufacturing signal: shell colourway, symbols, lights, and
       // cfg=custom|default so colour votes can be counted over real choices only.
+      // store any traced artwork FIRST, so toMetadata() reports its key instead of
+      // "unsent". Never rejects, so a storage outage cannot cost someone their signup.
+      if (window.MAKOMA_DESIGN && window.MAKOMA_DESIGN.flushUploads) {
+        try { await window.MAKOMA_DESIGN.flushUploads(); } catch (_) {}
+      }
       const design = (window.MAKOMA_DESIGN && window.MAKOMA_DESIGN.toMetadata()) || null;
 
       // always keep a local copy so a submission is never silently lost

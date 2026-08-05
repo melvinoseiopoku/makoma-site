@@ -29,6 +29,18 @@
 
   var KEY = "makoma_design_v1";
 
+  /* Where a traced upload is stored: a Vercel Function backed by a PRIVATE Vercel Blob
+     store (see website/api/design-upload.js). Relative, so on makoma.io it is same-origin
+     and involves no CORS at all.
+
+     Set to "" to disable — the artwork still applies to the bead locally and the signup
+     reports the cut as unsent. It also degrades to exactly that on its own if the Blob
+     store has not been created yet, so this is safe to ship before the store exists.
+
+     Unlike the Buttondown POST this is a real CORS-visible request, so failures are
+     actually observable rather than swallowed by no-cors. */
+  var UPLOAD_ENDPOINT = "/api/design-upload";
+
   /* The six shell colourways offered. Every one is mid-to-dark EXCEPT bone,
      because a light shell washes the gold symbol out — verified by rendering
      all six on the real CAD: on #E8E1D3 the gold heart nearly disappeared.
@@ -74,6 +86,17 @@
      loop; the FIRST bead after the hub (0) and the LAST before it (7) stay blank by the
      founder's call, so the roster walks the middle of the bracelet the way a finger would. */
   var SLOT_BEAD = [1, 2, 5, 3, 4, 6];
+
+  /* A short stable id for a traced upload. The SVG itself is far too big for a metadata
+     field, so the report carries this plus the size; if the artwork is later stored, key it
+     by the same tag and the two line up. FNV-1a — not a security hash, just a label. */
+  function uploadTag(svg) {
+    var str = String(svg || ""), h = 0x811c9dc5;
+    // Math.imul, NOT h * prime: float64 multiply loses precision past 2^53 and diverges
+    // from the identical hash in api/design-upload.js, so the two would never agree.
+    for (var i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0; }
+    return h.toString(36) + "/" + Math.round(str.length / 1024) + "kb";
+  }
 
   function defaults() {
     return {
@@ -141,6 +164,34 @@
     subs.forEach(function (fn) { try { fn(state); } catch (e) {} });
   }
 
+  /* Send any traced artwork that has not been stored yet, and stamp each cut with the
+     returned key. Deliberately called at SUBMIT rather than when the trace finishes:
+     uploading at trace time would ship artwork from every visitor who played with the
+     designer and left, which is both a privacy problem and a storage bill.
+
+     Never rejects. A failed upload must not cost the visitor their signup — the cut is
+     simply reported as unsent, which is visible in the signup email. */
+  function flushUploads() {
+    if (!UPLOAD_ENDPOINT) return Promise.resolve();
+    var pending = state.people.filter(function (p) {
+      return p.cut && p.cut.type === "upload" && p.cut.svg && !p.cut.key;
+    });
+    if (!pending.length) return Promise.resolve();
+    return Promise.all(pending.map(function (p) {
+      return fetch(UPLOAD_ENDPOINT, {
+        method: "POST",
+        // text/plain on purpose: Vercel's Node helpers only populate req.body as a
+        // string for text/plain (image/svg+xml is not in their table and arrives
+        // undefined), and it keeps the request CORS-simple so there is no preflight.
+        headers: { "Content-Type": "text/plain" },
+        body: p.cut.svg
+      })
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (j) { if (j && j.ok && j.key) { p.cut.key = j.key; } })
+        .catch(function () { /* reported as unsent below */ });
+    })).then(function () { save(); });
+  }
+
   var API = {
     SHELLS: SHELLS,
     CORDS: CORDS,
@@ -198,17 +249,36 @@
        `cfg` matters more than it looks: without it every drive-by submit would
        silently vote for the default shell, and the manufacturing tally would
        just measure traffic. Count colour votes over cfg=custom only. */
+    flushUploads: flushUploads,   // await before toMetadata() so keys are present
+
     toMetadata: function () {
       var named = state.people.filter(function (p) { return p.name.trim(); }).length;
       // `cfg` reports ONLY whether a shell was explicitly chosen — see setShell.
+
+      /* `cuts` is keyed and sorted BY BEAD, not by person. state.people is in slot order and
+         SLOT_BEAD maps slot->bead ([1,2,5,3,4,6]), so a bare positional join — which is what
+         this used to send — could not be read back to a physical bead at all.
+
+         Initials now ship their LETTERS. That is a deliberate reversal of the rule in the file
+         header, made so the workshop knows what to cut: initials are derived from a third
+         party's name, so they are reduced personal data and the visitor must be told they are
+         sent. Full names still never leave. Uploads ship a short fingerprint of the traced
+         artwork plus its size — the artwork itself is up to 280 KB of SVG and cannot travel in
+         a subscriber metadata field; it needs somewhere to be stored. */
+      var byBead = state.people.map(function (p, i) {
+        var v = !p.cut ? "none"
+              : p.cut.type === "adinkra"  ? p.cut.sym
+              : p.cut.type === "initials" ? "initials:" + String(p.cut.text || "")
+              : p.cut.type === "upload"   ? "upload:" + (p.cut.key || uploadTag(p.cut.svg) + "/unsent")
+              : p.cut.type;
+        return { bead: SLOT_BEAD[i], v: v };
+      }).sort(function (a, b) { return a.bead - b.bead; });
+
       return {
         shell:   state.shell,
         cord:    state.cord,
         cfg:     state.touched ? "custom" : "default",
-        // the cut signal only: an adinkra choice ships its symbol name (useful demand signal);
-        // initials/uploads ship ONLY the type — never text, never artwork. Lights left the
-        // designer (they're set in the app), so glows no longer ship.
-        cuts:    state.people.map(function (p) { return !p.cut ? "none" : p.cut.type === "adinkra" ? p.cut.sym : p.cut.type; }).join(","),
+        cuts:    byBead.map(function (e) { return "b" + e.bead + "=" + e.v; }).join(" "),
         slots:   String(named)     // how many of the six they actually named
       };
     }

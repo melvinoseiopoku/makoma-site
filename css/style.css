@@ -2229,3 +2229,7 @@ section{ position:relative; z-index:2; }
 .li-grid i:nth-child(4){ animation-delay:.24s }
 @keyframes liOn{ to{ background:linear-gradient(180deg,#ffdca0,#f0a83c); box-shadow:0 0 16px rgba(255,190,90,.5); } }
 .li-s{ font-size:.48rem; opacity:.65; margin-top:10px; }
+
+/* Said where the choice is actually made, not buried in a policy page: initials are derived
+   from a third party's name and artwork is a personal upload, so both leave the device. */
+.cfg-privacy{ margin:10px 2px 0; font-size:.68rem; line-height:1.5; color:var(--ink-mute); }
