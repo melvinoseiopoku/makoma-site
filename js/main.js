@@ -237,24 +237,6 @@
     });
   }
 
-  /* ------------------------------------------------------------------
-     Positioning map
-  ------------------------------------------------------------------ */
-  function buildMap() {
-    const plot = $("#mapPlot"); if (!plot) return;
-    // x: 0=takes effort -> 100=lives with you ; y: 0=anyone -> 100=chosen few
-    const dots = [
-      { x:18, y:20, t:"Social feeds" },
-      { x:30, y:34, t:"Group chats" },
-      { x:24, y:64, t:"Calls / FaceTime" },
-      { x:46, y:40, t:"Texts" },
-      { x:70, y:50, t:"Bond Touch" },
-      { x:88, y:88, t:"M’AKOMA", us:true },
-    ];
-    plot.innerHTML = dots.map(d =>
-      `<div class="dot${d.us ? " us" : ""}" style="left:${d.x}%; bottom:${d.y}%"><i></i><span>${d.t}</span></div>`
-    ).join("");
-  }
 
   /* ------------------------------------------------------------------
      Stat counters
@@ -367,18 +349,39 @@
   ------------------------------------------------------------------ */
   const JOIN_ENDPOINT = "https://buttondown.com/api/emails/embed-subscribe/makoma";
 
+  /* The designer's save step joins the SAME list with the SAME design metadata — one
+     subscribe path, two doors. `extra` carries fields the visitor typed about THEMSELVES
+     (their own name, source) — freely given here; the six people's names still never leave. */
+  window.MAKOMA_JOIN = async function (emailValue, extra) {
+    const v = String(emailValue || "").trim();
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v)) return { ok: false, reason: "email" };
+    const design = (window.MAKOMA_DESIGN && window.MAKOMA_DESIGN.toMetadata()) || null;
+    try {
+      const k = "makoma_waitlist";
+      const list = JSON.parse(localStorage.getItem(k) || "[]");
+      list.push({ email: v, extra: extra || null, design, at: new Date().toISOString() });
+      localStorage.setItem(k, JSON.stringify(list));
+    } catch (_) {}
+    if (!JOIN_ENDPOINT) return { ok: true };
+    try {
+      const params = new URLSearchParams();
+      params.append("email", v);
+      params.append("embed", "1");
+      params.append("tag", "designer");
+      if (extra) Object.keys(extra).forEach((k2) => { if (extra[k2]) params.append("metadata__" + k2, String(extra[k2]).slice(0, 120)); });
+      if (design) Object.keys(design).forEach((k2) => params.append("metadata__" + k2, design[k2]));
+      await fetch(JOIN_ENDPOINT, { method: "POST", mode: "no-cors", body: params });
+      return { ok: true };
+    } catch (err) { return { ok: false, reason: "network" }; }
+  };
+
   function setupForm() {
     const form = $("#joinForm"), status = $("#joinStatus"),
           email = $("#joinEmail"), submit = $("#joinSubmit"), sugg = $("#joinSuggestion");
     if (!form) return;
 
-    // intent toggle (For me / As a gift) — keep the visual pill in sync with the radio
-    const pills  = $$(".intent-pill", form);
-    const radios = $$('input[name="intent"]', form);
-    const syncPills = () => pills.forEach(p => p.classList.toggle("is-on", p.querySelector("input").checked));
-    radios.forEach(r => r.addEventListener("change", syncPills));
-    syncPills();
-    const intent = () => (form.querySelector('input[name="intent"]:checked') || {}).value || "self";
+    // the For me / As a gift chooser is gone from the form; nothing downstream may assume it
+    const intent = () => "self";
 
     const say = (msg, isError) => {
       status.textContent = msg;
@@ -393,14 +396,21 @@
         email.focus();
         return;
       }
-      const giving = intent() === "gift";
+      const giving = false;
       const sug = ((sugg && sugg.value) || "").trim();
+
+      // The bracelet they designed in the box. toMetadata() is the ONLY path from the
+      // design store to the network and it deliberately never reads the five names —
+      // those are personal data about third parties who never visited this site.
+      // What ships is the manufacturing signal: shell colourway, symbols, lights, and
+      // cfg=custom|default so colour votes can be counted over real choices only.
+      const design = (window.MAKOMA_DESIGN && window.MAKOMA_DESIGN.toMetadata()) || null;
 
       // always keep a local copy so a submission is never silently lost
       try {
         const k = "makoma_waitlist";
         const list = JSON.parse(localStorage.getItem(k) || "[]");
-        list.push({ email: v, intent: intent(), suggestion: sug, at: new Date().toISOString() });
+        list.push({ email: v, intent: intent(), suggestion: sug, design: design, at: new Date().toISOString() });
         localStorage.setItem(k, JSON.stringify(list));
       } catch (_) {}
 
@@ -429,6 +439,9 @@
           params.append("tag", giving ? "gift" : "self");   // segment the list in Buttondown
           params.append("metadata__intent", intent());
           if (sug) params.append("metadata__suggestion", sug);   // design feedback → subscriber metadata in Buttondown
+          if (design) {                                          // the bracelet they built (never their names)
+            Object.keys(design).forEach((k) => params.append("metadata__" + k, design[k]));
+          }
           await fetch(JOIN_ENDPOINT, { method: "POST", mode: "no-cors", body: params });
           done();
         } else {
@@ -436,6 +449,9 @@
           body.append("email", v);
           body.append("intent", intent());
           if (sug) body.append("suggestion", sug);
+          // mirror the design here too, so swapping email providers never silently
+          // drops the manufacturing signal
+          if (design) Object.keys(design).forEach((k) => body.append(k, design[k]));
           const res = await fetch(JOIN_ENDPOINT, { method: "POST", body, headers: { Accept: "application/json" } });
           if (!res.ok) throw new Error("HTTP " + res.status);
           done();
@@ -532,4 +548,135 @@
 
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init);
   else init();
+})();
+
+/* --------------------------------------------------------------------------
+   WHAT ELSE — the bead-as-button rig.
+
+   The first build made you pick a bead and THEN pick an action, with no signpost
+   for the second step — which read as nothing happening. So the primary action is
+   now a single click: every bead already holds a job, and pressing one fires it
+   straight through to the phone. Changing a job is a separate, visible target —
+   the badge above each bead — and its choices open right there rather than in a
+   detached row you had to notice.
+-------------------------------------------------------------------------- */
+(function () {
+  var root = document.getElementById("beadBtns");
+  if (!root) return;
+  var reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var slots = [].slice.call(root.querySelectorAll(".bx-slot"));
+  var beads = [].slice.call(root.querySelectorAll(".bx-bead"));
+  var tags = [].slice.call(root.querySelectorAll(".bx-tagbtn"));
+  var menu = document.getElementById("bxMenu");
+  var items = [].slice.call(menu.querySelectorAll(".bx-mi"));
+  var strap = root.querySelector(".bx-strap");
+  var pulse = root.querySelector(".bx-pulse");
+  var spark = root.querySelector(".bx-spark");
+  var motion = spark && spark.querySelector("animateMotion");
+  var screen = document.getElementById("bxScreen");
+  var step = document.getElementById("bxStep");
+  var GLYPH = { camera: "◉", music: "♪", dnd: "☾", find: "◎", voice: "▮", home: "⌂", sos: "△" };
+  // the screens speak for themselves now — only the alert keeps a caption, because its
+  // outcome (who was reached) is not otherwise visible
+  var SAID = { camera: "", music: "", dnd: "", find: "", voice: "", home: "", sos: "" };
+  var NAME = { camera: "Camera", music: "Music", dnd: "Do not disturb", find: "Find my phone",
+               voice: "Voice note", home: "Lights", sos: "Alert my circle" };
+  // every bead ARRIVES with a job, so the section states its idea before anyone clicks
+  var assigned = ["camera", "music", "dnd", "find", "voice"];
+  var touched = false, demo = null, screenTimer = null, openOn = -1;
+
+  function paint(i) {
+    var act = assigned[i];
+    tags[i].querySelector(".bx-tg").textContent = GLYPH[act] || "•";
+    tags[i].setAttribute("aria-label", "Change what this bead does — now " + (NAME[act] || ""));
+    beads[i].setAttribute("aria-label", NAME[act] + " — press to try it");
+    slots[i].classList.toggle("is-sos", act === "sos");
+  }
+  assigned.forEach(function (a, i) { paint(i); });
+
+  function say(t) { step.textContent = t; }
+  say("Press a bead.");
+
+  // ---- press: bead → cord → hub → phone ----
+  function fire(i) {
+    var act = assigned[i], b = beads[i];
+    b.classList.remove("is-press"); void b.offsetWidth; b.classList.add("is-press");
+    slots[i].classList.add("is-press");
+    setTimeout(function () { slots[i].classList.remove("is-press"); }, 600);
+    say("Tap the dot above a bead to change what it does.");
+    if (reduce) { showScreen(act); return; }
+    var sb = strap.getBoundingClientRect(), bb = b.getBoundingClientRect();
+    pulse.style.left = (bb.left - sb.left + bb.width / 2 - 4) + "px";
+    pulse.style.setProperty("--bx-to", (sb.width - 20) + "px");
+    pulse.classList.remove("is-run"); void pulse.offsetWidth; pulse.classList.add("is-run");
+    // the signal should feel INSTANT: the spark leaves almost with the click and the screen
+    // lights a breath later. The old 400+560ms chain read as lag, not as travel.
+    setTimeout(function () {
+      if (motion) { spark.classList.add("is-fly"); try { motion.beginElement(); } catch (e) {} }
+      setTimeout(function () { spark.classList.remove("is-fly"); showScreen(act); }, 170);
+    }, 90);
+  }
+  function showScreen(act) {
+    clearTimeout(screenTimer);
+    screen.dataset.act = act;
+    screen.classList.add("is-on");
+    screen.querySelector(".bx-label").textContent = SAID[act] || "";
+    screenTimer = setTimeout(function () { screen.classList.remove("is-on"); }, 2400);
+  }
+
+  // ---- change a job: the choices open AT the bead ----
+  function openMenu(i) {
+    openOn = i;
+    items.forEach(function (m) { m.classList.toggle("is-on", m.dataset.act === assigned[i]); });
+    menu.hidden = false;
+    var sr = root.getBoundingClientRect(), tr = tags[i].getBoundingClientRect();
+    var x = tr.left - sr.left + tr.width / 2 - menu.offsetWidth / 2;
+    menu.style.left = Math.max(6, Math.min(sr.width - menu.offsetWidth - 6, x)) + "px";
+    menu.style.top = (tr.bottom - sr.top + 10) + "px";
+    tags[i].setAttribute("aria-expanded", "true");
+    slots[i].classList.add("is-open");
+    items[0].focus();
+  }
+  function closeMenu() {
+    menu.hidden = true;
+    tags.forEach(function (t) { t.setAttribute("aria-expanded", "false"); });
+    slots.forEach(function (s2) { s2.classList.remove("is-open"); });
+    openOn = -1;
+  }
+  tags.forEach(function (t, i) {
+    t.setAttribute("aria-expanded", "false");
+    t.addEventListener("click", function (e) {
+      e.stopPropagation(); stopDemo();
+      if (openOn === i) closeMenu(); else openMenu(i);
+    });
+  });
+  items.forEach(function (m) {
+    m.addEventListener("click", function () {
+      var i = openOn; if (i < 0) return;
+      assigned[i] = m.dataset.act; paint(i); closeMenu();
+      tags[i].focus();
+      setTimeout(function () { fire(i); }, 220);       // show the new job immediately
+    });
+  });
+  beads.forEach(function (b, i) {
+    b.addEventListener("click", function () { stopDemo(); closeMenu(); fire(i); });
+  });
+  document.addEventListener("click", function () { if (openOn >= 0) closeMenu(); });
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape" && openOn >= 0) { var i = openOn; closeMenu(); tags[i].focus(); } });
+
+  // ---- it presses itself until someone takes over ----
+  function stopDemo() { touched = true; if (demo) { clearTimeout(demo); demo = null; } }
+  var order = [0, 1, 3, 2, 4], oi = 0;
+  function play() {
+    if (touched || reduce) return;
+    fire(order[oi++ % order.length]);
+    demo = setTimeout(play, 3600);
+  }
+  var io = new IntersectionObserver(function (es) {
+    es.forEach(function (e) {
+      if (e.isIntersecting && !touched && !demo) demo = setTimeout(play, 700);
+      else if (!e.isIntersecting && demo) { clearTimeout(demo); demo = null; }
+    });
+  }, { threshold: 0.35 });
+  io.observe(root);
 })();
