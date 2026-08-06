@@ -141,7 +141,14 @@ function init() {
   const camera = new THREE.PerspectiveCamera(32, 1, 0.01, 1000);
 
   const pmrem = new THREE.PMREMGenerator(renderer);
-  scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+  // Pass the renderer: RoomEnvironment is `constructor(renderer = null)` and only raises its
+  // mainLight from intensity 5 to 900 when it gets one. This is the documented usage, but do
+  // NOT expect it to change the render — measured A/B at three scroll positions, mean
+  // luminance and gold coverage moved <1%. The environment's brightness comes from six
+  // MeshBasicMaterial area-light panels (colour scalars 17..100), and MeshBasicMaterial is
+  // unlit, so mainLight only touches the dim room shell. If the gold ever reads flat, the
+  // cause is elsewhere.
+  scene.environment = pmrem.fromScene(new RoomEnvironment(renderer), 0.04).texture;
 
   // camera looks from +X (az 0) low; key lights the front so the near symbols catch gold
   const key = new THREE.DirectionalLight(0xfff4e6, 3.6); key.position.set(20, 16, 7);
