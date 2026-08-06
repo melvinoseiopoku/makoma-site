@@ -5,7 +5,6 @@
   "type": "module",
   "description": "M'AKOMA marketing site. The site itself is dependency-free static HTML/CSS/JS — this file exists ONLY so Vercel installs the one package api/design-upload.js needs. Deliberately has NO build script: adding one would make Vercel try to build the static site instead of serving it as-is.",
   "dependencies": {
-    "@vercel/blob": "2.6.1",
-    "@vercel/speed-insights": "^2.0.0"
+    "@vercel/blob": "2.6.1"
   }
 }

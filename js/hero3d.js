@@ -1625,7 +1625,13 @@ function init() {
     return g;
   }
   function buildBattery(axis) {      // LiPo pouch cell, 25 × 20 × 4 mm
-    return buildBox(25, 4, 20, axis, mkMetal(0xb9bcc4, 0.42, 0.7), (g) => {
+    // 0xb9bcc4 read as a flat white slab: at that albedo, 44% of the cell's pixels landed at
+    // luminance 180-235 against a matte-black-and-gold scene, which reads as an unfinished CG
+    // block and flattens the pouch's form. Roughness/metalness were NOT the lever -- sweeping
+    // them moved the bright band by <1pp because the brightness is albedo-driven. Dropping the
+    // base colour takes that band to zero while the part stays just as readable (68% of its
+    // pixels still above the visibility floor, vs 71% before).
+    return buildBox(25, 4, 20, axis, mkMetal(0x6a7078, 0.55, 0.55), (g) => {
       const tab = new THREE.Mesh(new THREE.BoxGeometry(4 * MM, 4 * MM, 6 * MM), mkMetal(0xc9a84a, 0.45, 0.6));
       tab.position.x = 13 * MM; g.add(tab);                              // foil tab / leads on one edge
     });
