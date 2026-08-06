@@ -1423,7 +1423,6 @@ function init() {
     cordStart.castShadow = true; cordStart.receiveShadow = true;
     cordStart.position.copy(curve.getPointAt(0)); model.add(cordStart);   // cap the hub end too
   }
-  window.__rebuild = (R) => { if (R !== undefined) CORD_RAD = R; buildCord(); };
 
   // ---- adjustable macramé closure: the real Shamballa sliding clasp — two cord tails leaving the BACK of the hub,
   //      each cinched by a wrapped sennit knot, then a smoky-quartz bead, ending in a small knot bead. Built INTO
