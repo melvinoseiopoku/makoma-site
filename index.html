@@ -106,10 +106,6 @@
   ]
 }
 </script>
-<script type="module">
-  import { injectSpeedInsights } from './node_modules/@vercel/speed-insights/dist/index.mjs';
-  injectSpeedInsights();
-</script>
 </head>
 <body>
 
@@ -727,6 +723,18 @@
     var _va = document.createElement("script");
     _va.defer = true; _va.src = "/_vercel/insights/script.js";
     document.head.appendChild(_va);
+  }
+
+  /* Speed Insights (Core Web Vitals from real visitors). Tag form, NOT the npm package:
+     this site has no bundler, so `import ... from './node_modules/...'` — which is what the
+     Vercel PR added — 404s in production, because node_modules is never deployed (and the
+     .gitignore from that same PR excludes it). Vercel serves the script itself once Speed
+     Insights is enabled for the project. Same localhost guard as above. */
+  window.si = window.si || function () { (window.siq = window.siq || []).push(arguments); };
+  if (!/^(localhost|127\.|0\.0\.0\.0|\[?::1)/.test(location.hostname)) {
+    var _si = document.createElement("script");
+    _si.defer = true; _si.src = "/_vercel/speed-insights/script.js";
+    document.head.appendChild(_si);
   }
 </script>
 </body>
