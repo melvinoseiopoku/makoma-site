@@ -34,8 +34,12 @@
 <link rel="icon" type="image/svg+xml" href="assets/logo/favicon.svg" />
 <link rel="icon" type="image/png" sizes="32x32" href="assets/logo/favicon-32.png" />
 <link rel="apple-touch-icon" href="assets/logo/favicon-180.png" />
-<link rel="preconnect" href="https://fonts.googleapis.com" />
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<!-- Webfonts are self-hosted (@font-face block at the top of css/style.css), so there is no
+     third-party origin left to warm up. Preload only the hero headline face — Cormorant 500 sets
+     "The people you carry.", the largest text above the fold. The rest arrive via font-display:swap.
+     Fonts need crossorigin on preload even same-origin, or the fetch is made twice. -->
+<link rel="preload" as="font" type="font/woff2"
+      href="assets/fonts/cormorant-garamond-500-latin.woff2" crossorigin />
 <!-- The hero still is the largest thing above the fold; start it before the parser reaches the <picture>. -->
 <link rel="preload" as="image" type="image/webp"
       href="assets/img/makoma-hero.webp"
@@ -43,7 +47,6 @@
       imagesizes="100vw" fetchpriority="high" />
 <!-- three.js heads a serial chain (three -> DRACO -> bracelet GLB); start it during HTML parse, not after. -->
 <link rel="modulepreload" href="assets/vendor/three/three.module.js" />
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
 <script>
   /* set the theme before paint to avoid a flash. DARK is the default — the brand's gold-on-black — for every
      first-time visitor regardless of OS preference; a returning visitor keeps whatever they toggled to. */
@@ -116,7 +119,7 @@
 <!-- ============ NAV ============ -->
 <header class="nav" id="nav">
   <a href="#top" class="brand" aria-label="M'AKOMA home">
-    <img src="assets/logo/icon-gold.svg" alt="" class="brand-ico" aria-hidden="true" />
+    <img src="assets/logo/icon-gold.svg" alt="" class="brand-ico" width="300" height="289" aria-hidden="true" />
     <span class="brand-mark">M'AKOMA<span class="tm">™</span></span>
   </a>
   <nav class="nav-links" id="navLinks">
@@ -341,8 +344,8 @@
           <button class="bx-tagbtn" type="button" data-i="0" aria-label="Change what bead 1 does"><span class="bx-tg"></span></button>
           <button class="bx-bead" type="button" data-i="0" aria-label="Camera — press to try it">
             <span class="bx-orb">
-              <img class="bx-base" src="assets/beads/sankofa.png" alt="" loading="lazy">
-              <img class="bx-lit" src="assets/beads/sankofa_glow.png" alt="" loading="lazy">
+              <img class="bx-base" src="assets/beads/sankofa.webp" alt="" width="256" height="256" loading="lazy">
+              <img class="bx-lit" src="assets/beads/sankofa_glow.webp" alt="" width="256" height="256" loading="lazy">
             </span>
           </button>
         </span>
@@ -350,8 +353,8 @@
           <button class="bx-tagbtn" type="button" data-i="1" aria-label="Change what bead 2 does"><span class="bx-tg"></span></button>
           <button class="bx-bead" type="button" data-i="1" aria-label="Music — press to try it">
             <span class="bx-orb">
-              <img class="bx-base" src="assets/beads/aya.png" alt="" loading="lazy">
-              <img class="bx-lit" src="assets/beads/aya_glow.png" alt="" loading="lazy">
+              <img class="bx-base" src="assets/beads/aya.webp" alt="" width="256" height="256" loading="lazy">
+              <img class="bx-lit" src="assets/beads/aya_glow.webp" alt="" width="256" height="256" loading="lazy">
             </span>
           </button>
         </span>
@@ -359,8 +362,8 @@
           <button class="bx-tagbtn" type="button" data-i="2" aria-label="Change what bead 3 does"><span class="bx-tg"></span></button>
           <button class="bx-bead" type="button" data-i="2" aria-label="Do not disturb — press to try it">
             <span class="bx-orb">
-              <img class="bx-base" src="assets/beads/nsoroma.png" alt="" loading="lazy">
-              <img class="bx-lit" src="assets/beads/nsoroma_glow.png" alt="" loading="lazy">
+              <img class="bx-base" src="assets/beads/nsoroma.webp" alt="" width="256" height="256" loading="lazy">
+              <img class="bx-lit" src="assets/beads/nsoroma_glow.webp" alt="" width="256" height="256" loading="lazy">
             </span>
           </button>
         </span>
@@ -368,8 +371,8 @@
           <button class="bx-tagbtn" type="button" data-i="3" aria-label="Change what bead 4 does"><span class="bx-tg"></span></button>
           <button class="bx-bead" type="button" data-i="3" aria-label="Alert my circle — press to try it">
             <span class="bx-orb">
-              <img class="bx-base" src="assets/beads/gye_nyame.png" alt="" loading="lazy">
-              <img class="bx-lit" src="assets/beads/gye_nyame_glow.png" alt="" loading="lazy">
+              <img class="bx-base" src="assets/beads/gye_nyame.webp" alt="" width="256" height="256" loading="lazy">
+              <img class="bx-lit" src="assets/beads/gye_nyame_glow.webp" alt="" width="256" height="256" loading="lazy">
             </span>
           </button>
         </span>
@@ -377,8 +380,8 @@
           <button class="bx-tagbtn" type="button" data-i="4" aria-label="Change what bead 5 does"><span class="bx-tg"></span></button>
           <button class="bx-bead" type="button" data-i="4" aria-label="Voice note — press to try it">
             <span class="bx-orb">
-              <img class="bx-base" src="assets/beads/nkyinkyim.png" alt="" loading="lazy">
-              <img class="bx-lit" src="assets/beads/nkyinkyim_glow.png" alt="" loading="lazy">
+              <img class="bx-base" src="assets/beads/nkyinkyim.webp" alt="" width="256" height="256" loading="lazy">
+              <img class="bx-lit" src="assets/beads/nkyinkyim_glow.webp" alt="" width="256" height="256" loading="lazy">
             </span>
           </button>
         </span>
@@ -534,10 +537,10 @@
     <div class="hib-grid reveal">
       <figure class="hib-panel">
         <div class="cw-grid">
-          <span class="cw"><img src="assets/img/colourways/onyx.png" alt="Onyx bracelet" loading="lazy"></span>
-          <span class="cw"><img src="assets/img/colourways/clay.png" alt="Clay bracelet" loading="lazy"></span>
-          <span class="cw"><img src="assets/img/colourways/forest.png" alt="Forest bracelet" loading="lazy"></span>
-          <span class="cw"><img src="assets/img/colourways/midnight.png" alt="Midnight bracelet" loading="lazy"></span>
+          <span class="cw"><img src="assets/img/colourways/onyx-320.webp" srcset="assets/img/colourways/onyx-320.webp 320w, assets/img/colourways/onyx-640.webp 640w" sizes="150px" alt="Onyx bracelet" width="640" height="384" loading="lazy"></span>
+          <span class="cw"><img src="assets/img/colourways/clay-320.webp" srcset="assets/img/colourways/clay-320.webp 320w, assets/img/colourways/clay-640.webp 640w" sizes="150px" alt="Clay bracelet" width="640" height="384" loading="lazy"></span>
+          <span class="cw"><img src="assets/img/colourways/forest-320.webp" srcset="assets/img/colourways/forest-320.webp 320w, assets/img/colourways/forest-640.webp 640w" sizes="150px" alt="Forest bracelet" width="640" height="384" loading="lazy"></span>
+          <span class="cw"><img src="assets/img/colourways/midnight-320.webp" srcset="assets/img/colourways/midnight-320.webp 320w, assets/img/colourways/midnight-640.webp 640w" sizes="150px" alt="Midnight bracelet" width="640" height="384" loading="lazy"></span>
         </div>
         <figcaption class="hib-cap">
           <h3>Buy the bundle.</h3>
@@ -547,12 +550,15 @@
 
       <figure class="hib-panel">
         <div class="hib-scene hib-scene--app">
-          <span class="hib-phone"><img src="assets/img/app-beads-dark.jpg" alt="M&rsquo;AKOMA app" loading="lazy"><span class="hib-tap" aria-hidden="true"></span></span>
+          <span class="hib-phone"><img src="assets/img/app-beads-dark.webp" alt="M&rsquo;AKOMA app" width="256" height="557" loading="lazy"><span class="hib-tap" aria-hidden="true"></span></span>
           <svg class="hib-link" viewBox="0 0 130 70" aria-hidden="true" preserveAspectRatio="none">
             <defs><linearGradient id="hibg" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#c9a04e" stop-opacity="0"/><stop offset="1" stop-color="#e8c57a"/></linearGradient></defs>
             <path d="M8 56 Q66 4 122 34" fill="none" stroke="url(#hibg)" stroke-width="2.2" stroke-dasharray="3 7" stroke-linecap="round"/>
           </svg>
-          <span class="hib-real"><img src="assets/img/colourways/onyx.png" alt="M&rsquo;AKOMA bracelet" loading="lazy"></span>
+          <span class="hib-real"><!-- No srcset here on purpose: .hib-real is 62% of a fluid panel, so it paints anywhere from
+     ~200px to ~380px and any fixed `sizes` value would under-request on some viewport. The 640w
+     file is 22 KB — cheaper than getting the maths wrong and shipping a soft product shot. -->
+<img src="assets/img/colourways/onyx-640.webp" alt="M&rsquo;AKOMA bracelet" width="640" height="384" loading="lazy"></span>
         </div>
         <figcaption class="hib-cap">
           <h3>No bracelet? They still reach you.</h3>
