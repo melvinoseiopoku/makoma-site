@@ -1639,7 +1639,10 @@ section{ position:relative; z-index:2; }
 /* panel 2: app → glow travels → bracelet bead lights up */
 .hib-scene--app{ flex-direction:row; gap:4px; }
 .hib-phone{ position:relative; width:82px; flex:0 0 auto; border-radius:14px; overflow:hidden; border:1px solid #2a2823; box-shadow:0 10px 26px rgba(0,0,0,.5); }
-.hib-phone img{ width:100%; display:block; }
+/* height:auto is load-bearing — the img now carries width/height attributes, which map to a
+   presentational height. Overriding only width would leave the attribute height in force and
+   render the shot 80x557 instead of 80x174. */
+.hib-phone img{ width:100%; height:auto; display:block; }
 .hib-tap{ position:absolute; left:50%; top:46%; width:14px; height:14px; margin:-7px 0 0 -7px; border-radius:50%; border:2px solid var(--gold); animation:hib-tap 3s ease-out infinite; }
 @keyframes hib-tap{ 0%{ opacity:.9; transform:scale(.3); } 55%,100%{ opacity:0; transform:scale(2.4); } }
 .hib-link{ width:104px; height:60px; flex:0 0 auto; }
