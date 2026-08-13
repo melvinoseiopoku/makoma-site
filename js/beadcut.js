@@ -28,7 +28,7 @@
    ============================================================ */
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
-import { DRACOLoader } from "three/addons/loaders/DRACOLoader.js";
+import { MeshoptDecoder } from "three/addons/libs/meshopt_decoder.module.js";
 import { SVGLoader } from "three/addons/loaders/SVGLoader.js";
 import { Brush, Evaluator, SUBTRACTION } from "three-bvh-csg";
 
@@ -45,8 +45,7 @@ export async function createCutEngine(ctx) {
   const { model, matShell } = ctx;
 
   // ---- the blank cap, once ----
-  const draco = new DRACOLoader(); draco.setDecoderPath("assets/vendor/three/draco/");
-  const loader = new GLTFLoader(); loader.setDRACOLoader(draco);
+  const loader = new GLTFLoader(); loader.setMeshoptDecoder(MeshoptDecoder);
   const capGeo = await new Promise((res, rej) => {
     loader.load("assets/models/blank_cap.glb", (g) => {
       let geo = null;

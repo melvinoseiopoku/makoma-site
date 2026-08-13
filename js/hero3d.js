@@ -9,7 +9,7 @@
    ============================================================ */
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
-import { DRACOLoader } from "three/addons/loaders/DRACOLoader.js";
+import { MeshoptDecoder } from "three/addons/libs/meshopt_decoder.module.js";
 import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
 import { EffectComposer } from "three/addons/postprocessing/EffectComposer.js";
 import { RenderPass } from "three/addons/postprocessing/RenderPass.js";
@@ -2533,8 +2533,10 @@ function init() {
 
   let model = null;
   if (loaderEl) loaderEl.classList.remove("hide");
-  const draco = new DRACOLoader(); draco.setDecoderPath("assets/vendor/three/draco/");
-  const loader = new GLTFLoader(); loader.setDRACOLoader(draco);
+  // meshopt, not Draco. Draco wins on file size but its decode was costing 12.7s of main-thread
+  // time on a throttled phone -- it was the single biggest item in the mobile profile. meshopt
+  // costs ~190 KB more over the wire (brotli) and decodes at a fraction of the price.
+  const loader = new GLTFLoader(); loader.setMeshoptDecoder(MeshoptDecoder);
   const fail = (err) => { console.warn("[hero3d] CAD load failed:", err); section.classList.add("no3d"); if (loaderEl) loaderEl.style.display = "none"; poster.classList.remove("hide"); };
   loader.load("assets/models/bracelet_threaded.glb", (g) => {
     model = g.scene;
