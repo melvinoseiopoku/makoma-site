@@ -28,7 +28,7 @@
    ============================================================ */
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
-import { MeshoptDecoder } from "three/addons/libs/meshopt_decoder.module.js";
+import { DRACOLoader } from "three/addons/loaders/DRACOLoader.js";
 import { SVGLoader } from "three/addons/loaders/SVGLoader.js";
 import { Brush, Evaluator, SUBTRACTION } from "three-bvh-csg";
 
@@ -45,9 +45,10 @@ export async function createCutEngine(ctx) {
   const { model, matShell } = ctx;
 
   // ---- the blank cap, once ----
-  const loader = new GLTFLoader(); loader.setMeshoptDecoder(MeshoptDecoder);
+  const draco = new DRACOLoader(); draco.setDecoderPath("assets/vendor/three/draco/");
+  const loader = new GLTFLoader(); loader.setDRACOLoader(draco);
   const capGeo = await new Promise((res, rej) => {
-    loader.load("assets/models/blank_cap.glb", (g) => {
+    loader.load("assets/models/blank_cap.glb?v=2", (g) => {
       let geo = null;
       g.scene.traverse((o) => { if (o.isMesh && !geo) geo = o.geometry; });
       geo ? res(geo) : rej(new Error("blank cap: no mesh"));

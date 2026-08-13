@@ -9,7 +9,7 @@
    ============================================================ */
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
-import { MeshoptDecoder } from "three/addons/libs/meshopt_decoder.module.js";
+import { DRACOLoader } from "three/addons/loaders/DRACOLoader.js";
 import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
 import { EffectComposer } from "three/addons/postprocessing/EffectComposer.js";
 import { RenderPass } from "three/addons/postprocessing/RenderPass.js";
@@ -1711,7 +1711,7 @@ function init() {
     const axis = cap.rest.clone().sub(base.rest).normalize();   // true symbol axis (cap centre -> base centre)
     const plate = attachPart(pivot, 'PLATFORM' + EXPLODE_NODE, 0.55);   // the gold capacitive electrode — sits in the OPEN gap below the lifted lid
     if (plate) { plate.obj.material = matElectrode; parts.push(plate); }  // passive gold pad (NOT glowing — the light is the PCB LED)
-    const pcb = buildBoard('assets/models/akoma_pcb.glb', axis); pcb.position.copy(axis).multiplyScalar(0.3 * MM); pivot.add(pcb);
+    const pcb = buildBoard('assets/models/akoma_pcb.glb?v=2', axis); pcb.position.copy(axis).multiplyScalar(0.3 * MM); pivot.add(pcb);
     parts.push({ obj: pcb, rest: pcb.position.clone(), dir: axis, dist: 0.18 });
     // a small SMD indicator LED sitting flat ON the board surface (NOT a dome) — the real
     // light source. Offset toward an edge like a real placed component; it glows + blooms.
@@ -1745,7 +1745,7 @@ function init() {
     const top = attachPart(pivot, 'HUB_TOP', 0.9); parts.push(top);
     parts.push(attachPart(pivot, 'BASIN_SWITCH', 1.45));
     const axis = top.rest.clone().sub(base.rest).normalize();   // base -> top (button/up direction)
-    const board = buildBoard('assets/models/akoma_hub_pcb.glb', axis); board.position.copy(axis).multiplyScalar(0.3); pivot.add(board);
+    const board = buildBoard('assets/models/akoma_hub_pcb.glb?v=2', axis); board.position.copy(axis).multiplyScalar(0.3); pivot.add(board);
     parts.push({ obj: board, rest: board.position.clone(), dir: axis, dist: 0.3 });
     const battery = buildBattery(axis); battery.position.copy(axis).multiplyScalar(-0.3); pivot.add(battery);
     parts.push({ obj: battery, rest: battery.position.clone(), dir: axis, dist: -0.35 });
@@ -2533,12 +2533,10 @@ function init() {
 
   let model = null;
   if (loaderEl) loaderEl.classList.remove("hide");
-  // meshopt, not Draco. Draco wins on file size but its decode was costing 12.7s of main-thread
-  // time on a throttled phone -- it was the single biggest item in the mobile profile. meshopt
-  // costs ~190 KB more over the wire (brotli) and decodes at a fraction of the price.
-  const loader = new GLTFLoader(); loader.setMeshoptDecoder(MeshoptDecoder);
+  const draco = new DRACOLoader(); draco.setDecoderPath("assets/vendor/three/draco/");
+  const loader = new GLTFLoader(); loader.setDRACOLoader(draco);
   const fail = (err) => { console.warn("[hero3d] CAD load failed:", err); section.classList.add("no3d"); if (loaderEl) loaderEl.style.display = "none"; poster.classList.remove("hide"); };
-  loader.load("assets/models/bracelet_threaded.glb", (g) => {
+  loader.load("assets/models/bracelet_threaded.glb?v=2", (g) => {
     model = g.scene;
     model.traverse((o) => {
       if (o.isMesh) {
