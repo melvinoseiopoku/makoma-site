@@ -46,7 +46,9 @@
       imagesrcset="assets/img/makoma-hero-760.webp 760w, assets/img/makoma-hero.webp 1100w"
       imagesizes="100vw" fetchpriority="high" />
 <!-- three.js heads a serial chain (three -> DRACO -> bracelet GLB); start it during HTML parse, not after. -->
-<link rel="modulepreload" href="assets/vendor/three/three.module.js" />
+<!-- No modulepreload for three.js on purpose: the hero is deferred (see js/hero3d.js), so the
+     renderer is fetched by a dynamic import when the scene is actually going to be built.
+     Preloading it here would drag ~264 KB onto every phone's critical path to no end. -->
 <script>
   /* set the theme before paint to avoid a flash. DARK is the default — the brand's gold-on-black — for every
      first-time visitor regardless of OS preference; a returning visitor keeps whatever they toggled to. */

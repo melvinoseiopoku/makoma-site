@@ -7,15 +7,34 @@
    in turn. Matte-black resin + warm gold, like the Akoma_4E renders.
    Falls back to the static render on mobile / no-WebGL / reduced-motion.
    ============================================================ */
-import * as THREE from "three";
-import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
-import { DRACOLoader } from "three/addons/loaders/DRACOLoader.js";
-import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
-import { EffectComposer } from "three/addons/postprocessing/EffectComposer.js";
-import { RenderPass } from "three/addons/postprocessing/RenderPass.js";
-import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js";
-import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
-import { createVitrineFX } from "./vitrinefx.js";
+/* DEFERRED HERO
+   These were static imports, so three.js and its addons were fetched and evaluated on every
+   load -- including phones, which then spent seconds building a scene nobody had asked to
+   see. They are bound lazily by loadDeps() now, which init() awaits. Nothing at module scope
+   touches them, so the other ~2,400 lines below are unchanged. */
+let THREE, GLTFLoader, DRACOLoader, RoomEnvironment,
+    EffectComposer, RenderPass, UnrealBloomPass, OutputPass, createVitrineFX;
+
+let depsPromise = null;
+function loadDeps() {
+  return depsPromise || (depsPromise = Promise.all([
+    import("three"),
+    import("three/addons/loaders/GLTFLoader.js"),
+    import("three/addons/loaders/DRACOLoader.js"),
+    import("three/addons/environments/RoomEnvironment.js"),
+    import("three/addons/postprocessing/EffectComposer.js"),
+    import("three/addons/postprocessing/RenderPass.js"),
+    import("three/addons/postprocessing/UnrealBloomPass.js"),
+    import("three/addons/postprocessing/OutputPass.js"),
+    import("./vitrinefx.js"),
+  ]).then(([t, gl, dr, re, ec, rp, ub, op, vfx]) => {
+    THREE = t;
+    GLTFLoader = gl.GLTFLoader; DRACOLoader = dr.DRACOLoader;
+    RoomEnvironment = re.RoomEnvironment; EffectComposer = ec.EffectComposer;
+    RenderPass = rp.RenderPass; UnrealBloomPass = ub.UnrealBloomPass;
+    OutputPass = op.OutputPass; createVitrineFX = vfx.createVitrineFX;
+  }));
+}
 
 const $ = (s) => document.querySelector(s);
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -118,11 +137,55 @@ if (reduce || slowNet || !webglOK()) {
   section.classList.add("no3d");
   if (loaderEl) loaderEl.style.display = "none";
   window.__hero = { fallback: true };
+} else if (coarse || (window.innerWidth > 0 && window.innerWidth <= 820)) {
+  // PHONES: the poster is already a real render of the product, so hold there and build the
+  // scene on the first sign the visitor wants it -- a scroll, a touch, or a tap on any
+  // "design yours" control. init() still wires everything it owns (configurator included),
+  // just at that moment instead of during first paint.
+  armDeferredHero();
 } else {
   init();
 }
 
-function init() {
+function armDeferredHero() {
+  if (loaderEl) loaderEl.style.display = "none";
+  window.__hero = { deferred: true };
+  let started = false;
+
+  const boot = (thenOpenBox) => {
+    if (started) return;
+    started = true;
+    detach();
+    const t0 = performance.now();
+    init().then(() => {
+      if (window.__hero) window.__hero.bootMs = Math.round(performance.now() - t0);
+      // the tap that woke the hero should still land on the designer
+      if (thenOpenBox && window.__hero && window.__hero.box) window.__hero.box.open();
+    });
+  };
+
+  const onScroll = () => { if (window.scrollY > 40) boot(false); };
+  const onTouch = () => boot(false);
+  // NOT passive, and separate from the touch handler: only this one may preventDefault.
+  const onClick = (ev) => {
+    const el = ev.target && ev.target.closest && ev.target.closest("[data-open-box]");
+    if (el) ev.preventDefault();
+    boot(!!el);
+  };
+
+  const passive = { passive: true };
+  function detach() {
+    window.removeEventListener("scroll", onScroll, passive);
+    section.removeEventListener("touchstart", onTouch, passive);
+    document.removeEventListener("click", onClick, true);
+  }
+  window.addEventListener("scroll", onScroll, passive);
+  section.addEventListener("touchstart", onTouch, passive);
+  document.addEventListener("click", onClick, true);
+}
+
+async function init() {
+  await loadDeps();
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, powerPreference: "high-performance" });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, coarse ? 1.75 : 2));
   // vitrine VFX state — declared THIS early on purpose: resize() and render() touch volSmoke
