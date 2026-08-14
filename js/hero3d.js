@@ -394,6 +394,93 @@ async function init() {
     const hFill = portrait ? 0.42 : 0.66;   // portrait: the title owns the top, so sit smaller
     return Math.max(bHalfW / (vHalf * aspect * wFill), bHalfV / (vHalf * hFill));
   }
+  // ---------------- THE INTRO (cine) ----------------
+  function introEligible() {
+    if (wantsCustomize || reduce || section.classList.contains("no3d")) return false;
+    try { if (localStorage.getItem(INTRO_KEY)) return false; } catch (e) {}
+    return true;
+  }
+  function introStart() {
+    cine.phase = "P0"; cine.t = 0; cine.rate = 0.06;      // near-still overhead hold
+    section.classList.add("intro-live");
+    if (introCenterEl) introCenterEl.classList.add("on");
+    // any FRESH gesture skips — attached after a grace so the boot tap can't self-skip
+    setTimeout(() => {
+      if (!cine.phase) return;
+      const skip = () => introFinish(true);
+      window.addEventListener("wheel", skip, { once: true, passive: true });
+      window.addEventListener("touchstart", skip, { once: true, passive: true });
+      window.addEventListener("pointerdown", skip, { once: true });
+      window.addEventListener("keydown", skip, { once: true });
+      cine._offSkip = () => {
+        window.removeEventListener("wheel", skip); window.removeEventListener("touchstart", skip);
+        window.removeEventListener("pointerdown", skip); window.removeEventListener("keydown", skip);
+      };
+    }, 700);
+  }
+  function introFinish(skipped) {
+    if (!cine.phase) return;
+    cine.phase = null; cine.rate = 1;
+    if (cine._offSkip) cine._offSkip();
+    try { localStorage.setItem(INTRO_KEY, "1"); } catch (e) {}
+    section.classList.remove("intro-live");
+    if (introCenterEl) introCenterEl.classList.remove("on");
+    if (introTypeEl) { introTypeEl.classList.remove("on"); introTypeEl.textContent = ""; }
+    if (skipped && beadAsm) beadAsm._e = 0;                // snap the bead shut on a skip
+  }
+  // the scripted explosion: opens through P2, hangs, reassembles across the first half of P3
+  function introExplodeE() {
+    if (cine.phase === "P2") return smooth(0, 0.45, cine.t / INTRO_DUR.P2);
+    if (cine.phase === "P3") return 1 - smooth(0, 0.5, cine.t / INTRO_DUR.P3);
+    return 0;
+  }
+  // per-frame: advance the clock, drive rate/camera/text; returns true when it OWNS the camera
+  function introFrame(dt) {
+    if (!cine.phase) return false;
+    cine.t += dt;
+    const D = INTRO_DUR;
+    if (cine.phase === "P0") {
+      cine.rate = 0.06;
+      if (cine.t >= D.P0) {
+        cine.phase = "P1"; cine.t = 0;
+        if (introCenterEl) introCenterEl.classList.remove("on");
+      }
+    } else if (cine.phase === "P1") {
+      // steer the exploding bead to the front while the camera dives
+      cine.rate = 0;
+      if (beadAsm) {
+        let d = angDelta(objTurn, beadAsm.frontY);
+        objTurn += d * Math.min(1, 4.2 * dt);
+      }
+      if (cine.t >= D.P1) { cine.phase = "P2"; cine.t = 0; }
+    } else if (cine.phase === "P2") {
+      cine.rate = 0;                                       // frozen while the bead opens
+      if (cine.t >= D.P2) {
+        cine.phase = "P3"; cine.t = 0; cine.typeN = 0;
+        if (introTypeEl) introTypeEl.classList.add("on");
+      }
+    } else if (cine.phase === "P3") {
+      cine.rate = smooth(0.5, 1, cine.t / D.P3);           // the turn eases in as we land
+      if (introTypeEl) {
+        const n = Math.min(INTRO_LINE.length, Math.round((cine.t / (D.P3 * 0.92)) * INTRO_LINE.length));
+        if (n !== cine.typeN) { cine.typeN = n; introTypeEl.textContent = INTRO_LINE.slice(0, n); }
+      }
+      if (cine.t >= D.P3 + 0.8) introFinish(false);        // a beat to read the finished line
+    }
+    // ---- the intro camera: overhead -> close-on-bead -> the standard framing ----
+    const fit = objectFitDist();
+    let el, d;
+    if (cine.phase === "P0") { el = 86; d = fit * 1.06; }
+    else if (cine.phase === "P1") { const u = smooth(0, 1, cine.t / D.P1); el = 86 + (16 - 86) * u; d = fit * (1.06 + (0.52 - 1.06) * u); }
+    else if (cine.phase === "P2") { el = 16; d = fit * 0.52; }
+    else if (cine.phase === "P3") { const u = smooth(0, 1, Math.min(1, cine.t / D.P3)); el = 16 + (CAM_EL - 16) * u; d = fit * (0.52 + (1 - 0.52) * u); }
+    else return false;
+    const elr = el * DEG, ce = Math.cos(elr);
+    camera.position.set(Math.cos(CAM_AZ * DEG) * ce * d, Math.sin(elr) * d, Math.sin(CAM_AZ * DEG) * ce * d);
+    camera.lookAt(0, 0, 0);
+    return true;
+  }
+
   function placeCamera(settle = 0, g = 0, dropY = 0) {
     const az = (CAM_AZ + Math.sin(idle * 0.18) * 0.7 * (1 - settle) * (1 - g)) * DEG;   // idle sway fades out as we settle
     const el = (CAM_EL + (CAM_EL_END - CAM_EL) * settle) * DEG;               // rise toward the top-front edge
@@ -1133,6 +1220,21 @@ async function init() {
      the segments placed so the fully-open hold straddles u = 0.5 — dead-front. Both ends of the
      sweep land on a closed state, which is also why the ±π wrap on the far side is invisible. */
   const OBJ_TURN = 0.16;                       // rad/s — the object's slow turn
+  /* THE INTRO — a one-time cinematic opening with its own clocks and its own camera:
+       P0 overhead: top-down on the ring, "First beaded technology" centred inside it
+       P1 dive:     drop to the akoma bead as it eases to the front
+       P2 explode:  the bead opens, and hangs open
+       P3 zoomout:  pull back to the standard framing while the line types
+       cruise:      the familiar clockwise turn ramps in, headline fades up
+     The spin rate is DIFFERENT in every phase (near-still, steering, frozen, easing) — the
+     uniform-pace turn is exactly what this breaks. Skippable by any fresh gesture; runs once
+     (localStorage); reduced-motion and /customize go straight to cruise. */
+  const INTRO_KEY = "makoma-intro-v1";
+  const cine = { phase: null, t: 0, rate: 1, typeN: 0 };
+  let seqRate = 1;               // the 6-beads sequence's own brake on the turn
+  const INTRO_DUR = { P0: 3.0, P1: 1.5, P2: 2.2, P3: 2.6 };
+  const introCenterEl = $("#introCenter"), introTypeEl = $("#introType");
+  const INTRO_LINE = "Technology hidden in jewelry";
   // -1 = CLOCKWISE from the viewer: front beads travel right-to-left, so each glued word's
   // successor enters to its RIGHT and an overlap reads left-to-right, the way a sentence does.
   // (+1 spelled every pair backwards on screen.) Everything direction-dependent — the drift,
@@ -1228,9 +1330,13 @@ async function init() {
       // a half-split bead. (SPIN_PHASE is tuned for the threading timeline, not for this.)
       if (!objTurnArmed && beadAsm) { objTurnArmed = true; objTurn = beadAsm.frontY - OBJ_DIR * (OBJ_EX_WIN + OBJ_EX_LEAD); objTurnPrev = idle; }
 
-      objTurn += Math.min(0.1, Math.max(0, idle - objTurnPrev)) * OBJ_TURN * OBJ_DIR;   // own accumulator, so the entry phase can be set without a jump
+      objTurn += Math.min(0.1, Math.max(0, idle - objTurnPrev)) * OBJ_TURN * OBJ_DIR * cine.rate * seqRate;   // own accumulator, so the entry phase can be set without a jump
       objTurnPrev = idle;
-      if (beadAsm) beadAsm._e = objExplodeEnv(OBJ_DIR * angDelta(objTurn, beadAsm.frontY));   // the sweep mirrors with the direction
+      if (beadAsm) {
+        beadAsm._e = cine.phase
+          ? introExplodeE()                                     // the intro scripts the opening itself
+          : objExplodeEnv(OBJ_DIR * angDelta(objTurn, beadAsm.frontY));   // the sweep mirrors with the direction
+      }
     } else {
       // Disarm on the way out, so coming BACK to the top re-arms and opens on a whole piece again.
       // Latched, a return landed on the frozen angle — mid-split in one frame if they left mid-
@@ -1264,7 +1370,9 @@ async function init() {
     if (gatherGroup) gatherGroup.position.set(0, dropClusterY, 0);
     // When someone is summoned in the object phase, ease the framing out to the gather fit so
     // the arriving bracelet is actually in shot, and let it close again as they recede.
-    placeCamera(settle, objectMode ? gRecvPres : fg, camY);
+    const cineOwnsCam = inObject ? introFrame(0.016) : false;
+    if (cineOwnsCam) { /* the intro is the camera while it plays */ }
+    else placeCamera(settle, objectMode ? gRecvPres : fg, camY);
     threadAmbient(smooth(0.04, 0.16, anim) * (1 - smooth(0.86, 1.0, anim)) * (1 - Math.min(1, fg * 3)));   // slight ambient pad while the bracelet threads (off during the drop)
     for (const rv of reveals) {
       if (!inObject && rv._e > 0.06 && (rv._prevE || 0) <= 0.06) explodeSound();   // the CAD assembly opens → a slight airy reveal whoosh. Muted in the object phase on purpose: that reveal is ambient, and the opening of the page should not make a noise nobody asked for.
@@ -1342,6 +1450,12 @@ async function init() {
     // deterministic drive for the idle-clocked object turn — tests (and art direction) can
     // sweep the ring without waiting on wall-clock rAF, which hidden/headless pages throttle
     nudgeTurn(d) { objTurn += d; objTurnPrev = idle; if (ready) { update(progress); composer.render(); } },
+    // advance the WHOLE idle clock by hand — throttled pages starve rAF and every
+    // idle-driven behaviour (the turn, the word beat, the reveal) crawls with it
+    tick(dt) { idle += Math.max(0, dt); if (ready) { update(progress); composer.render(); } },
+    // drive the intro's clock by hand (hidden/headless pages throttle rAF); dt in seconds
+    introTick(dt) { if (cine.phase) { cine.t += Math.max(0, dt - 0.016); if (ready) { update(progress); composer.render(); } } },
+    get introPhase() { return cine.phase; },
     suppressOutro(v) { this._suppressOutro = v; },   // the touch-demo owns the outro fade once it's in view
     get progress() { return progress; },
     get ready() { return ready; },
@@ -1952,34 +2066,23 @@ async function init() {
   //      Each word is anchored to its bead (a child of `model`) so it tracks the bead's spin. ----
   function setupBeadWords() {
     if (!model) return;
-    // W1/W2, in REAL 3D: each word is an extruded serif mesh GLUED to its bead — a child of the
-    // model, riding the same spin, standing just above the cap like a hallmark. No pop-up, no
-    // projection: it is simply there, and the turn brings it to you. Font = the site's own
-    // Cormorant italic (woff2 re-expanded to TTF; opentype.js cannot read woff2).
-    const words = ["Technology", "hidden", "in", "jewelry."];
-    const info = BEAD_CENTERS.map((bc, i) => {
-      const a = new THREE.Group(); a.position.set(bc[0], bc[1], bc[2]); model.add(a);
-      model.updateMatrixWorld(true);
-      const anim = ((((frontSpin(a) - SPIN_PHASE) / (TAU * SPIN_TURNS)) % 1) + 1) % 1;
-      return { i, anchor: a, anim };
-    });
-    const exAnim = info[EXPLODE_BEAD].anim;
-    const chosen = info
-      .filter((b) => b.i !== EXPLODE_BEAD)
-      .map((b) => ({ b, d: (((OBJ_DIR * (b.anim - exAnim)) % 1) + 1) % 1 }))   // encounter order FOR THIS direction
-      .sort((p, q) => p.d - q.d)
-      // C5: the LAST beads before the ring returns to the exploding one — so the sentence
-      // finishes with "jewelry." on the bead right next to the explosion, and the reveal
-      // reads as the payoff of the line
-      .slice(3, words.length + 3)
-      .map((x) => x.b);
-    info.forEach((b) => { if (!chosen.includes(b)) model.remove(b.anchor); });
-
-    // sized from modelR — the model's own radius, the unit every hero dimension already uses.
-    // (Deriving it from BEAD_CENTERS spacing produced words 20x too big: those centres are not
-    // adjacency-ordered, so [0] and [1] are nearly opposite sides of the ring.)
+    /* I2/I3 — the 6-beads strike. The old per-bead typed sentence retired to the intro; the
+       cruise now carries ONE recurring beat: a wavy "6 beads" types in over the front bead,
+       the rotation PAUSES, a strike draws through it, the rotation resumes while the struck
+       words burn away — and "6 people allowed to distract you" types in at the same moment,
+       facing the camera. */
     const beadR = modelR * 0.14;
-
+    beadWordWave = beadR * 0.10;
+    // an anchor with a text basis for EVERY bead, so the line can mount over whichever bead
+    // is front when the beat begins
+    wordAnchors = BEAD_CENTERS.map((bc) => {
+      const a = new THREE.Group(); a.position.set(bc[0], bc[1], bc[2]); model.add(a);
+      const n = new THREE.Vector3(bc[0], 0, bc[2]).normalize();
+      const u = new THREE.Vector3(0, -1, 0);
+      const t = new THREE.Vector3().crossVectors(u, n).normalize();
+      const u2 = new THREE.Vector3().crossVectors(n, t).normalize();
+      return { anchor: a, basis: new THREE.Matrix4().makeBasis(t, u2, n), up: u.clone(), radial: n };
+    });
     Promise.all([
       fetch("assets/vendor/text/CormorantGaramond-Italic-latin.ttf").then((r) => r.arrayBuffer()),
       import("opentype.js"),
@@ -1987,61 +2090,179 @@ async function init() {
     ]).then(([buf, ot, svgm]) => {
       const font = (ot.parse || ot.default.parse)(buf);
       const SVGLoader = svgm.SVGLoader;
-      // C6: each LETTER is its own mesh, laid along the word's baseline inside a group glued
-      // to the bead. The turn types them in one by one and backspaces them away; each visible
-      // letter bobs on its own phase of a slow sine — type on a moving jeweller's bench.
-      const glyphCache = {};
       const upm = font.unitsPerEm || 1000;
-      const capH = beadR * 0.62;
-      const scale = capH / (upm * 0.7);
-      const letterGeo = (ch) => {
-        if (glyphCache[ch]) return glyphCache[ch];
-        const path = font.getPath(ch, 0, 0, upm);
-        const d = path.toPathData(3);
-        if (!d) { glyphCache[ch] = null; return null; }
+      const glyphCache = {};
+      const geoFor = (ch, scale) => {
+        const key = ch + "@" + scale.toFixed(5);
+        if (glyphCache[key] !== undefined) return glyphCache[key];
+        const d = font.getPath(ch, 0, 0, upm).toPathData(3);
+        if (!d) { glyphCache[key] = null; return null; }
         const doc = new SVGLoader().parse('<svg xmlns="http://www.w3.org/2000/svg"><path d="' + d + '"/></svg>');
-        const shapeList = doc.paths.flatMap((pp) => SVGLoader.createShapes(pp));
-        const g = new THREE.ExtrudeGeometry(shapeList, { depth: upm * 0.06, bevelEnabled: false, curveSegments: 8 });
+        const g = new THREE.ExtrudeGeometry(doc.paths.flatMap((pp) => SVGLoader.createShapes(pp)),
+                                            { depth: upm * 0.06, bevelEnabled: false, curveSegments: 8 });
         g.scale(scale, -scale, scale);
-        glyphCache[ch] = g;
+        glyphCache[key] = g;
         return g;
       };
-      beadWordWave = beadR * 0.10;
-      beadWords = chosen.map((b, k) => {
-        const word = words[k];
+      const buildLine = (text, capH) => {
+        const scale = capH / (upm * 0.7);
         const group = new THREE.Group();
-        const mat = new THREE.MeshStandardMaterial({
-          color: 0xf6ecd4, roughness: 0.48, metalness: 0.08,
-          emissive: 0x6b6250, emissiveIntensity: 0.55,
-          transparent: true, opacity: 0, side: THREE.DoubleSide });
-        const total = font.getAdvanceWidth(word, upm) * scale;
-        let cursor = -total / 2;                                 // centre the word on the bead
+        const total = font.getAdvanceWidth(text, upm) * scale;
+        let cursor = -total / 2;
         const letters = [];
-        for (const ch of word) {
-          const geo = letterGeo(ch);
+        for (const ch of text) {
+          const geo = geoFor(ch, scale);
           const adv = font.getAdvanceWidth(ch, upm) * scale;
           if (geo) {
+            const mat = new THREE.MeshStandardMaterial({
+              color: 0xf6ecd4, roughness: 0.48, metalness: 0.08,
+              emissive: 0x6b6250, emissiveIntensity: 0.55,
+              transparent: true, opacity: 0, side: THREE.DoubleSide });
             const mesh = new THREE.Mesh(geo, mat);
             mesh.position.x = cursor;
             mesh.visible = false;
-            group.add(mesh);
-            letters.push(mesh);
+            group.add(mesh); letters.push(mesh);
           }
           cursor += adv;
         }
-        // basis in MODEL space: ring plane is XZ, world-up is model -Y (the mount is flipped)
-        const bc = b.anchor.position;
-        const n = new THREE.Vector3(bc.x, 0, bc.z).normalize();
-        const u = new THREE.Vector3(0, -1, 0);
-        const t = new THREE.Vector3().crossVectors(u, n).normalize();
-        const u2 = new THREE.Vector3().crossVectors(n, t).normalize();
-        group.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(t, u2, n));
-        group.position.copy(u).multiplyScalar(beadR * 1.55);
-        b.anchor.add(group);
-        return { anchor: b.anchor, mesh: group, mat, letters, radial: n, frontAnim: b.anim };
+        group.visible = false;
+        return { group, letters, width: total };
+      };
+      seqLine1 = buildLine("6 beads", beadR * 0.66);
+      seqLine2 = buildLine("6 people allowed to distract you", beadR * 0.40);
+      // the strike: a thin bar that draws itself through line1
+      const smat = new THREE.MeshStandardMaterial({ color: 0xf6ecd4, emissive: 0x6b6250, emissiveIntensity: 0.6, transparent: true, opacity: 0 });
+      seqStrike = new THREE.Mesh(new THREE.BoxGeometry(1, beadR * 0.07, beadR * 0.05), smat);
+      seqStrike.visible = false;
+      seqLine1.group.add(seqStrike);
+      seqStrike.position.y = beadR * 0.66 * 0.32;          // through the lowercase body
+      scene.add(seqLine2.group);                            // line 2 faces the camera, not a bead
+      seqState = "WAIT"; seqT = idle;
+      if (window.__hero) window.__hero.seq = () => ({ state: seqState, rate: seqRate, t: +(idle - seqT).toFixed(2), cine: cine.phase, box: boxMode, l1: seqLine1.group.visible, l2: seqLine2.group.visible });
+    }).catch((e) => console.warn("[wordseq] disabled:", e));
+  }
+
+  let beadWordWave = 0;   // set once the model scale is known (setupBeadWords)
+  const _bwV = new THREE.Vector3(), _bwC = new THREE.Vector3(), _bwR = new THREE.Vector3();
+  const _bwQ = new THREE.Quaternion();
+  // ---- the recurring 6-beads beat ----
+  let wordAnchors = [], seqLine1 = null, seqLine2 = null, seqStrike = null;
+  let seqState = null, seqT = 0, seqBead = 0;
+  const SEQ_D = { WAIT: 3.0, TYPE1: 0.9, HOLD1: 0.7, PAUSE: 0.45, STRIKE: 0.6, BURN: 1.6, TYPE2: 1.5, SHOW2: 5.0, FADE2: 0.9, COOL: 16.0 };
+  function seqGo(st) { seqState = st; seqT = idle; }
+  function updateBeadWords(anim, objectMode) {
+    if (!seqLine1) return;
+    const live = objectMode && !boxMode && !cine.phase;
+    if (!live) {
+      seqRate = 1;
+      seqLine1.group.visible = false; seqLine2.group.visible = false;
+      if (seqState !== "WAIT") seqGo("WAIT");
+      return;
+    }
+    const t = idle - seqT, wave = reduce ? 0 : beadWordWave;
+    const setWave = (line, from) => {
+      for (let i = 0; i < line.letters.length; i++) {
+        const L = line.letters[i];
+        if (L.visible) L.position.y = (from || 0) + wave * Math.sin(idle * 2.4 + i * 0.85);
+      }
+    };
+    if (seqState === "WAIT") {
+      seqRate = 1;
+      if (t >= SEQ_D.WAIT) {
+        // mount line1 over the CURRENT front bead and begin typing
+        let best = 0, bz = -1e9; const q = model.getWorldQuaternion(_bwQ);
+        wordAnchors.forEach((a, i) => { const r = a.radial.clone().applyQuaternion(q); if (r.z + r.x > bz) { bz = r.z + r.x; best = i; } });
+        // front = max facing toward the camera: reuse the facing dot against the camera dir
+        let bestI = 0, bestD = -1e9;
+        wordAnchors.forEach((a, i) => {
+          a.anchor.getWorldPosition(_bwV);
+          _bwR.copy(a.radial).applyQuaternion(q);
+          _bwC.copy(camera.position).sub(_bwV).normalize();
+          const d = _bwR.dot(_bwC);
+          if (d > bestD) { bestD = d; bestI = i; }
+        });
+        seqBead = bestI;
+        const A = wordAnchors[seqBead];
+        A.anchor.add(seqLine1.group);
+        seqLine1.group.quaternion.setFromRotationMatrix(A.basis);
+        seqLine1.group.position.copy(A.up).multiplyScalar(modelR * 0.14 * 1.55);
+        seqLine1.group.visible = true;
+        seqLine1.letters.forEach((L) => { L.visible = false; L.material.opacity = 1; L.material.color.setHex(0xf6ecd4); L.material.emissive.setHex(0x6b6250); });
+        seqStrike.visible = false; seqStrike.material.opacity = 0;
+        seqGo("TYPE1");
+      }
+    } else if (seqState === "TYPE1") {
+      seqRate = 1;
+      const n = Math.min(seqLine1.letters.length, Math.ceil((t / SEQ_D.TYPE1) * seqLine1.letters.length));
+      seqLine1.letters.forEach((L, i) => { L.visible = i < n; });
+      setWave(seqLine1);
+      if (t >= SEQ_D.TYPE1) seqGo("HOLD1");
+    } else if (seqState === "HOLD1") {
+      seqRate = 1; setWave(seqLine1);
+      if (t >= SEQ_D.HOLD1) seqGo("PAUSE");
+    } else if (seqState === "PAUSE") {
+      seqRate = 1 - smooth(0, 0.35, t);                    // the rotation brakes to a stop
+      setWave(seqLine1);
+      if (t >= SEQ_D.PAUSE) { seqStrike.visible = true; seqGo("STRIKE"); }
+    } else if (seqState === "STRIKE") {
+      seqRate = 0;                                          // held still while the strike draws
+      const u = smooth(0, 1, t / SEQ_D.STRIKE);
+      seqStrike.material.opacity = 1;
+      seqStrike.scale.x = Math.max(0.001, u * seqLine1.width * 1.12);
+      seqStrike.position.x = (-seqLine1.width * 1.12) / 2 + (u * seqLine1.width * 1.12) / 2;
+      setWave(seqLine1);
+      if (t >= SEQ_D.STRIKE) {
+        // line 2 arrives AS the burn begins
+        seqLine2.group.visible = true;
+        seqLine2.letters.forEach((L) => { L.visible = false; L.material.opacity = 1; });
+        seqGo("BURN");
+      }
+    } else if (seqState === "BURN") {
+      seqRate = smooth(0.15, 0.7, t);                       // the turn breathes back in
+      // the struck words go like paper embers: stagger per letter, flash warm, rise, gone
+      seqLine1.letters.forEach((L, i) => {
+        const u = clamp((t - i * 0.05) / 0.9, 0, 1);
+        if (u <= 0 || !L.visible) return;
+        L.material.color.lerpColors(new THREE.Color(0xf6ecd4), new THREE.Color(0xc9722a), Math.min(1, u * 2));
+        L.material.opacity = 1 - smooth(0.25, 1, u);
+        L.position.y += 0.0035 * modelR * u;
       });
-      if (window.__hero) window.__hero.words3d = () => beadWords.map((W) => ({ o: W.mat.opacity, x: W._sx || 0, y: W._sy || 0 }));
-    }).catch((e) => console.warn("[beadwords3d] no 3D words:", e));
+      seqStrike.material.opacity = 1 - smooth(0.3, 1, t / SEQ_D.BURN);
+      typeLine2(t);
+      if (t >= SEQ_D.BURN) { seqLine1.group.visible = false; seqGo("TYPE2"); }
+    } else if (seqState === "TYPE2") {
+      seqRate = 1;
+      typeLine2(SEQ_D.BURN + t);
+      if (t >= SEQ_D.TYPE2) seqGo("SHOW2");
+    } else if (seqState === "SHOW2") {
+      seqRate = 1; setWave(seqLine2);
+      if (t >= SEQ_D.SHOW2) seqGo("FADE2");
+    } else if (seqState === "FADE2") {
+      seqRate = 1;
+      const o = 1 - smooth(0, 1, t / SEQ_D.FADE2);
+      seqLine2.letters.forEach((L) => { L.material.opacity = o; });
+      setWave(seqLine2);
+      if (t >= SEQ_D.FADE2) { seqLine2.group.visible = false; seqGo("COOL"); }
+    } else if (seqState === "COOL") {
+      seqRate = 1;
+      if (t >= SEQ_D.COOL) seqGo("WAIT");
+    }
+    // line 2 faces the camera from just above the ring's front edge — readable while turning
+    if (seqLine2.group.visible) {
+      _bwC.copy(camera.position); _bwC.y = 0; _bwC.normalize();
+      seqLine2.group.position.copy(_bwC).multiplyScalar(modelR * 0.9);
+      // shifted toward camera-RIGHT and kept low, so the line lives over the piece's right
+      // shoulder — never across the headline column
+      _bwV.set(1, 0, 0).applyQuaternion(camera.quaternion);   // camera right in world
+      seqLine2.group.position.addScaledVector(_bwV, modelR * 0.45);
+      seqLine2.group.position.y = modelR * 0.30;
+      seqLine2.group.quaternion.copy(camera.quaternion);
+      setWave(seqLine2);
+    }
+  }
+  function typeLine2(tt) {
+    const n = Math.min(seqLine2.letters.length, Math.ceil((tt / (SEQ_D.BURN + SEQ_D.TYPE2)) * seqLine2.letters.length));
+    seqLine2.letters.forEach((L, i) => { L.visible = i < n; });
   }
 
   function updateExplode(asm, e) {
@@ -2064,8 +2285,6 @@ async function init() {
   // ---- per-component labels: one tag pinned to each part, projected to screen and revealed as the assembly splits ----
   const hubLabelHost = $("#hubLabels");
   const beadLabelHost = $("#beadLabels");
-  const beadWordHost = $("#beadWords");
-  let beadWords = [];
   function buildLabels(host, defs) {
     if (!host) return [];
     host.innerHTML = "";
@@ -2116,45 +2335,6 @@ async function init() {
     });
   }
 
-  // ---- on-bead words: project each word to its bead's screen position every frame so it tracks
-  //      the spin; fade in as the bead swings to the front, out as it rotates away ----
-  let beadWordWave = 0;   // set once the font/model scale is known (setupBeadWords)
-  const _bwV = new THREE.Vector3(), _bwC = new THREE.Vector3(), _bwR = new THREE.Vector3();
-  const _bwQ = new THREE.Quaternion();
-  function updateBeadWords(anim, objectMode) {
-    if (!beadWords.length) return;
-    // GLUED text needs no choreography — only honesty about physics: a word is legible while
-    // its face is toward you, and it dips away with its bead. Opacity follows the facing dot
-    // with a SHARP ramp (readable well before dead-front, gone quickly past it) and nothing
-    // else moves, because nothing else would move on a real object.
-    // the blackout narrows to the reveal's BIG-open span, or the word on the adjacent bead
-    // ("jewelry.", by design right next to the exploding bead) would never finish typing
-    const hideAll = (!objectMode) || boxMode || (beadAsm && beadAsm._e > 0.25 && beadAsm._e < 0.97);
-    for (const W of beadWords) {
-      if (hideAll) { W.mat.opacity = 0; W.mesh.visible = false; continue; }
-      W.mesh.getWorldPosition(_bwV);
-      _bwR.copy(W.radial).applyQuaternion(model.getWorldQuaternion(_bwQ));   // radial lives in MODEL space
-      _bwC.copy(camera.position).sub(_bwV).normalize();
-      const facing = _bwR.dot(_bwC);
-      const o = clamp(smooth(0.70, 0.88, facing), 0, 1);   // ceiling below cos(cam elevation), so dead-front genuinely reads 1
-      _bwV.project(camera);
-      const cw = canvas.clientWidth || 1;
-      W._sx = (_bwV.x * 0.5 + 0.5) * cw;
-      W._sy = (-_bwV.y * 0.5 + 0.5) * (canvas.clientHeight || 1);
-      W.mat.opacity = o;
-      W.mesh.visible = o > 0.02;
-      if (!W.mesh.visible) continue;
-      // TYPE: the approach types letters in; the exit backspaces them. WAVE: each visible
-      // letter rides its own phase of a slow sine — amplitude small enough to read as float,
-      // not jitter.
-      const typed = Math.round(clamp(smooth(0.55, 0.92, facing), 0, 1) * W.letters.length);
-      for (let li = 0; li < W.letters.length; li++) {
-        const L = W.letters[li];
-        L.visible = li < typed;
-        if (L.visible) L.position.y = reduce ? 0 : beadWordWave * Math.sin(idle * 2.4 + li * 0.85);
-      }
-    }
-  }
 
   // NOTE: a dev-only keydown handler used to live here to tune the braid params live (keys 1-8/g/f/e/d/b).
   // It called e.preventDefault() on those keys at the window level, which swallowed them everywhere on the
@@ -2539,6 +2719,7 @@ async function init() {
   // the public door: GO to the designer's place on the page — the crossing does the rest
   function openBox() {
     const cust = $("#customize"); if (!cust) return;
+    introFinish(true);                                 // the designer outranks the opening
     audioCtx();                                        // wake audio inside the gesture
     if (section.classList.contains("no3d")) {          // no-WebGL fallback: the panel alone, over the poster
       section.classList.add("in-box"); cust.classList.add("is-open");
@@ -2563,7 +2744,7 @@ async function init() {
     const cust = $("#customize"); if (!cust) return;
     for (const rv of reveals) { rv._e = 0; rv._prevE = 0; updateExplode(rv, 0); }   // the open bead closes for the catch
     for (const id of ["#hubLabels", "#beadLabels", "#beadWords"]) { const h = $(id); if (h) h.style.opacity = "0"; }
-    for (const W of beadWords) { W.mat.opacity = 0; W.mesh.visible = false; }   // glued text stays OUT of the vitrine
+    if (seqLine1) { seqLine1.group.visible = false; seqLine2.group.visible = false; }   // the word beat stays OUT of the vitrine
     buildVitrine();
     if (groundMesh) groundMesh.visible = false;
     if (gatherGroup) gatherGroup.visible = false;
@@ -2923,6 +3104,7 @@ async function init() {
     build();
     setupExplode();
     onScroll(); render();   // FIRST paint — deliberately after setupExplode(), see the note at the end of build()
+    if (introEligible()) introStart();   // the one-time cinematic opening
     buildGather();      // clone the FINISHED hero bracelet (after setupExplode → glow + hub correct) for the circle
     // setupExplode queued the two board GLBs rather than fetching them. Pull them in once the main thread
     // goes quiet (the timeout is the backstop for browsers without requestIdleCallback, e.g. older Safari).
