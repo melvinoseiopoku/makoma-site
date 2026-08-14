@@ -34,7 +34,7 @@ const MODELS = ["sankofa", "aya", "nsoroma", "gye_nyame", "nkyinkyim"];
 const FILLERS = ["akoma", "akoma_ntoaso", "nkonsonkonson"];
 
 export async function initBeadRing3D(ctx) {
-  const { strap, slots, ring, onFront } = ctx;
+  const { strap, slots, ring, onFront, focus, wasDrag } = ctx;
   // the app's cord: 8 wrap stations 45 deg apart; the station facing the camera after the
   // -90 deg X tilt is index 6 (scene angle 270 deg). Publishing these through the shared ring
   // state makes main.js's drag/settle/focus math station-true without forking any of it.
@@ -184,6 +184,10 @@ export async function initBeadRing3D(ctx) {
       const on = b.slot === front;
       for (const m of b.golds) { m.emissive.copy(on ? GOLD_ON : GOLD_DIM); m.emissiveIntensity = on ? 1.0 : 0.55; }
     }
+    if (window.__hero || true) window.__beadScreens = beads.map((b) => {
+      b.node.getWorldPosition(_v); const wz = _v.z; _v.project(camera);
+      return { s: b.slot, x: Math.round((_v.x * 0.5 + 0.5) * (strap.clientWidth || 1)), y: Math.round((-_v.y * 0.5 + 0.5) * (strap.clientHeight || 1)), wz: +wz.toFixed(2) };
+    });
     renderer.render(scene, camera);
   }
   // render only while the section is near the viewport — this lives below the fold, and a
@@ -195,6 +199,59 @@ export async function initBeadRing3D(ctx) {
     }
   }, { threshold: 0.05 });
   io.observe(strap);
+
+  // Taps land on the DRAWN beads, not on invisible DOM proxies: raycast the click into the
+  // scene. The front bead presses (through its existing DOM button, so every handler and
+  // animation stays wired); any other bead turns to the front. Drags never fire (wasDrag).
+  const ray = new THREE.Raycaster();
+  const _p = new THREE.Vector2();
+  // DOCUMENT capture, not strap/canvas: the drag handler takes pointer capture, which
+  // retargets the whole pointer sequence unpredictably across browsers — a capture-phase
+  // document listener sees every click first, wherever it was retargeted. We filter by the
+  // canvas rect ourselves.
+  // POINTERUP, not click: with the strap's pointer capture in play, Chrome does not reliably
+  // synthesize a click for this sequence at all (observed: press fired via the DOM button
+  // while no click event ever reached a document-level capture listener). pointerup always
+  // fires; the moved-guard keeps drags from tapping.
+  document.addEventListener("pointerup", (e) => {
+    if (wasDrag && wasDrag()) return;
+    if (e.target && e.target.closest && (e.target.closest(".bx-tagbtn") || e.target.closest(".bx-mi"))) return;   // badges own their taps
+    const cr = canvas.getBoundingClientRect();
+    if (e.clientX < cr.left || e.clientX > cr.right || e.clientY < cr.top || e.clientY > cr.bottom) return;
+    const r = canvas.getBoundingClientRect();
+    _p.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
+    ray.setFromCamera(_p, camera);
+    let best = null, bestD = Infinity;
+    for (const b of beads) {
+      // per-bead try/catch: one un-raycastable child must not kill the tap for every other bead
+      try {
+        const hits = ray.intersectObject(b.node, true);
+        if (hits.length && hits[0].distance < bestD) { bestD = hits[0].distance; best = b.slot; }
+      } catch (err) { /* skip this bead */ }
+    }
+    if (window.__hero) window.__rayHit = best;            // test/debug probe
+    if (best == null) return;
+    const front = [...slots].findIndex((s) => s.getAttribute("data-front") === "1");
+    if (best === front) {
+      const btn = slots[best] && slots[best].querySelector(".bx-bead");
+      if (btn) btn.click();
+    } else if (focus) {
+      focus(best);
+    }
+  }, true);
+
+  // debug: ray-test any strap-local point without the event system
+  window.__rayTest = (px, py) => {
+    const w = strap.clientWidth || 1, h = strap.clientHeight || 1;
+    _p.set((px / w) * 2 - 1, -(py / h) * 2 + 1);
+    ray.setFromCamera(_p, camera);
+    return beads.map((b) => {
+      const hits = ray.intersectObject(b.node, true);
+      const sph = [];
+      b.node.traverse((o) => { if (o.isMesh) sph.push(o.geometry.boundingSphere ? +o.geometry.boundingSphere.radius.toFixed(3) : "null"); });
+      return { s: b.slot, hits: hits.length, d: hits.length ? +hits[0].distance.toFixed(2) : null, spheres: sph.slice(0, 3) };
+    });
+  };
 
   strap.classList.add("bx-3d");
   // seat the first bead dead-front on arrival (station 6), the way the app opens focused

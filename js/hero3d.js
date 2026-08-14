@@ -1968,9 +1968,10 @@ async function init() {
       .filter((b) => b.i !== EXPLODE_BEAD)
       .map((b) => ({ b, d: (((OBJ_DIR * (b.anim - exAnim)) % 1) + 1) % 1 }))   // encounter order FOR THIS direction
       .sort((p, q) => p.d - q.d)
-      // skip the exploded bead's immediate successor: its whole front pass sits inside the
-      // reveal window, where every word is blanked — a word there never lights at all
-      .slice(1, words.length + 1)
+      // C5: the LAST beads before the ring returns to the exploding one — so the sentence
+      // finishes with "jewelry." on the bead right next to the explosion, and the reveal
+      // reads as the payoff of the line
+      .slice(3, words.length + 3)
       .map((x) => x.b);
     info.forEach((b) => { if (!chosen.includes(b)) model.remove(b.anchor); });
 
@@ -1986,37 +1987,58 @@ async function init() {
     ]).then(([buf, ot, svgm]) => {
       const font = (ot.parse || ot.default.parse)(buf);
       const SVGLoader = svgm.SVGLoader;
+      // C6: each LETTER is its own mesh, laid along the word's baseline inside a group glued
+      // to the bead. The turn types them in one by one and backspaces them away; each visible
+      // letter bobs on its own phase of a slow sine — type on a moving jeweller's bench.
+      const glyphCache = {};
+      const upm = font.unitsPerEm || 1000;
+      const capH = beadR * 0.62;
+      const scale = capH / (upm * 0.7);
+      const letterGeo = (ch) => {
+        if (glyphCache[ch]) return glyphCache[ch];
+        const path = font.getPath(ch, 0, 0, upm);
+        const d = path.toPathData(3);
+        if (!d) { glyphCache[ch] = null; return null; }
+        const doc = new SVGLoader().parse('<svg xmlns="http://www.w3.org/2000/svg"><path d="' + d + '"/></svg>');
+        const shapeList = doc.paths.flatMap((pp) => SVGLoader.createShapes(pp));
+        const g = new THREE.ExtrudeGeometry(shapeList, { depth: upm * 0.06, bevelEnabled: false, curveSegments: 8 });
+        g.scale(scale, -scale, scale);
+        glyphCache[ch] = g;
+        return g;
+      };
+      beadWordWave = beadR * 0.10;
       beadWords = chosen.map((b, k) => {
         const word = words[k];
-        const upm = font.unitsPerEm || 1000;
-        const path = font.getPath(word, 0, 0, upm);            // baseline at y=0, SVG y-down
-        const bb = path.getBoundingBox();
-        const doc = new SVGLoader().parse('<svg xmlns="http://www.w3.org/2000/svg"><path d="' + path.toPathData(3) + '"/></svg>');
-        const shapeList = doc.paths.flatMap((pp) => SVGLoader.createShapes(pp));
-        const capH = beadR * 0.62;                              // cap-height target
-        const scale = capH / (upm * 0.7);                       // Cormorant cap height ~ 0.7em
-        const geo = new THREE.ExtrudeGeometry(shapeList, { depth: upm * 0.06, bevelEnabled: false, curveSegments: 8 });
-        geo.scale(scale, -scale, scale);                        // SVG y-down -> up
-        geo.computeBoundingBox();
-        const gb = geo.boundingBox, cx = (gb.min.x + gb.max.x) / 2;
-        geo.translate(-cx, 0, 0);                               // centre on the bead
+        const group = new THREE.Group();
         const mat = new THREE.MeshStandardMaterial({
           color: 0xf6ecd4, roughness: 0.48, metalness: 0.08,
           emissive: 0x6b6250, emissiveIntensity: 0.55,
           transparent: true, opacity: 0, side: THREE.DoubleSide });
-        const mesh = new THREE.Mesh(geo, mat);
+        const total = font.getAdvanceWidth(word, upm) * scale;
+        let cursor = -total / 2;                                 // centre the word on the bead
+        const letters = [];
+        for (const ch of word) {
+          const geo = letterGeo(ch);
+          const adv = font.getAdvanceWidth(ch, upm) * scale;
+          if (geo) {
+            const mesh = new THREE.Mesh(geo, mat);
+            mesh.position.x = cursor;
+            mesh.visible = false;
+            group.add(mesh);
+            letters.push(mesh);
+          }
+          cursor += adv;
+        }
         // basis in MODEL space: ring plane is XZ, world-up is model -Y (the mount is flipped)
         const bc = b.anchor.position;
-        const n = new THREE.Vector3(bc.x, 0, bc.z).normalize(); // radial out = text normal
-        const u = new THREE.Vector3(0, -1, 0);                  // model -Y = world up
+        const n = new THREE.Vector3(bc.x, 0, bc.z).normalize();
+        const u = new THREE.Vector3(0, -1, 0);
         const t = new THREE.Vector3().crossVectors(u, n).normalize();
         const u2 = new THREE.Vector3().crossVectors(n, t).normalize();
-        mesh.matrixAutoUpdate = false;
-        const m = new THREE.Matrix4().makeBasis(t, u2, n);
-        m.setPosition(new THREE.Vector3().copy(u).multiplyScalar(beadR * 1.55));
-        mesh.matrix.copy(m);
-        b.anchor.add(mesh);
-        return { anchor: b.anchor, mesh, mat, radial: n, frontAnim: b.anim };
+        group.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(t, u2, n));
+        group.position.copy(u).multiplyScalar(beadR * 1.55);
+        b.anchor.add(group);
+        return { anchor: b.anchor, mesh: group, mat, letters, radial: n, frontAnim: b.anim };
       });
       if (window.__hero) window.__hero.words3d = () => beadWords.map((W) => ({ o: W.mat.opacity, x: W._sx || 0, y: W._sy || 0 }));
     }).catch((e) => console.warn("[beadwords3d] no 3D words:", e));
@@ -2096,6 +2118,7 @@ async function init() {
 
   // ---- on-bead words: project each word to its bead's screen position every frame so it tracks
   //      the spin; fade in as the bead swings to the front, out as it rotates away ----
+  let beadWordWave = 0;   // set once the font/model scale is known (setupBeadWords)
   const _bwV = new THREE.Vector3(), _bwC = new THREE.Vector3(), _bwR = new THREE.Vector3();
   const _bwQ = new THREE.Quaternion();
   function updateBeadWords(anim, objectMode) {
@@ -2104,20 +2127,32 @@ async function init() {
     // its face is toward you, and it dips away with its bead. Opacity follows the facing dot
     // with a SHARP ramp (readable well before dead-front, gone quickly past it) and nothing
     // else moves, because nothing else would move on a real object.
-    const hideAll = (!objectMode) || boxMode || (beadAsm && beadAsm._e > 0.03 && beadAsm._e < 0.97);
+    // the blackout narrows to the reveal's BIG-open span, or the word on the adjacent bead
+    // ("jewelry.", by design right next to the exploding bead) would never finish typing
+    const hideAll = (!objectMode) || boxMode || (beadAsm && beadAsm._e > 0.25 && beadAsm._e < 0.97);
     for (const W of beadWords) {
       if (hideAll) { W.mat.opacity = 0; W.mesh.visible = false; continue; }
       W.mesh.getWorldPosition(_bwV);
       _bwR.copy(W.radial).applyQuaternion(model.getWorldQuaternion(_bwQ));   // radial lives in MODEL space
       _bwC.copy(camera.position).sub(_bwV).normalize();
       const facing = _bwR.dot(_bwC);
-      let o = clamp(smooth(0.70, 0.88, facing), 0, 1);     // ceiling below cos(cam elevation), so dead-front genuinely reads 1
+      const o = clamp(smooth(0.70, 0.88, facing), 0, 1);   // ceiling below cos(cam elevation), so dead-front genuinely reads 1
       _bwV.project(camera);
       const cw = canvas.clientWidth || 1;
       W._sx = (_bwV.x * 0.5 + 0.5) * cw;
       W._sy = (-_bwV.y * 0.5 + 0.5) * (canvas.clientHeight || 1);
       W.mat.opacity = o;
       W.mesh.visible = o > 0.02;
+      if (!W.mesh.visible) continue;
+      // TYPE: the approach types letters in; the exit backspaces them. WAVE: each visible
+      // letter rides its own phase of a slow sine — amplitude small enough to read as float,
+      // not jitter.
+      const typed = Math.round(clamp(smooth(0.55, 0.92, facing), 0, 1) * W.letters.length);
+      for (let li = 0; li < W.letters.length; li++) {
+        const L = W.letters[li];
+        L.visible = li < typed;
+        if (L.visible) L.position.y = reduce ? 0 : beadWordWave * Math.sin(idle * 2.4 + li * 0.85);
+      }
     }
   }
 

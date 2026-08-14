@@ -2006,13 +2006,22 @@ section{ position:relative; z-index:2; }
 /* the cord the beads ride: a single quiet arc, no braid detail at this scale */
 .bx-cord{ position:absolute; inset:0; width:100%; height:100%; overflow:visible; pointer-events:none; z-index:0; }
 
+/* while the real carousel loads, nothing of the flat ring may flash — an empty stage reads
+   better than the wrong bracelet appearing and being replaced */
+.bx-strap.bx-upgrading .bx-slot, .bx-strap.bx-upgrading .bx-cord{ visibility:hidden; }
+
 /* THE REAL CAROUSEL (beadring3d.js) — the app's cord + CAD beads in WebGL. The canvas is the
    scenery; the DOM slots keep the interaction (badges + press targets), projected over the
    real geometry each frame. The flat renders and the SVG cord bow out. */
 .bx-gl{ position:absolute; inset:0; width:100%; height:100%; display:block; z-index:1; }
 .bx-strap.bx-3d .bx-orb, .bx-strap.bx-3d .bx-cord{ display:none; }
-/* the bead button loses its image but must keep a hit area over the real bead below the badge */
-.bx-strap.bx-3d .bx-bead{ width:76px; height:76px; border-radius:50%; }
+/* In 3D mode the slots are POSITIONING ONLY: pointer-events off, so every tap on a drawn
+   sphere falls through to the canvas raycast (which presses the front bead / turns a side
+   bead). The job badge alone stays interactive; the .bx-bead button keeps keyboard focus and
+   its synthetic .click() role but no longer intercepts the pointer. */
+.bx-strap.bx-3d .bx-slot{ pointer-events:none; }
+.bx-strap.bx-3d .bx-slot .bx-tagbtn{ pointer-events:auto; }
+.bx-strap.bx-3d .bx-bead{ width:76px; height:76px; border-radius:50%; pointer-events:none; }
 
 /* gap:0 and a negative pull, because the bead PNG carries transparent margin around the
    sphere — a positive gap reads as the badge floating away from its bead */
@@ -2074,7 +2083,8 @@ section{ position:relative; z-index:2; }
 
 /* AN ACTUAL PHONE: 19.5:9, a real titanium-ish rail with the four side controls, the Dynamic
    Island, a status bar and the home indicator. The old rounded rectangle read as a prop. */
-.bx-iphone{ position:relative; width:190px; aspect-ratio:9/19.5; margin:6px auto 0; border-radius:30px;
+/* -58px: the ring floats mid-strap, so the phone tucks up under the front bead */
+.bx-iphone{ position:relative; width:190px; aspect-ratio:9/19.5; margin:-58px auto 0; border-radius:30px;
   padding:3px; box-sizing:border-box;
   background:linear-gradient(150deg,#8e8e93 0%,#3a3a3e 18%,#6e6e73 38%,#2c2c30 62%,#7d7d82 82%,#37373b 100%);
   box-shadow:0 26px 60px rgba(0,0,0,.66), 0 2px 0 rgba(255,255,255,.08) inset; }

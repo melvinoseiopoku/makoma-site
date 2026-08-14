@@ -696,7 +696,8 @@
       ring.moved = Math.max(ring.moved, Math.abs(dx));
       if (ring.moved > 6 && openOn >= 0) closeMenu();                             // a turning ring must not drag a menu with it
       if (ring.moved > 6) stopDemo();
-      ring.off = ring.o0 - dx / ((strap.clientWidth || 300) * 0.30);
+      // content follows the finger: dragging right turns the ring right (was mirrored)
+      ring.off = ring.o0 + dx / ((strap.clientWidth || 300) * 0.30);
       ringLayout();
     });
     var end = function (e) {
@@ -705,7 +706,9 @@
       try { strap.releasePointerCapture(ring.id); } catch (_) {}
       // arm the one-shot click swallow ONLY for the click this drag is about to emit
       ring.eat = ring.moved > 6;
-      ringTo(Math.round(ring.off));
+      // snap ONLY after a real drag: a tap's own pointerup otherwise rounds the ring back and
+      // clobbers whatever a tap handler (the 3D raycast focus) just asked for
+      if (ring.moved > 6) ringTo(Math.round(ring.off));
     };
     strap.addEventListener("pointerup", end);
     strap.addEventListener("pointercancel", end);
@@ -739,7 +742,6 @@
     b.classList.remove("is-press"); void b.offsetWidth; b.classList.add("is-press");
     slots[i].classList.add("is-press");
     setTimeout(function () { slots[i].classList.remove("is-press"); }, 600);
-    say("Tap the dot above a bead to change what it does.");
     if (reduce) { showScreen(act); return; }
     var sb = strap.getBoundingClientRect(), bb = b.getBoundingClientRect();
     pulse.style.left = (bb.left - sb.left + bb.width / 2 - 4) + "px";
@@ -830,22 +832,26 @@
   // first paint — it starts strictly after the visitor has scrolled to the section. (The
   // 10.8s LCP regression came from a 400px rootMargin firing with zero scroll on a
   // one-viewport hero, not from phones being phones.)
+  // If the upgrade WILL run, the flat CSS ring must never flash first (Melvin saw the old
+  // ring for seconds before the real one landed). Probe WebGL up front: hide the flat layer
+  // immediately, reveal it only if the 3D fails.
+  var probe = document.createElement("canvas");
+  var webgl = false;
+  try { webgl = !!(window.WebGLRenderingContext && (probe.getContext("webgl2") || probe.getContext("webgl"))); } catch (e) {}
+  if (webgl) strap.classList.add("bx-upgrading");
   var up = new IntersectionObserver(function (es) {
     var near = false;
     for (var k = 0; k < es.length; k++) if (es[k].isIntersecting) near = true;
     if (!near) return;
     up.disconnect();
-    var probe = document.createElement("canvas");
-    var webgl = false;
-    try { webgl = !!(window.WebGLRenderingContext && (probe.getContext("webgl2") || probe.getContext("webgl"))); } catch (e) {}
     if (!webgl) return;
     (window.requestIdleCallback || function (fn) { setTimeout(fn, 350); })(function () {
       import("./beadring3d.js")
         .then(function (mod) {
-          return mod.initBeadRing3D({ strap: strap, slots: slots, ring: ring, getStep: function () { return STEP; } });
+          return mod.initBeadRing3D({ strap: strap, slots: slots, ring: ring, getStep: function () { return STEP; }, focus: ringFocus, wasDrag: function () { return ring.moved > 6; } });
         })
-        .then(function (ok) { if (ok) ring3dActive = true; })
-        .catch(function (e) { console.warn("[beadring3d] staying on the CSS ring:", e); });
+        .then(function (ok) { if (ok) ring3dActive = true; strap.classList.remove("bx-upgrading"); })
+        .catch(function (e) { console.warn("[beadring3d] staying on the CSS ring:", e); strap.classList.remove("bx-upgrading"); });
     }, { timeout: 2000 });
   }, { threshold: 0.05 });
   up.observe(root);
