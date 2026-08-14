@@ -121,6 +121,11 @@ const canvas = $("#heroCanvas");
 const poster = $("#heroPoster");
 const loaderEl = $("#heroLoader");
 const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+// SHIPPED SIMPLE (2026-08-14, Melvin's call): the multi-shot cinematic intro and the
+// 6-beads strike beat are OFF — the hero opens straight on the turning piece. The
+// machinery stays for the next iteration round; flip these to bring either back.
+const INTRO_ENABLED = false;
+const SEQ_BEAT_ENABLED = false;
 
 function webglOK() {
   try { const c = document.createElement("canvas"); return !!(window.WebGLRenderingContext && (c.getContext("webgl2") || c.getContext("webgl"))); }
@@ -130,6 +135,13 @@ const coarse = window.matchMedia("(pointer: coarse)").matches;   // phone / touc
 const conn = navigator.connection || navigator.webkitConnection || {};
 const slowNet = conn.saveData === true || /(^|-)2g$/.test(conn.effectiveType || "");
 
+// /customize is the designer as a real, linkable page. Vercel rewrites it onto this same
+// index.html (vercel.json), so "being on /customize" and "the designer is open" are one state —
+// one implementation, two entry points. ?customize=1 is the local-dev fallback (python's
+// http.server has no rewrites).
+const wantsCustomize = /\/customize\/?$/.test(location.pathname)
+  || new URLSearchParams(location.search).has("customize");
+
 // The interactive bead scroll now runs on phones too. The static poster is only a fallback for genuinely
 // unsupported cases: no WebGL, an explicit reduced-motion preference, or a data-saver / 2G connection.
 // On coarse-pointer devices we keep the experience but lighten the render (pixel ratio + shadow map) in init().
@@ -137,15 +149,91 @@ if (reduce || slowNet || !webglOK()) {
   section.classList.add("no3d");
   if (loaderEl) loaderEl.style.display = "none";
   window.__hero = { fallback: true };
-} else if (coarse || (window.innerWidth > 0 && window.innerWidth <= 820)) {
+  // init() never runs on this path, so the panel-over-poster designer needs its own full
+  // open/shut pair — including popstate, or Back/Forward desync the URL from the panel.
+  const posterPanel = (() => {
+    const cust = $("#customize");
+    let open = false;
+    const openIt = () => {
+      if (open) return; open = true;
+      section.classList.add("in-box");
+      if (cust) cust.classList.add("is-open");
+      lockScroll(); setBoxURL(true);
+    };
+    const shutIt = () => {
+      if (!open) return; open = false;
+      unlockScroll(); setBoxURL(false);
+      section.classList.remove("in-box");
+      if (cust) cust.classList.remove("is-open");
+    };
+    const closeBtn = document.getElementById("boxClose");
+    if (closeBtn) closeBtn.addEventListener("click", shutIt);
+    document.addEventListener("keydown", (e) => { if (e.key === "Escape" && open) shutIt(); });
+    window.addEventListener("popstate", () => {
+      if (urlSaysCustomize()) openIt();
+      else shutIt();
+    });
+    return { openIt, shutIt };
+  })();
+  window.__openPosterPanel = posterPanel.openIt;       // the global CTA router below uses this
+  if (wantsCustomize) posterPanel.openIt();
+} else if (!wantsCustomize && (coarse || (window.innerWidth > 0 && window.innerWidth <= 820))) {
   // PHONES: the poster is already a real render of the product, so hold there and build the
   // scene on the first sign the visitor wants it -- a scroll, a touch, or a tap on any
   // "design yours" control. init() still wires everything it owns (configurator included),
-  // just at that moment instead of during first paint.
+  // just at that moment instead of during first paint. Arriving at /customize IS the intent,
+  // so that path skips the deferral and boots straight into the designer.
   armDeferredHero();
 } else {
   init();
 }
+
+// While the designer is open the page behind must not scroll away from under the sticky canvas —
+// the designer is a place you are IN, not a region you drive past.
+function lockScroll()   { document.documentElement.classList.add("box-lock"); }
+function unlockScroll() { document.documentElement.classList.remove("box-lock"); }
+
+// Reflect designer-open in the URL, so /customize is a real, shareable page and the browser's
+// back button closes the designer naturally. The /customize path only exists where the host
+// rewrites it onto this file (vercel.json) — everywhere else (local http.server, previews)
+// the query-param form carries the same state.
+const CUSTOMIZE_PATH_OK = /(^|\.)makoma\.io$/.test(location.hostname) || /\.vercel\.app$/.test(location.hostname);
+const urlSaysCustomize = () =>
+  /\/customize\/?$/.test(location.pathname) || new URLSearchParams(location.search).has("customize");
+function setBoxURL(open) {
+  try {
+    if (open) {
+      if (urlSaysCustomize()) return;                  // URL already right (direct load, or forward-nav)
+      history.pushState({ mkBox: 1 }, "", CUSTOMIZE_PATH_OK ? "/customize" : "?customize=1");
+    } else if (urlSaysCustomize()) {
+      // If THIS entry is the one setBoxURL(true) pushed, step BACK off it — pushing "/" instead
+      // leaves the /customize entry behind the current one, and every later Back press re-opens
+      // the designer (each open/close cycle would strand two entries). A /customize entry we did
+      // NOT push (direct load, pasted link) has real history behind it that isn't ours to pop,
+      // so rewrite it in place instead.
+      if (history.state && history.state.mkBox === 1) history.back();
+      else history.replaceState({ mkBox: 0 }, "", CUSTOMIZE_PATH_OK ? "/" : location.pathname.replace(/\/customize\/?$/, "/"));
+    }
+  } catch (e) { /* history unavailable (sandboxed frame): the designer still works, the URL just doesn't follow */ }
+}
+
+// [data-open-box] must work from the FIRST paint. init()'s own listeners attach only after the
+// renderer import resolves, and on the poster path init never runs at all — in both windows a raw
+// click would really navigate to /customize (a full reload on production, a 404 on a bare dev
+// server). One capture listener owns the intent from the start and routes it to whichever door
+// exists right now; earlyBoxIntent carries a click that lands before init() has wired its API.
+let earlyBoxIntent = false;
+document.addEventListener("click", (ev) => {
+  const el = ev.target && ev.target.closest && ev.target.closest("[data-open-box]");
+  if (!el) return;
+  ev.preventDefault();
+  if (window.__openPosterPanel) { window.__openPosterPanel(); return; }   // no-WebGL poster panel
+  if (window.__hero && window.__hero.box) { window.__hero.box.open(); return; }
+  // Not wired yet — either init() is still loading, or the deferred-hero path is mid-boot with
+  // its own click listener already detached. Either way the intent is recorded, and init()
+  // consumes it the moment its API lands (armDeferredHero's own handler boots in parallel).
+  earlyBoxIntent = true;
+}, true);
 
 function armDeferredHero() {
   if (loaderEl) loaderEl.style.display = "none";
@@ -242,10 +330,15 @@ async function init() {
   let objectMode = false;
   /* The object phase says what the piece IS, one line at a time — an ambient cycle under the
      title, not a prompt. Each line is a pair so the second clause can carry the gold. */
+  /* W1 — the first screen must say what this IS before anyone scrolls, one line at a time.
+     Drawn from the thesis: the category claim (startup-thesis.md:15), the scarcity that is the
+     whole point (phone-reversal-thesis.md:51), and what it actually does (startup-thesis.md:36).
+     The hidden-in-jewelry theme is carried by the BEAD WORDS instead — see setupBeadWords,
+     where it spells itself across the beads as they turn. */
   const OBJ_LINES = [
-    ["Six beads.",     "One quiet channel."],
-    ["Touch a bead.",  "They feel it."],
-    ["Speak to it.",   "They hear your echo."]
+    ["The first",     "beaded technology."],
+    ["Six people.",   "No one else gets through."],
+    ["Their voice,",  "on your wrist."]
   ];
   const OBJ_IN = 0.7, OBJ_HOLD = 2.9, OBJ_OUT = 0.7, OBJ_SPAN = OBJ_IN + OBJ_HOLD + OBJ_OUT;
   let subEl = null, subIdx = -1, subBase = "";
@@ -306,6 +399,94 @@ async function init() {
     const hFill = portrait ? 0.42 : 0.66;   // portrait: the title owns the top, so sit smaller
     return Math.max(bHalfW / (vHalf * aspect * wFill), bHalfV / (vHalf * hFill));
   }
+  // ---------------- THE INTRO (cine) ----------------
+  function introEligible() {
+    if (!INTRO_ENABLED) return false;
+    if (wantsCustomize || reduce || section.classList.contains("no3d")) return false;
+    try { if (localStorage.getItem(INTRO_KEY)) return false; } catch (e) {}
+    return true;
+  }
+  function introStart() {
+    cine.phase = "P0"; cine.t = 0; cine.rate = 0.06;      // near-still overhead hold
+    section.classList.add("intro-live");
+    if (introCenterEl) introCenterEl.classList.add("on");
+    // any FRESH gesture skips — attached after a grace so the boot tap can't self-skip
+    setTimeout(() => {
+      if (!cine.phase) return;
+      const skip = () => introFinish(true);
+      window.addEventListener("wheel", skip, { once: true, passive: true });
+      window.addEventListener("touchstart", skip, { once: true, passive: true });
+      window.addEventListener("pointerdown", skip, { once: true });
+      window.addEventListener("keydown", skip, { once: true });
+      cine._offSkip = () => {
+        window.removeEventListener("wheel", skip); window.removeEventListener("touchstart", skip);
+        window.removeEventListener("pointerdown", skip); window.removeEventListener("keydown", skip);
+      };
+    }, 700);
+  }
+  function introFinish(skipped) {
+    if (!cine.phase) return;
+    cine.phase = null; cine.rate = 1;
+    if (cine._offSkip) cine._offSkip();
+    try { localStorage.setItem(INTRO_KEY, "1"); } catch (e) {}
+    section.classList.remove("intro-live");
+    if (introCenterEl) introCenterEl.classList.remove("on");
+    if (introTypeEl) { introTypeEl.classList.remove("on"); introTypeEl.textContent = ""; }
+    if (skipped && beadAsm) beadAsm._e = 0;                // snap the bead shut on a skip
+  }
+  // the scripted explosion: opens through P2, hangs, reassembles across the first half of P3
+  function introExplodeE() {
+    if (cine.phase === "P2") return smooth(0, 0.45, cine.t / INTRO_DUR.P2);
+    if (cine.phase === "P3") return 1 - smooth(0, 0.5, cine.t / INTRO_DUR.P3);
+    return 0;
+  }
+  // per-frame: advance the clock, drive rate/camera/text; returns true when it OWNS the camera
+  function introFrame(dt) {
+    if (!cine.phase) return false;
+    cine.t += dt;
+    const D = INTRO_DUR;
+    if (cine.phase === "P0") {
+      cine.rate = 0.06;
+      if (cine.t >= D.P0) {
+        cine.phase = "P1"; cine.t = 0;
+        if (introCenterEl) introCenterEl.classList.remove("on");
+      }
+    } else if (cine.phase === "P1") {
+      // steer the exploding bead to the front while the camera dives
+      cine.rate = 0;
+      if (beadAsm) {
+        let d = angDelta(objTurn, beadAsm.frontY);
+        objTurn += d * Math.min(1, 4.2 * dt);
+      }
+      if (cine.t >= D.P1) { cine.phase = "P2"; cine.t = 0; }
+    } else if (cine.phase === "P2") {
+      cine.rate = 0;                                       // frozen while the bead opens
+      if (cine.t >= D.P2) {
+        cine.phase = "P3"; cine.t = 0; cine.typeN = 0;
+        if (introTypeEl) introTypeEl.classList.add("on");
+      }
+    } else if (cine.phase === "P3") {
+      cine.rate = smooth(0.5, 1, cine.t / D.P3);           // the turn eases in as we land
+      if (introTypeEl) {
+        const n = Math.min(INTRO_LINE.length, Math.round((cine.t / (D.P3 * 0.92)) * INTRO_LINE.length));
+        if (n !== cine.typeN) { cine.typeN = n; introTypeEl.textContent = INTRO_LINE.slice(0, n); }
+      }
+      if (cine.t >= D.P3 + 0.8) introFinish(false);        // a beat to read the finished line
+    }
+    // ---- the intro camera: overhead -> close-on-bead -> the standard framing ----
+    const fit = objectFitDist();
+    let el, d;
+    if (cine.phase === "P0") { el = 86; d = fit * 1.06; }
+    else if (cine.phase === "P1") { const u = smooth(0, 1, cine.t / D.P1); el = 86 + (16 - 86) * u; d = fit * (1.06 + (0.52 - 1.06) * u); }
+    else if (cine.phase === "P2") { el = 16; d = fit * 0.52; }
+    else if (cine.phase === "P3") { const u = smooth(0, 1, Math.min(1, cine.t / D.P3)); el = 16 + (CAM_EL - 16) * u; d = fit * (0.52 + (1 - 0.52) * u); }
+    else return false;
+    const elr = el * DEG, ce = Math.cos(elr);
+    camera.position.set(Math.cos(CAM_AZ * DEG) * ce * d, Math.sin(elr) * d, Math.sin(CAM_AZ * DEG) * ce * d);
+    camera.lookAt(0, 0, 0);
+    return true;
+  }
+
   function placeCamera(settle = 0, g = 0, dropY = 0) {
     const az = (CAM_AZ + Math.sin(idle * 0.18) * 0.7 * (1 - settle) * (1 - g)) * DEG;   // idle sway fades out as we settle
     const el = (CAM_EL + (CAM_EL_END - CAM_EL) * settle) * DEG;               // rise toward the top-front edge
@@ -752,11 +933,15 @@ async function init() {
     // is simply held invisible (see the pres line below) so we are not drawing two bracelets.
     gatherGroup.visible = show; spin.visible = objectMode ? true : !show;
     // These hosts are killed once the clones take over, so callouts can't float over the wrong
-    // bracelet. OBJECT MODE is the exception for #beadLabels: the bead reveal IS running there (on
-    // the original), so its "Touch / Light / A pulse" callouts have to come through.
+    // bracelet. OBJECT MODE is the exception for #beadLabels AND #beadWords: both run on the
+    // ORIGINAL bracelet there — the bead reveal's callouts, and the "Technology hidden in
+    // jewelry." words that rise from behind each bead as it comes round. Leaving #beadWords out
+    // of this exception zeroed the host, so the words were computing and positioning correctly
+    // every frame while rendering completely invisible.
+    const keepInObject = { "#beadLabels": 1, "#beadWords": 1 };
     for (const id of ["#hubLabels", "#beadLabels", "#beadWords"]) {
       const h = $(id); if (!h) continue;
-      h.style.opacity = (show && !(objectMode && id === "#beadLabels")) ? "0" : "";
+      h.style.opacity = (show && !(objectMode && keepInObject[id])) ? "0" : "";
     }
     if (!show) return;
     camera.updateMatrixWorld(true);
@@ -1041,6 +1226,26 @@ async function init() {
      the segments placed so the fully-open hold straddles u = 0.5 — dead-front. Both ends of the
      sweep land on a closed state, which is also why the ±π wrap on the far side is invisible. */
   const OBJ_TURN = 0.16;                       // rad/s — the object's slow turn
+  /* THE INTRO — a one-time cinematic opening with its own clocks and its own camera:
+       P0 overhead: top-down on the ring, "First beaded technology" centred inside it
+       P1 dive:     drop to the akoma bead as it eases to the front
+       P2 explode:  the bead opens, and hangs open
+       P3 zoomout:  pull back to the standard framing while the line types
+       cruise:      the familiar clockwise turn ramps in, headline fades up
+     The spin rate is DIFFERENT in every phase (near-still, steering, frozen, easing) — the
+     uniform-pace turn is exactly what this breaks. Skippable by any fresh gesture; runs once
+     (localStorage); reduced-motion and /customize go straight to cruise. */
+  const INTRO_KEY = "makoma-intro-v1";
+  const cine = { phase: null, t: 0, rate: 1, typeN: 0 };
+  let seqRate = 1;               // the 6-beads sequence's own brake on the turn
+  const INTRO_DUR = { P0: 3.0, P1: 1.5, P2: 2.2, P3: 2.6 };
+  const introCenterEl = $("#introCenter"), introTypeEl = $("#introType");
+  const INTRO_LINE = "Technology hidden in jewelry";
+  // -1 = CLOCKWISE from the viewer: front beads travel right-to-left, so each glued word's
+  // successor enters to its RIGHT and an overlap reads left-to-right, the way a sentence does.
+  // (+1 spelled every pair backwards on screen.) Everything direction-dependent — the drift,
+  // the arm offset, the reveal envelope's sweep, and the word->bead assignment — keys off this.
+  const OBJ_DIR = -1;
   const OBJ_EX_WIN = 0.95;                     // rad (~54°) either side of dead-front that counts as "in frame"
   const OBJ_EX_LEAD = 0.30;                    // rad of closed turning before the bead first swings in (~2 s)
   let objTurn = SPIN_PHASE, objTurnPrev = 0, objTurnArmed = false;
@@ -1065,6 +1270,13 @@ async function init() {
     // original timeline, rescaled into the remainder so its tuning still holds.
     const objP = clamp(rawP0 / OBJECT_FRAC, 0, 1);
     const inObject = objP < 1;
+    // The object phase owns the turn below OBJECT_FRAC and the timeline owns it above — the
+    // hand-off is a hard switch, and with the designer no longer parked on that boundary the
+    // scroll now actually crosses it. #heroCut dips to black through the crossing to cover it.
+    if (cutEl) {
+      const dip = smooth(OBJECT_FRAC - 0.045, OBJECT_FRAC, rawP0) * (1 - smooth(OBJECT_FRAC, OBJECT_FRAC + 0.045, rawP0));
+      cutEl.style.opacity = String(dip * 0.92);
+    }
     // THE OBJECT. Do not reconstruct a bracelet here — the timeline already produces a
     // perfectly assembled one at the end of its threading/settle run (hub in place, cord
     // closed, every bead restored, camera in the tuned product-shot framing). So the object
@@ -1122,11 +1334,15 @@ async function init() {
       // assembled piece and the bead swings in about two seconds later. Left at SPIN_PHASE it
       // starts 0.33 rad from front — INSIDE the window — so the very first frame would already be
       // a half-split bead. (SPIN_PHASE is tuned for the threading timeline, not for this.)
-      if (!objTurnArmed && beadAsm) { objTurnArmed = true; objTurn = beadAsm.frontY - OBJ_EX_WIN - OBJ_EX_LEAD; objTurnPrev = idle; }
+      if (!objTurnArmed && beadAsm) { objTurnArmed = true; objTurn = beadAsm.frontY - OBJ_DIR * (OBJ_EX_WIN + OBJ_EX_LEAD); objTurnPrev = idle; }
 
-      objTurn += Math.min(0.1, Math.max(0, idle - objTurnPrev)) * OBJ_TURN;   // own accumulator, so the entry phase can be set without a jump
+      objTurn += Math.min(0.1, Math.max(0, idle - objTurnPrev)) * OBJ_TURN * OBJ_DIR * cine.rate * seqRate;   // own accumulator, so the entry phase can be set without a jump
       objTurnPrev = idle;
-      if (beadAsm) beadAsm._e = objExplodeEnv(angDelta(objTurn, beadAsm.frontY));
+      if (beadAsm) {
+        beadAsm._e = cine.phase
+          ? introExplodeE()                                     // the intro scripts the opening itself
+          : objExplodeEnv(OBJ_DIR * angDelta(objTurn, beadAsm.frontY));   // the sweep mirrors with the direction
+      }
     } else {
       // Disarm on the way out, so coming BACK to the top re-arms and opens on a whole piece again.
       // Latched, a return landed on the frozen angle — mid-split in one frame if they left mid-
@@ -1160,7 +1376,9 @@ async function init() {
     if (gatherGroup) gatherGroup.position.set(0, dropClusterY, 0);
     // When someone is summoned in the object phase, ease the framing out to the gather fit so
     // the arriving bracelet is actually in shot, and let it close again as they recede.
-    placeCamera(settle, objectMode ? gRecvPres : fg, camY);
+    const cineOwnsCam = inObject ? introFrame(0.016) : false;
+    if (cineOwnsCam) { /* the intro is the camera while it plays */ }
+    else placeCamera(settle, objectMode ? gRecvPres : fg, camY);
     threadAmbient(smooth(0.04, 0.16, anim) * (1 - smooth(0.86, 1.0, anim)) * (1 - Math.min(1, fg * 3)));   // slight ambient pad while the bracelet threads (off during the drop)
     for (const rv of reveals) {
       if (!inObject && rv._e > 0.06 && (rv._prevE || 0) <= 0.06) explodeSound();   // the CAD assembly opens → a slight airy reveal whoosh. Muted in the object phase on purpose: that reveal is ambient, and the opening of the page should not make a noise nobody asked for.
@@ -1169,7 +1387,12 @@ async function init() {
     }
     updateHubLabels(hubAsm ? hubAsm._e : 0);
     updateBeadLabels(beadAsm ? beadAsm._e : 0);
-    updateBeadWords(anim);
+    // The object phase owns its own turn (objTurn, idle-clocked), so the scroll timeline's `anim`
+    // is pinned there and the words would never fire. Convert the live turn back into the same
+    // 0..1 the bead anchors were measured in — the exact inverse of setupBeadWords' frontAnim.
+    updateBeadWords(
+      inObject ? ((((objTurn - SPIN_PHASE) / (TAU * SPIN_TURNS)) % 1) + 1) % 1 : anim,
+      inObject);
     // NOTE: no end-of-scroll hub rotation. Any "button up" rotation tilts the hub OUT of the
     // bracelet plane — but the cord and every bead's bus holes lie in one plane, so the hub must
     // stay in that plane too (exactly where it's threaded). It keeps its natural threaded
@@ -1203,10 +1426,15 @@ async function init() {
     progress += (target - progress) * 0.09;
     if (Math.abs(target - progress) < 0.0002) progress = target;
     if (ready && inView) {
-      // the boundary is watched HERE, on eased progress, with hysteresis so the edge can't flap
-      if (!section.classList.contains("no3d")) {
-        if (!boxMode && progress >= OBJECT_FRAC) enterBox();
-        else if (boxMode && boxExitT0 == null && progress < OBJECT_FRAC - 0.02) closeBox({ reverse: true });
+      // The designer is entered by EXPLICIT INTENT only — a [data-open-box] tap or landing on
+      // /customize — never by crossing a scroll boundary. (It used to own everything past
+      // OBJECT_FRAC; scrolling the page opened it, which read as clutter to a visitor who just
+      // wanted to know what the product is.) pendingBox carries an intent that arrived before
+      // the model finished loading.
+      if (pendingBox && !boxMode && !section.classList.contains("no3d")) {
+        pendingBox = false;
+        enterBox();
+        lockScroll();
       }
       if (boxMode) updateBox(); else update(progress);
       updateDye();
@@ -1225,6 +1453,18 @@ async function init() {
 
   window.__hero = {
     setProgress(p) { p = clamp(p, 0, 1); target = progress = p; if (ready) { update(p); composer.render(); } },
+    // deterministic drive for the idle-clocked object turn — tests (and art direction) can
+    // sweep the ring without waiting on wall-clock rAF, which hidden/headless pages throttle
+    nudgeTurn(d) { objTurn += d; objTurnPrev = idle; if (ready) { update(progress); composer.render(); } },
+    // advance the WHOLE idle clock by hand — throttled pages starve rAF and every
+    // idle-driven behaviour (the turn, the word beat, the reveal) crawls with it
+    tick(dt) { idle += Math.max(0, dt); if (ready) { update(progress); composer.render(); } },
+    // bulk fast-forward: run the update pipeline WITHOUT the post chain (headless renders on
+    // swiftshader cost ~200ms each — a 30s hunt would take minutes). One render at the end.
+    ff(dt, steps, draw) { for (let i = 0; i < steps; i++) { idle += Math.max(0, dt); if (ready) update(progress); } if (draw && ready) composer.render(); },
+    // drive the intro's clock by hand (hidden/headless pages throttle rAF); dt in seconds
+    introTick(dt) { if (cine.phase) { cine.t += Math.max(0, dt - 0.016); if (ready) { update(progress); composer.render(); } } },
+    get introPhase() { return cine.phase; },
     suppressOutro(v) { this._suppressOutro = v; },   // the touch-demo owns the outro fade once it's in view
     get progress() { return progress; },
     get ready() { return ready; },
@@ -1834,30 +2074,296 @@ async function init() {
   //      around AFTER the exploded bead, so the phrase spells out across the beads as they spin.
   //      Each word is anchored to its bead (a child of `model`) so it tracks the bead's spin. ----
   function setupBeadWords() {
-    if (!beadWordHost || !model) return;
-    const words = ["Everyone", "gets", "their", "own", "bead"];
-    // front-facing anim for every bead (the anim value where it swings frontmost to the camera)
-    const info = BEAD_CENTERS.map((bc, i) => {
+    if (!model) return;
+    /* I2/I3 — the 6-beads strike. The old per-bead typed sentence retired to the intro; the
+       cruise now carries ONE recurring beat: a wavy "6 beads" types in over the front bead,
+       the rotation PAUSES, a strike draws through it, the rotation resumes while the struck
+       words burn away — and "6 people allowed to distract you" types in at the same moment,
+       facing the camera. */
+    const beadR = modelR * 0.14;
+    beadWordWave = beadR * 0.10;
+    // an anchor with a text basis for EVERY bead, so the line can mount over whichever bead
+    // is front when the beat begins
+    wordAnchors = BEAD_CENTERS.map((bc) => {
       const a = new THREE.Group(); a.position.set(bc[0], bc[1], bc[2]); model.add(a);
-      model.updateMatrixWorld(true);
-      const anim = ((((frontSpin(a) - SPIN_PHASE) / (TAU * SPIN_TURNS)) % 1) + 1) % 1;
-      return { i, anchor: a, anim };
+      const n = new THREE.Vector3(bc[0], 0, bc[2]).normalize();
+      const u = new THREE.Vector3(0, -1, 0);
+      const t = new THREE.Vector3().crossVectors(u, n).normalize();
+      const u2 = new THREE.Vector3().crossVectors(n, t).normalize();
+      return { anchor: a, basis: new THREE.Matrix4().makeBasis(t, u2, n), up: u.clone(), radial: n };
     });
-    const exAnim = info[EXPLODE_BEAD].anim;
-    // the beads whose front moment falls AFTER the exploded bead (circular), nearest first
-    const chosen = info
-      .filter((b) => b.i !== EXPLODE_BEAD)
-      .map((b) => ({ b, d: (((b.anim - exAnim) % 1) + 1) % 1 }))
-      .sort((p, q) => p.d - q.d)
-      .slice(0, words.length)
-      .map((x) => x.b);
-    info.forEach((b) => { if (!chosen.includes(b)) model.remove(b.anchor); });   // drop unused anchors
-    beadWordHost.innerHTML = "";
-    beadWords = chosen.map((b, k) => {
-      const el = document.createElement("div"); el.className = "bead-word"; el.textContent = words[k];
-      beadWordHost.appendChild(el);
-      return { anchor: b.anchor, el, frontAnim: b.anim };   // the anim where this bead is dead-front
-    });
+    Promise.all([
+      fetch("assets/vendor/text/CormorantGaramond-Italic-latin.ttf").then((r) => r.arrayBuffer()),
+      import("opentype.js"),
+      import("three/addons/loaders/SVGLoader.js"),
+    ]).then(([buf, ot, svgm]) => {
+      const font = (ot.parse || ot.default.parse)(buf);
+      const SVGLoader = svgm.SVGLoader;
+      const upm = font.unitsPerEm || 1000;
+      const glyphCache = {};
+      const geoFor = (ch, scale) => {
+        const key = ch + "@" + scale.toFixed(5);
+        if (glyphCache[key] !== undefined) return glyphCache[key];
+        const d = font.getPath(ch, 0, 0, upm).toPathData(3);
+        if (!d) { glyphCache[key] = null; return null; }
+        const doc = new SVGLoader().parse('<svg xmlns="http://www.w3.org/2000/svg"><path d="' + d + '"/></svg>');
+        const g = new THREE.ExtrudeGeometry(doc.paths.flatMap((pp) => SVGLoader.createShapes(pp)),
+                                            { depth: upm * 0.06, bevelEnabled: false, curveSegments: 8 });
+        g.scale(scale, -scale, scale);
+        glyphCache[key] = g;
+        return g;
+      };
+      const buildLine = (text, capH) => {
+        const scale = capH / (upm * 0.7);
+        const group = new THREE.Group();
+        const total = font.getAdvanceWidth(text, upm) * scale;
+        let cursor = -total / 2;
+        const letters = [];
+        for (const ch of text) {
+          const geo = geoFor(ch, scale);
+          const adv = font.getAdvanceWidth(ch, upm) * scale;
+          if (geo) {
+            const mat = new THREE.MeshStandardMaterial({
+              color: 0xf6ecd4, roughness: 0.48, metalness: 0.08,
+              emissive: 0x6b6250, emissiveIntensity: 0.55,
+              transparent: true, opacity: 0, side: THREE.DoubleSide });
+            const mesh = new THREE.Mesh(geo, mat);
+            mesh.position.x = cursor;
+            mesh.visible = false;
+            group.add(mesh); letters.push(mesh);
+          }
+          cursor += adv;
+        }
+        group.visible = false;
+        return { group, letters, width: total };
+      };
+      seqLine1 = buildLine("6 beads", beadR * 0.66);
+      // line 2 WRAPS the bracelet: same letter size as line 1, each glyph seated on the ring's
+      // circumference above the beads with its own radial basis, the whole arc a child of the
+      // model — it turns with the piece exactly like "6 beads" does.
+      const RING_R = (() => { let r = 0; for (const bc of BEAD_CENTERS) r += Math.hypot(bc[0], bc[2]); return r / BEAD_CENTERS.length; })();
+      seqRingR = RING_R;
+      const buildArc = (text, capH) => {
+        const scale = capH / (upm * 0.7);
+        const group = new THREE.Group();
+        const letters = [];
+        const totalW = font.getAdvanceWidth(text, upm) * scale;
+        const totalTh = totalW / RING_R;                       // arc the string subtends
+        let cum = 0;
+        for (const ch of text) {
+          const adv = font.getAdvanceWidth(ch, upm) * scale;
+          const geo = geoFor(ch, scale);
+          if (geo) {
+            const th = (cum + adv / 2) / RING_R - totalTh / 2; // letter centre angle, string centred on 0
+            const n = new THREE.Vector3(Math.cos(th), 0, Math.sin(th));
+            const u = new THREE.Vector3(0, -1, 0);
+            const t = new THREE.Vector3().crossVectors(u, n).normalize();
+            const u2 = new THREE.Vector3().crossVectors(n, t).normalize();
+            const mat = new THREE.MeshStandardMaterial({
+              color: 0xf6ecd4, roughness: 0.48, metalness: 0.08,
+              emissive: 0x6b6250, emissiveIntensity: 0.55,
+              transparent: true, opacity: 1, side: THREE.DoubleSide });
+            const mesh = new THREE.Mesh(geo, mat);
+            mesh.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(t, u2, n));
+            mesh.position.set(n.x * RING_R, -beadR * 1.55, n.z * RING_R);
+            mesh.visible = false;
+            mesh.userData.baseY = -beadR * 1.55;
+            group.add(mesh); letters.push(mesh);
+          }
+          cum += adv;
+        }
+        group.visible = false;
+        return { group, letters, width: totalW, arc: totalTh };
+      };
+      seqLine2 = buildArc("6 people allowed to distract you", beadR * 0.66);
+      model.add(seqLine2.group);                               // glued: it rides the spin
+      // the strike: a thin bar that draws itself through line1
+      const smat = new THREE.MeshStandardMaterial({ color: 0xf6ecd4, emissive: 0x6b6250, emissiveIntensity: 0.6, transparent: true, opacity: 0, side: THREE.DoubleSide });
+      // a RIBBON, not a bar: its vertices ride the same sine as the letters each frame, so the
+      // strike is as wavy as the word and passes through the centre of every glyph
+      const sw = seqLine1.width * 1.12;
+      const sgeo = new THREE.PlaneGeometry(sw, beadR * 0.07, 64, 1);
+      seqStrike = new THREE.Mesh(sgeo, smat);
+      seqStrike.visible = false;
+      seqLine1.group.add(seqStrike);
+      seqStrike.position.y = beadR * 0.66 * 0.30;          // the x-height centre of the lowercase body
+      seqStrike.userData = { w: sw, nLetters: seqLine1.letters.length, base: sgeo.attributes.position.array.slice() };
+      seqState = "WAIT"; seqT = idle;
+      if (window.__hero) window.__hero.seq = () => ({ state: seqState, rate: seqRate, t: +(idle - seqT).toFixed(2), cine: cine.phase, box: boxMode, l1: seqLine1.group.visible, l2: seqLine2.group.visible, sweep: beadAsm ? +(OBJ_DIR * angDelta(objTurn, beadAsm.frontY)).toFixed(3) : null, e: beadAsm ? +beadAsm._e.toFixed(3) : null });
+    }).catch((e) => console.warn("[wordseq] disabled:", e));
+  }
+
+  let beadWordWave = 0;   // set once the model scale is known (setupBeadWords)
+  let seqRingR = 0;        // ring circumference radius the arc letters were baked onto
+  const _bwV = new THREE.Vector3(), _bwC = new THREE.Vector3(), _bwR = new THREE.Vector3();
+  const _bwQ = new THREE.Quaternion();
+  // ---- the recurring 6-beads beat ----
+  let wordAnchors = [], seqLine1 = null, seqLine2 = null, seqStrike = null;
+  let seqState = null, seqT = 0, seqBead = 0;
+  const SEQ_D = { WAIT: 3.0, TYPE1: 0.9, HOLD1: 0.7, PAUSE: 0.45, STRIKE: 0.6, BURN: 1.6, TYPE2: 1.5, SHOW2: 5.0, FADE2: 0.9 };   // one round only — DONE is terminal
+  function seqGo(st) { seqState = st; seqT = idle; }
+  function updateBeadWords(anim, objectMode) {
+    if (!seqLine1) return;
+    if (!SEQ_BEAT_ENABLED) {
+      seqRate = 1;
+      seqLine1.group.visible = false; seqLine2.group.visible = false;
+      return;
+    }
+    const live = objectMode && !boxMode && !cine.phase;
+    if (!live) {
+      seqRate = 1;
+      seqLine1.group.visible = false; seqLine2.group.visible = false;
+      if (seqState !== "WAIT" && seqState !== "DONE") seqGo("WAIT");
+      return;
+    }
+    const t = idle - seqT, wave = reduce ? 0 : beadWordWave;
+    const setWave = (line, from) => {
+      for (let i = 0; i < line.letters.length; i++) {
+        const L = line.letters[i];
+        if (L.visible) L.position.y = (from || 0) + wave * Math.sin(idle * 2.4 + i * 0.85);
+      }
+    };
+    if (seqState === "WAIT") {
+      seqRate = 1;
+      if (t >= SEQ_D.WAIT) {
+        const q = model.getWorldQuaternion(_bwQ);
+        // start ONLY right after the exploding bead CLOSES at the back of the ring. The
+        // reveal envelope hangs open for the whole leaving half-revolution (e=1 until sweep
+        // ~ -2.6, closing near +-pi), and it starts REOPENING on approach around sweep +0.7 —
+        // so the one clear run long enough for the ~11s beat is sweep (2.05, 3.1) with e=0.
+        if (beadAsm) {
+          const sweep = OBJ_DIR * angDelta(objTurn, beadAsm.frontY);
+          if (!(sweep > 2.05 && sweep < 3.1) || beadAsm._e > 0.02) return;
+        }
+        // front-most bead, EXCLUDING the exploding one and its neighbours — biased toward
+        // NDC x=+0.35 so the word (which drifts screen-left with the clockwise turn while
+        // it types) stays clear of the headline column
+        let bestI = -1, bestD = -1e9;
+        wordAnchors.forEach((a, i) => {
+          const away = Math.min((i - EXPLODE_BEAD + 8) % 8, (EXPLODE_BEAD - i + 8) % 8);
+          if (away < 2) return;
+          a.anchor.getWorldPosition(_bwV);
+          _bwR.copy(a.radial).applyQuaternion(q);
+          _bwC.copy(camera.position).sub(_bwV).normalize();
+          const d = _bwR.dot(_bwC);
+          _bwC.copy(_bwV).project(camera);
+          if (_bwC.x < 0.08) return;                    // hard-left beads put the word on the headline
+          if (d > bestD) { bestD = d; bestI = i; }
+        });
+        if (bestI < 0) return;
+        seqBead = bestI;
+        const A = wordAnchors[seqBead];
+        A.anchor.add(seqLine1.group);
+        seqLine1.group.quaternion.setFromRotationMatrix(A.basis);
+        seqLine1.group.position.copy(A.up).multiplyScalar(modelR * 0.14 * 1.55);
+        seqLine1.group.visible = true;
+        seqLine1.letters.forEach((L) => { L.visible = false; L.material.opacity = 1; L.material.color.setHex(0xf6ecd4); L.material.emissive.setHex(0x6b6250); });
+        seqStrike.visible = false; seqStrike.material.opacity = 0;
+        seqGo("TYPE1");
+      }
+    } else if (seqState === "TYPE1") {
+      seqRate = 1;
+      const n = Math.min(seqLine1.letters.length, Math.ceil((t / SEQ_D.TYPE1) * seqLine1.letters.length));
+      seqLine1.letters.forEach((L, i) => { L.visible = i < n; });
+      setWave(seqLine1);
+      if (t >= SEQ_D.TYPE1) seqGo("HOLD1");
+    } else if (seqState === "HOLD1") {
+      seqRate = 1; setWave(seqLine1);
+      if (t >= SEQ_D.HOLD1) seqGo("PAUSE");
+    } else if (seqState === "PAUSE") {
+      seqRate = 1 - smooth(0, 0.35, t);                    // the rotation brakes to a stop
+      setWave(seqLine1);
+      if (t >= SEQ_D.PAUSE) { seqStrike.visible = true; seqGo("STRIKE"); }
+    } else if (seqState === "STRIKE") {
+      seqRate = 0;                                          // held still while the strike draws
+      const u = smooth(0, 1, t / SEQ_D.STRIKE);
+      seqStrike.material.opacity = 1;
+      strikeWaveAndDraw(u);
+      setWave(seqLine1);
+      if (t >= SEQ_D.STRIKE) {
+        // line 2 arrives AS the burn begins
+        seqLine2.group.visible = true;
+        seqLine2.letters.forEach((L) => { L.visible = false; L.material.opacity = 1; });
+        aimArc();
+        seqGo("BURN");
+      }
+    } else if (seqState === "BURN") {
+      seqRate = smooth(0.15, 0.7, t);                       // the turn breathes back in
+      // the struck words go like paper embers: stagger per letter, flash warm, rise, gone
+      seqLine1.letters.forEach((L, i) => {
+        const u = clamp((t - i * 0.05) / 0.9, 0, 1);
+        if (u <= 0 || !L.visible) return;
+        L.material.color.lerpColors(new THREE.Color(0xf6ecd4), new THREE.Color(0xc9722a), Math.min(1, u * 2));
+        L.material.opacity = 1 - smooth(0.25, 1, u);
+        L.position.y += 0.0035 * modelR * u;
+      });
+      seqStrike.material.opacity = 1 - smooth(0.3, 1, t / SEQ_D.BURN);
+      strikeWaveAndDraw(1);
+      aimArc();
+      typeLine2(t);
+      if (t >= SEQ_D.BURN) { seqLine1.group.visible = false; seqGo("TYPE2"); }
+    } else if (seqState === "TYPE2") {
+      seqRate = 1;
+      typeLine2(SEQ_D.BURN + t);
+      if (t >= SEQ_D.TYPE2) seqGo("SHOW2");
+      aimArc();
+    } else if (seqState === "SHOW2") {
+      seqRate = 1;                                          // the glued block below waves line 2
+      if (t >= SEQ_D.SHOW2) seqGo("FADE2");
+    } else if (seqState === "FADE2") {
+      seqRate = 1;
+      const o = 1 - smooth(0, 1, t / SEQ_D.FADE2);
+      seqLine2.letters.forEach((L) => { L.material.opacity = o; });
+      if (t >= SEQ_D.FADE2) { seqLine2.group.visible = false; seqGo("DONE"); }
+    } else if (seqState === "DONE") {
+      seqRate = 1;                                          // the piece just spins from here on
+    }
+    // line 2 is GLUED to the model — it turns with the piece. Waving rides each letter's own
+    // model-up axis via userData.baseY.
+    if (seqLine2.group.visible) {
+      const wv = reduce ? 0 : beadWordWave;
+      seqLine2.letters.forEach((L, i) => {
+        if (L.visible) L.position.y = L.userData.baseY + wv * Math.sin(idle * 2.4 + i * 0.85);
+      });
+    }
+  }
+  // seat the arc's centre facing the camera, nudged toward NDC x=+0.25 so the sentence
+  // clears the headline column on the left. Numeric search: localToWorld absorbs the
+  // model's flipped axes, scale and current spin, which a hand-derived atan2 got wrong.
+  function aimArc() {
+    let bestYaw = 0, bestScore = -1e9;
+    const baseY = seqLine2.letters[0] ? seqLine2.letters[0].userData.baseY : 0;
+    for (let k = 0; k < 96; k++) {
+      const yaw = (k / 96) * Math.PI * 2;
+      _bwV.set(Math.cos(yaw) * seqRingR, baseY, -Math.sin(yaw) * seqRingR);
+      model.localToWorld(_bwV);
+      model.getWorldPosition(_bwR);
+      _bwC.copy(camera.position).sub(_bwV).normalize();
+      _bwR.subVectors(_bwV, _bwR).normalize();
+      const d = _bwR.dot(_bwC);
+      _bwC.copy(_bwV).project(camera);
+      const score = d - 0.9 * Math.abs(_bwC.x - 0.25);
+      if (score > bestScore) { bestScore = score; bestYaw = yaw; }
+    }
+    seqLine2.group.rotation.set(0, bestYaw, 0);
+  }
+  // the ribbon's vertices ride the letters' sine; draw-in is a draw-range sweep left->right
+  function strikeWaveAndDraw(u) {
+    const g = seqStrike.geometry, ud = seqStrike.userData;
+    const pos = g.attributes.position, base = ud.base;
+    const wv = reduce ? 0 : beadWordWave;
+    for (let vi = 0; vi < pos.count; vi++) {
+      const bx = base[vi * 3];
+      const f = ((bx + ud.w / 2) / ud.w) * (ud.nLetters - 1);   // fractional letter index at this x
+      pos.setY(vi, base[vi * 3 + 1] + wv * Math.sin(idle * 2.4 + f * 0.85));
+    }
+    pos.needsUpdate = true;
+    const triCount = 64 * 6;                                    // 64 width segments, 2 tris each
+    g.setDrawRange(0, Math.max(0, Math.floor(u * 64)) * 6);
+  }
+  function typeLine2(tt) {
+    const n = Math.min(seqLine2.letters.length, Math.ceil((tt / (SEQ_D.BURN + SEQ_D.TYPE2)) * seqLine2.letters.length));
+    seqLine2.letters.forEach((L, i) => { L.visible = i < n; });
   }
 
   function updateExplode(asm, e) {
@@ -1880,8 +2386,6 @@ async function init() {
   // ---- per-component labels: one tag pinned to each part, projected to screen and revealed as the assembly splits ----
   const hubLabelHost = $("#hubLabels");
   const beadLabelHost = $("#beadLabels");
-  const beadWordHost = $("#beadWords");
-  let beadWords = [];
   function buildLabels(host, defs) {
     if (!host) return [];
     host.innerHTML = "";
@@ -1932,32 +2436,6 @@ async function init() {
     });
   }
 
-  // ---- on-bead words: project each word to its bead's screen position every frame so it tracks
-  //      the spin; fade in as the bead swings to the front, out as it rotates away ----
-  const _bwV = new THREE.Vector3();
-  function updateBeadWords(anim) {
-    if (!beadWords.length) return;
-    if (beadAsm && beadAsm._e > 0.03 && beadAsm._e < 0.97) {   // exploded bead is mid-reveal → keep the words clear of it
-      for (const W of beadWords) W.el.style.opacity = "0"; return;
-    }
-    const startA = beadAsm ? beadAsm.pE - 0.02 : 0.14;     // full by the time the first after-bead swings front
-    const master = clamp(smooth(startA, startA + 0.02, anim) * (1 - smooth(0.86, 0.96, anim)), 0, 1);
-    const w = canvas.clientWidth || window.innerWidth || 1, h = canvas.clientHeight || window.innerHeight || 1;
-    if (master < 0.01) { for (const W of beadWords) W.el.style.opacity = "0"; return; }
-    camera.updateMatrixWorld();
-    for (const W of beadWords) {
-      W.anchor.getWorldPosition(_bwV);
-      let d = anim - W.frontAnim; d = ((d % 1) + 1) % 1; if (d > 0.5) d -= 1;   // signed circular distance to this bead's front
-      const facing = clamp(1 - smooth(0, 0.085, Math.abs(d)), 0, 1);            // full at dead-front, gone within ±0.085 → words fire one after another
-      _bwV.project(camera);
-      if (_bwV.z >= 1 || facing < 0.01) { W.el.style.opacity = "0"; continue; }
-      const x = (_bwV.x * 0.5 + 0.5) * w, y = (-_bwV.y * 0.5 + 0.5) * h;
-      const rise = h * (0.085 + 0.06 * facing);             // pops UP from behind the bead as it turns to front; always sits ABOVE it
-      W.el.style.left = Math.round(x) + "px";
-      W.el.style.top = Math.round(y - rise) + "px";
-      W.el.style.opacity = String(master * facing);
-    }
-  }
 
   // NOTE: a dev-only keydown handler used to live here to tune the braid params live (keys 1-8/g/f/e/d/b).
   // It called e.preventDefault() on those keys at the window level, which swallowed them everywhere on the
@@ -1987,6 +2465,11 @@ async function init() {
   const BOX_FOLD_AT = 1.5, BOX_FOLD_T = 2.3;                 // all four walls at once, slow
   const BOX_CAM_T = 2.8, BOX_PANEL_AT = 4.0;
   let boxMode = false, boxT0 = 0, boxExitT0 = null, boxPanelShown = false, boxGroup = null, boxLight = null, boxPlate = null;
+  let pendingBox = wantsCustomize;   // designer requested before the model was ready (CTA tap mid-load, or /customize itself)
+  let reopenAfterExit = false;       // Back to /customize (or a CTA tap) DURING the exit fold: reopen when it lands
+  let pendingNavHash = null;         // a nav-link tap while the designer is open: close first, then glide there
+  let boxRevFrom = null;             // pose captured at close so the reverse fold starts from WHERE THINGS ARE (closing mid-entry must not teleport walls)
+  let boxCamBlend = 0;               // the entry camera blend actually reached — the reverse unwinds from here, not from 1
   let boxFolds = [], boxSpread = 1;                          // 1 = net fully open (the camera gives it room)
   let boxSide = 0, boxWallH = 0, boxBaseTh = 0, boxFloorY = 0, boxCY = 0;
   let boxSpin = 0, boxSpinTgt = null, boxSounded = false, boxSnapped = false, boxCamFrom = null, boxFlare = null;
@@ -2337,13 +2820,24 @@ async function init() {
   // the public door: GO to the designer's place on the page — the crossing does the rest
   function openBox() {
     const cust = $("#customize"); if (!cust) return;
+    introFinish(true);                                 // the designer outranks the opening
     audioCtx();                                        // wake audio inside the gesture
     if (section.classList.contains("no3d")) {          // no-WebGL fallback: the panel alone, over the poster
       section.classList.add("in-box"); cust.classList.add("is-open");
+      lockScroll(); setBoxURL(true);
       return;
     }
-    const total = section.offsetHeight - window.innerHeight;
-    window.scrollTo({ top: section.offsetTop + (OBJECT_FRAC + 0.28) * total, behavior: reduce ? "auto" : "smooth" });
+    if (boxExitT0 != null) {                           // asked back in while the exit fold plays: don't
+      setBoxURL(true); reopenAfterExit = true;         // swallow the tap — finish the fold, then re-enter
+      return;
+    }
+    if (boxMode || pendingBox) return;
+    // the canvas is sticky only inside the hero — make sure the visitor is looking at it
+    if (window.scrollY > 4) window.scrollTo({ top: 0, behavior: "auto" });
+    target = progress = 0;
+    setBoxURL(true);
+    if (ready) { enterBox(); lockScroll(); }
+    else pendingBox = true;                            // model still loading: enter the moment it's ready
   }
   // the state change the boundary crossing performs
   function enterBox() {
@@ -2351,6 +2845,7 @@ async function init() {
     const cust = $("#customize"); if (!cust) return;
     for (const rv of reveals) { rv._e = 0; rv._prevE = 0; updateExplode(rv, 0); }   // the open bead closes for the catch
     for (const id of ["#hubLabels", "#beadLabels", "#beadWords"]) { const h = $(id); if (h) h.style.opacity = "0"; }
+    if (seqLine1) { seqLine1.group.visible = false; seqLine2.group.visible = false; }   // the word beat stays OUT of the vitrine
     buildVitrine();
     if (groundMesh) groundMesh.visible = false;
     if (gatherGroup) gatherGroup.visible = false;
@@ -2365,20 +2860,42 @@ async function init() {
     boxGroup.visible = true; boxLight.visible = true;
     for (const f of boxFolds) { f.done = false; f.hinge.rotation.x = Math.PI / 2; }
     boxCamFrom = { pos: camera.position.clone(), tgt: new THREE.Vector3(0, 0, 0) };
+    boxRevFrom = null; boxCamBlend = 0;
     section.classList.add("in-box");
+    // The fixed nav sits ABOVE the designer (z-index 60) and the page behind is only
+    // overflow-locked — Tab and hash-navigation could still drag it around under the vitrine.
+    // The rest of the page goes inert while the designer is a place you are IN.
+    for (const el of document.querySelectorAll("main > section:not(#hero), main > footer")) el.inert = true;
     // the dock's arrival is keyed to the BOX CLOCK inside updateBox, not a wall-clock timer —
     // a setTimeout can fire while rAF is paused (hidden tab, heavy load) and pop the dock in
     // before the fold has visually finished
   }
 
   function finalizeClose() {
-    boxMode = false; boxExitT0 = null;
+    boxMode = false; boxExitT0 = null; boxRevFrom = null;
     if (designApplied) applyDesign();                  // unchosen beads go back to their baked display symbols
     boxGroup.visible = false; if (boxLight) boxLight.visible = false;
     orient.position.y = 0;
     if (groundMesh) groundMesh.visible = true;
     objTurnArmed = false;                              // the object phase re-arms → re-opens on a whole piece
     section.classList.remove("in-box");
+    for (const el of document.querySelectorAll("main > section:not(#hero), main > footer")) el.inert = false;
+    // Back to /customize (or a CTA tap) landed while the fold was playing: the intent was
+    // queued in reopenAfterExit, not swallowed — honour it now that the choreography has
+    // finished. Deliberately does NOT consult urlSaysCustomize() here: the close's own
+    // history.back() is asynchronous, so on a fold-free path (reduced motion) the URL can
+    // still read /customize at this instant and a live check would re-open what the visitor
+    // just closed. Every legitimate reopen sets the flag via popstate or openBox.
+    if (reopenAfterExit) {
+      reopenAfterExit = false;
+      openBox();
+      return;
+    }
+    // a nav link tapped from inside the designer: the fold has cleared, glide to the section
+    if (pendingNavHash) {
+      const dest = $(pendingNavHash); pendingNavHash = null;
+      if (dest) dest.scrollIntoView({ behavior: reduce ? "auto" : "smooth" });
+    }
     update(progress);                                  // repaint the object phase
   }
   function closeBox(opts) {
@@ -2390,8 +2907,16 @@ async function init() {
     if (!boxMode || boxExitT0 != null) return;
     if (cust) cust.classList.remove("is-open");
     if (opts && opts.reverse && !reduce) {
-      // scrolling back above the boundary: the catch plays backwards — walls unfold to the open
-      // net, the base sinks away, the piece settles out of its float — and the hero is there.
+      // The catch plays backwards — walls unfold to the open net, the base sinks away, the piece
+      // settles out of its float. Capture the pose AS IT IS: closing mid-entry (Escape during the
+      // fold) must reverse from wherever the walls actually are, not teleport them to fully-shut.
+      boxRevFrom = {
+        hinge: boxFolds.length ? boxFolds[0].hinge.rotation.x / (Math.PI / 2) : 0,   // 0 = walls up, 1 = open net
+        spread: boxSpread,
+        y: boxGroup ? boxGroup.position.y : 0,
+        float: orient.position.y,
+        cam: boxCamBlend,
+      };
       boxExitT0 = idle;
       return;
     }
@@ -2442,15 +2967,18 @@ async function init() {
       const te = idle - boxExitT0;
       const u = clamp(te / 1.7, 0, 1);
       const e = u * u * u * (u * (6 * u - 15) + 10);
-      for (const f of boxFolds) f.hinge.rotation.x = e * Math.PI / 2;         // unfold to the open net
-      boxSpread = e;
-      boxGroup.position.y = -3.0 * modelR * smooth(0.5, 1, u);                // the base sinks away late
-      orient.position.y = (1 - e) * 0.06 * modelR;                            // the float eases out
-      boxIdleSpin *= 1 - e;                                                   // the turntable unwinds with the fold
+      // every channel unwinds from the pose captured at close — an interrupted entry reverses
+      // from where it actually was instead of snapping to the fully-open state first
+      const rv = boxRevFrom || { hinge: 0, spread: 0, y: 0, float: 0.06 * modelR, cam: 1 };
+      for (const f of boxFolds) f.hinge.rotation.x = (rv.hinge + (1 - rv.hinge) * e) * Math.PI / 2;   // unfold to the open net
+      boxSpread = rv.spread + (1 - rv.spread) * e;
+      boxGroup.position.y = rv.y + (-3.0 * modelR - rv.y) * smooth(0.5, 1, u); // the base sinks away late
+      orient.position.y = (1 - e) * rv.float;                                  // the float eases out
+      boxIdleSpin *= 1 - e;                                                    // the turntable unwinds with the fold
       boxGroup.rotation.y = boxIdleSpin;
       spin.rotation.y = boxSpin + boxIdleSpin;
-      updateSmoke();                                                          // a live billow just fades through the exit
-      boxCamera(1 - e);                                                       // the hero framing returns
+      updateSmoke();                                                           // a live billow just fades through the exit
+      boxCamera(rv.cam * (1 - e));                                             // the framing unwinds from the blend it reached
       if (u >= 1) finalizeClose();
       return;
     }
@@ -2510,7 +3038,8 @@ async function init() {
       m.emissiveIntensity = v;
     }
     updateSmoke();
-    boxCamera(reduce ? 1 : smooth(0, BOX_CAM_T, t));
+    boxCamBlend = reduce ? 1 : smooth(0, BOX_CAM_T, t);   // recorded so an interrupted entry can unwind from here
+    boxCamera(boxCamBlend);
   }
 
   window.__hero.box = {
@@ -2580,16 +3109,68 @@ async function init() {
   for (const el of document.querySelectorAll("[data-open-box]")) {
     el.addEventListener("click", (e) => { e.preventDefault(); openBox(); });
   }
-  const backToTop = () => {
-    if (section.classList.contains("no3d")) { closeBox(); return; }
-    window.scrollTo({ top: 0, behavior: reduce ? "auto" : "smooth" });   // the crossing plays the reverse fold
+  // Explicit close: play the reverse fold (walls unfold, the piece lifts out), free the page,
+  // and step the URL back off /customize. Scroll no longer enters or exits the designer.
+  const consumeNavHash = () => {
+    if (!pendingNavHash) return;
+    const dest = $(pendingNavHash); pendingNavHash = null;
+    if (dest) dest.scrollIntoView({ behavior: reduce ? "auto" : "smooth" });
+  };
+  const exitBox = () => {
+    unlockScroll();
+    setBoxURL(false);
+    const pendingOnly = pendingBox && !boxMode;        // intent armed but the fold never started —
+    pendingBox = false;                                // there is no choreography to reverse
+    if (section.classList.contains("no3d")) { closeBox(); consumeNavHash(); return; }
+    if (pendingOnly) { consumeNavHash(); return; }
+    closeBox({ reverse: true });
   };
   const boxCloseBtn = document.getElementById("boxClose");
-  if (boxCloseBtn) boxCloseBtn.addEventListener("click", backToTop);
-  document.addEventListener("keydown", (e) => { if (e.key === "Escape" && boxMode) backToTop(); });
-  // Getting out is just SCROLLING: down continues past the hero into the sections (the pinned
-  // canvas and the dock scroll away like any section ending), up crosses the boundary and plays
-  // the fold in reverse. The X and Escape simply take you back to the top of the page.
+  if (boxCloseBtn) boxCloseBtn.addEventListener("click", exitBox);
+  // Escape also cancels a PENDING open (tapped Customize, model still loading) — without this the
+  // intent has no cancellation path and fires whenever the model lands.
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape" && (boxMode || pendingBox)) exitBox(); });
+  // A pending open is an intent, not a contract: if the visitor scrolls meaningfully away while
+  // the model is still loading, they've moved on — expire it rather than yanking them into the
+  // designer minutes later when the hero next crosses the viewport.
+  window.addEventListener("scroll", () => {
+    if (pendingBox && !boxMode && window.scrollY > window.innerHeight * 0.5) {
+      pendingBox = false;
+      setBoxURL(false);
+    }
+  }, { passive: true });
+  // The fixed nav floats above the open designer. A nav link tapped in there should WORK — close
+  // the designer, then go — instead of scrolling the locked page around underneath the vitrine.
+  document.addEventListener("click", (ev) => {
+    if (!(boxMode || pendingBox)) return;
+    const a = ev.target && ev.target.closest && ev.target.closest('a[href^="#"]');
+    if (!a || a.closest("#customize") || a.hasAttribute("data-open-box")) return;
+    ev.preventDefault();
+    pendingNavHash = a.getAttribute("href");
+    exitBox();
+  }, true);
+  // Browser back/forward mirror open/close — /customize in the URL means the designer is open.
+  window.addEventListener("popstate", () => {
+    const wants = urlSaysCustomize();
+    const closing = boxExitT0 != null;
+    if (wants) {
+      if (closing) { reopenAfterExit = true; return; }         // Back into a playing exit: queue, don't swallow
+      const isOpen = boxMode || pendingBox || section.classList.contains("in-box");
+      if (!isOpen) openBox();
+    } else {
+      reopenAfterExit = false;                                 // Forward-then-Back settled on closed
+      const isOpen = boxMode || pendingBox || section.classList.contains("in-box");
+      if (!isOpen) return;
+      unlockScroll();
+      pendingBox = false;
+      if (section.classList.contains("no3d")) { closeBox(); return; }
+      closeBox({ reverse: true });                             // guarded no-op if the exit is already playing
+    }
+  });
+
+  // a CTA click that landed before this module finished wiring (the global capture listener
+  // recorded it): honour it now — openBox parks it in pendingBox if the model is still loading
+  if (earlyBoxIntent) { earlyBoxIntent = false; openBox(); }
 
   // live re-apply while designing (and keep the design on the hero afterwards)
   if (window.MAKOMA_DESIGN) window.MAKOMA_DESIGN.subscribe(() => { if (designApplied) applyDesign(); });
@@ -2598,7 +3179,17 @@ async function init() {
   if (loaderEl) loaderEl.classList.remove("hide");
   const draco = new DRACOLoader(); draco.setDecoderPath("assets/vendor/three/draco/");
   const loader = new GLTFLoader(); loader.setDRACOLoader(draco);
-  const fail = (err) => { console.warn("[hero3d] CAD load failed:", err); section.classList.add("no3d"); if (loaderEl) loaderEl.style.display = "none"; poster.classList.remove("hide"); };
+  const fail = (err) => {
+    console.warn("[hero3d] CAD load failed:", err);
+    section.classList.add("no3d");
+    if (loaderEl) loaderEl.style.display = "none";
+    poster.classList.remove("hide");
+    // A visitor who explicitly asked for the designer (/customize, or a CTA tap mid-load) must
+    // not be stranded on a silent poster: the render loop that would consume pendingBox never
+    // starts on this path. Re-route the intent through openBox, whose no3d branch opens the
+    // panel over the poster.
+    if (pendingBox) { pendingBox = false; openBox(); }
+  };
   loader.load("assets/models/bracelet_threaded.glb?v=2", (g) => {
     model = g.scene;
     model.traverse((o) => {
@@ -2614,6 +3205,7 @@ async function init() {
     build();
     setupExplode();
     onScroll(); render();   // FIRST paint — deliberately after setupExplode(), see the note at the end of build()
+    if (introEligible()) introStart();   // the one-time cinematic opening
     buildGather();      // clone the FINISHED hero bracelet (after setupExplode → glow + hub correct) for the circle
     // setupExplode queued the two board GLBs rather than fetching them. Pull them in once the main thread
     // goes quiet (the timeout is the backstop for browsers without requestIdleCallback, e.g. older Safari).

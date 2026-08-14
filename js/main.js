@@ -595,6 +595,135 @@
   var assigned = ["camera", "music", "dnd", "find", "voice"];
   var touched = false, demo = null, screenTimer = null, openOn = -1;
 
+  /* ---- THE RING -------------------------------------------------------------
+     The five beads used to sit in a flat row. They now ride a turnable ring, the
+     way the app's Bracelet3DView does: the bead at the front is big, upright and
+     the only one that takes a press; the others shrink, dim and fall away along
+     the cord. Drag, swipe, arrow-key or press Tab-then-arrows to turn it.
+
+     Everything below only decides WHERE a slot sits — slot indices, the job
+     badges and every existing handler are untouched, and the pulse/menu code
+     reads live rects so it follows the beads automatically. */
+  // NOTE: `strap` is already declared above — do not redeclare it here, that would null the
+  // reference the pulse code depends on.
+  // ring.N / ring.focusTarget are the geometry contract: the CSS ring has as many stations
+  // as slots and bead i is front when off ≡ i; the REAL carousel (beadring3d.js) overrides
+  // them, because the app's cord has 8 wrap stations and its front station is index 6.
+  var ring = { off: 0, target: 0, drag: false, id: null, x0: 0, o0: 0, moved: 0, raf: 0,
+               N: slots.length, focusTarget: null };
+  var STEP = (Math.PI * 2) / Math.max(1, slots.length);
+
+  /* The beads ride a TILTED RING, not a flat arc — the same read as the app's Bracelet3DView.
+     Seen from slightly above, the bracelet's circle projects to an ellipse: the bead at the
+     front sits at the bottom of it, nearest and largest; beads turning away climb the ellipse,
+     shrink and dim. The cord IS that ellipse, so the beads are always threaded on it rather
+     than floating near it. Radii are derived from the bead size so the ring stays proportioned
+     at every viewport. */
+  var ring3dActive = false;   // the real 3D carousel took over: its frame loop owns the slot vars
+  function ringLayout() {
+    if (!strap) return;
+    if (ring3dActive) return;                          // beadring3d.js projects the real geometry instead
+    var w = strap.clientWidth || 1, h = strap.clientHeight || 1;
+    var slotW = slots[0] ? slots[0].offsetWidth : 96;
+    var Rx = Math.min(slotW * 1.28, w * 0.42);         // half-width of the ring
+    var Ry = Math.max(16, Math.min(slotW * 0.34, h * 0.22));   // how far it is tilted toward us
+    var frontIdx = -1, frontCos = -2;
+    for (var i = 0; i < slots.length; i++) {
+      var a = (i - ring.off) * STEP;
+      var c = Math.cos(a), s = Math.sin(a);
+      var st = slots[i].style;
+      st.setProperty("--bx-x", (Rx * s).toFixed(1) + "px");
+      st.setProperty("--bx-y", (Ry * c).toFixed(1) + "px");     // +Ry at the front (bottom of the ellipse)
+      st.setProperty("--bx-s", (0.52 + 0.48 * (0.5 + 0.5 * c)).toFixed(3));
+      st.setProperty("--bx-o", (0.22 + 0.78 * Math.max(0, 0.5 + 0.5 * c)).toFixed(3));
+      st.setProperty("--bx-z", String(Math.round(100 + c * 100)));
+      if (c > frontCos) { frontCos = c; frontIdx = i; }
+    }
+    for (var j = 0; j < slots.length; j++) slots[j].setAttribute("data-front", j === frontIdx ? "1" : "0");
+    // the cord: the very ellipse the beads sit on, in the strap's own pixel space
+    var svg = document.getElementById("bxCord"), path = document.getElementById("bxCordPath");
+    if (svg && path) {
+      svg.setAttribute("viewBox", "0 0 " + w + " " + h);
+      var cx = w / 2, cy = h / 2;
+      path.setAttribute("d",
+        "M " + (cx - Rx) + " " + cy +
+        " a " + Rx + " " + Ry + " 0 1 0 " + (2 * Rx) + " 0" +
+        " a " + Rx + " " + Ry + " 0 1 0 " + (-2 * Rx) + " 0");
+    }
+    return frontIdx;
+  }
+
+  function ringSettle() {                              // ease toward the nearest whole bead
+    cancelAnimationFrame(ring.raf);
+    var tick = function () {
+      var d = ring.target - ring.off;
+      if (Math.abs(d) < 0.0008) { ring.off = ring.target; ringLayout(); return; }
+      ring.off += d * 0.18;
+      ringLayout();
+      ring.raf = requestAnimationFrame(tick);
+    };
+    ring.raf = requestAnimationFrame(tick);
+  }
+  // move to an absolute step on the ring (drag settle, arrow keys)
+  function ringTo(n) { ring.target = n; if (reduce) { ring.off = n; ringLayout(); } else ringSettle(); }
+  function ringBy(d) { stopDemo(); if (openOn >= 0) closeMenu(); ringTo(Math.round(ring.target) + d); }
+  // bring SLOT i to the front. The ring wraps, so step counts drift away from 0..n-1 as you
+  // turn — target the nearest position congruent to i, or the bracelet spins the long way
+  // round every time the demo advances.
+  function ringFocus(i) {
+    var m = ring.N || slots.length;
+    var t = ring.focusTarget ? ring.focusTarget(i) : i;   // the off value that puts bead i front
+    var d = (((t - ring.off) % m) + m) % m;
+    if (d > m / 2) d -= m;
+    ringTo(ring.off + d);
+  }
+
+  function ringInit() {
+    if (!strap) return;
+    ringLayout();
+    addEventListener("resize", ringLayout, { passive: true });
+
+    strap.addEventListener("pointerdown", function (e) {
+      if (e.target.closest(".bx-tagbtn") || e.target.closest(".bx-mi")) return;   // badges own their own taps
+      ring.drag = true; ring.id = e.pointerId; ring.x0 = e.clientX; ring.o0 = ring.off; ring.moved = 0; ring.eat = false;
+      strap.classList.add("is-drag");
+      cancelAnimationFrame(ring.raf);
+      try { strap.setPointerCapture(e.pointerId); } catch (_) {}
+    });
+    strap.addEventListener("pointermove", function (e) {
+      if (!ring.drag || e.pointerId !== ring.id) return;
+      var dx = e.clientX - ring.x0;
+      ring.moved = Math.max(ring.moved, Math.abs(dx));
+      if (ring.moved > 6 && openOn >= 0) closeMenu();                             // a turning ring must not drag a menu with it
+      if (ring.moved > 6) stopDemo();
+      // content follows the finger: dragging right turns the ring right (was mirrored)
+      ring.off = ring.o0 + dx / ((strap.clientWidth || 300) * 0.30);
+      ringLayout();
+    });
+    var end = function (e) {
+      if (!ring.drag || (e.pointerId != null && e.pointerId !== ring.id)) return;
+      ring.drag = false; strap.classList.remove("is-drag");
+      try { strap.releasePointerCapture(ring.id); } catch (_) {}
+      // arm the one-shot click swallow ONLY for the click this drag is about to emit
+      ring.eat = ring.moved > 6;
+      // snap ONLY after a real drag: a tap's own pointerup otherwise rounds the ring back and
+      // clobbers whatever a tap handler (the 3D raycast focus) just asked for
+      if (ring.moved > 6) ringTo(Math.round(ring.off));
+    };
+    strap.addEventListener("pointerup", end);
+    strap.addEventListener("pointercancel", end);
+    // A real drag must not also fire the bead it ended on. This has to be a ONE-SHOT flag:
+    // testing ring.moved directly leaves it high after the drag, which swallowed every later
+    // tap on a bead or a job badge.
+    strap.addEventListener("click", function (e) {
+      if (ring.eat) { ring.eat = false; e.preventDefault(); e.stopPropagation(); }
+    }, true);
+    strap.addEventListener("keydown", function (e) {
+      if (e.key === "ArrowRight") { e.preventDefault(); ringBy(1); }
+      else if (e.key === "ArrowLeft") { e.preventDefault(); ringBy(-1); }
+    });
+  }
+
   function paint(i) {
     var act = assigned[i];
     tags[i].querySelector(".bx-tg").textContent = GLYPH[act] || "•";
@@ -613,7 +742,6 @@
     b.classList.remove("is-press"); void b.offsetWidth; b.classList.add("is-press");
     slots[i].classList.add("is-press");
     setTimeout(function () { slots[i].classList.remove("is-press"); }, 600);
-    say("Tap the dot above a bead to change what it does.");
     if (reduce) { showScreen(act); return; }
     var sb = strap.getBoundingClientRect(), bb = b.getBoundingClientRect();
     pulse.style.left = (bb.left - sb.left + bb.width / 2 - 4) + "px";
@@ -689,4 +817,45 @@
     });
   }, { threshold: 0.35 });
   io.observe(root);
+
+  // the ring goes last: it needs stopDemo/closeMenu, and it turns the flat row into the
+  // bracelet carousel the moment it runs
+  ringInit();
+  window.__mkRing = ring;   // read-only debug/test handle, like window.__hero
+
+  // UPGRADE to the app's actual carousel — real cord + CAD beads in WebGL — the moment the
+  // section approaches the viewport. The CSS ring above stays as the no-WebGL / load-failure
+  // fallback: same slots, same handlers, same drag state either way.
+  // The REAL carousel at every width — Melvin's explicit call, three times over. The LCP
+  // protection is the trigger, not a device gate: the observer fires only on TRUE visibility
+  // (threshold, no rootMargin) and defers to idle, so the three.js + CAD work can never race
+  // first paint — it starts strictly after the visitor has scrolled to the section. (The
+  // 10.8s LCP regression came from a 400px rootMargin firing with zero scroll on a
+  // one-viewport hero, not from phones being phones.)
+  // If the upgrade WILL run, the flat CSS ring must never flash first (Melvin saw the old
+  // ring for seconds before the real one landed). Probe WebGL up front: hide the flat layer
+  // immediately, reveal it only if the 3D fails.
+  var probe = document.createElement("canvas");
+  var webgl = false;
+  try { webgl = !!(window.WebGLRenderingContext && (probe.getContext("webgl2") || probe.getContext("webgl"))); } catch (e) {}
+  if (webgl) strap.classList.add("bx-upgrading");
+  var up = new IntersectionObserver(function (es) {
+    var near = false;
+    for (var k = 0; k < es.length; k++) if (es[k].isIntersecting) near = true;
+    if (!near) return;
+    up.disconnect();
+    if (!webgl) return;
+    (window.requestIdleCallback || function (fn) { setTimeout(fn, 350); })(function () {
+      import("./beadring3d.js")
+        .then(function (mod) {
+          return mod.initBeadRing3D({ strap: strap, slots: slots, ring: ring, getStep: function () { return STEP; }, focus: ringFocus, wasDrag: function () { return ring.moved > 6; } });
+        })
+        .then(function (ok) { if (ok) ring3dActive = true; strap.classList.remove("bx-upgrading"); })
+        .catch(function (e) { console.warn("[beadring3d] staying on the CSS ring:", e); strap.classList.remove("bx-upgrading"); });
+    }, { timeout: 2000 });
+  }, { threshold: 0.05 });
+  up.observe(root);
+  // the self-playing demo should bring its bead to the front rather than firing one behind you
+  var _fire = fire;
+  fire = function (i) { if (!ring.drag) ringFocus(i); _fire(i); };
 })();

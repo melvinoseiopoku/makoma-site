@@ -210,7 +210,14 @@ h1,h2,h3{ font-family:var(--serif); font-weight:500; line-height:1.04; letter-sp
 }
 
 /* ============ HERO — scroll-driven 3D ============ */
-.hero3d{ position:relative; height:260vh; background:var(--black); }   /* the designer OWNS scroll territory: ~first third is the object phase, the rest is the box segment — a real place on the page, not a modal (hero3d.js maps progress; no scroll locks) */
+/* the designer holds the page still while it is open — it is a place, not a scroll region */
+html.box-lock, html.box-lock body{ overflow:hidden; }
+/* ONE viewport, no scroll runway. The hero used to own 260vh of scrollbar (object phase, then
+   threading/explode territory); scrolling now leads straight from the hub to "What else". The
+   object turn is idle-clocked (OBJ_TURN in hero3d.js), so the piece keeps turning, the bead
+   keeps opening, and the copy keeps cycling without any scroll input. The CAD story moves to
+   the /customize designer and the W4 video work — it is no longer a toll gate on the page. */
+.hero3d{ position:relative; height:100svh; background:var(--black); }
 .hero3d.no3d{ height:100svh; }
 .hero3d-sticky{ position:sticky; top:0; height:100svh; height:100dvh; overflow:hidden;
   /* a focused warm POOL behind the bracelet + a darker vignette frame, so the bracelet pops off the page
@@ -229,7 +236,22 @@ h1,h2,h3{ font-family:var(--serif); font-weight:500; line-height:1.04; letter-sp
      dissolve the still away once the real bracelet is rendering. */
   z-index:0; opacity:1; transition:opacity .9s var(--ease);
 }
-.hero3d-poster.hide{ opacity:0; }              /* 3D is live -> cross-fade the still out */
+.hero3d-poster.hide{ opacity:0; }
+/* THE INTRO — cinematic opening. While .intro-live is on the hero, the headline/CTAs hold
+   at opacity 0 (they own their own transition), the centred ring line and the typewriter
+   line take the stage. */
+.hero3d.intro-live .hero-intro, .hero3d.intro-live .hero-cta{ opacity:0 !important; pointer-events:none !important; transition:opacity .8s ease; }
+.intro-center{ position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
+  font-family:var(--serif); font-style:italic; font-size:clamp(1.5rem,3.4vw,2.6rem); letter-spacing:.02em;
+  color:#f6ecd4; text-align:center; white-space:nowrap; opacity:0; transition:opacity .7s ease;
+  text-shadow:0 2px 18px rgba(0,0,0,.9); z-index:5; pointer-events:none; }
+.intro-center.on{ opacity:1; }
+.intro-type{ position:absolute; left:50%; bottom:18vh; transform:translateX(-50%);
+  font-family:var(--serif); font-style:italic; font-size:clamp(1.3rem,2.6vw,2rem); letter-spacing:.02em;
+  color:#f6ecd4; text-align:center; white-space:nowrap; opacity:0; transition:opacity .5s ease;
+  text-shadow:0 2px 16px rgba(0,0,0,.9); z-index:5; pointer-events:none; }
+.intro-type.on{ opacity:1; }
+              /* 3D is live -> cross-fade the still out */
 .hero3d.no3d .hero3d-poster{ opacity:1; }      /* no-WebGL fallback keeps it up permanently */
 .hero3d-veil{
   position:absolute; inset:0; z-index:2; pointer-events:none;
@@ -700,12 +722,6 @@ section{ position:relative; z-index:2; }
 .vision-logo{ width:104px; height:auto; margin:0 auto 32px; display:block; filter:drop-shadow(0 10px 34px rgba(201,160,78,.38)); }
 .vision-title{ font-size:clamp(2.2rem,5.4vw,4rem); margin-bottom:26px; }
 .vision-sub{ color:var(--ink-soft); font-size:1.15rem; max-width:54ch; margin:0 auto 40px; }
-/* founding-circle callout */
-.founding{ max-width:560px; margin:0 auto 26px; padding:18px 24px; border:1px solid var(--line); border-radius:18px;
-  background:linear-gradient(160deg, rgba(201,160,78,.09), var(--panel)); text-align:left;
-  box-shadow:0 24px 70px -44px rgba(201,160,78,.5); }
-.founding-copy{ color:var(--ink-soft); font-size:1rem; line-height:1.62; }
-.founding-copy strong{ color:var(--gold-pale); font-weight:500; }
 
 /* join form (stacked: intent · row · note) */
 .join-form{ display:flex; flex-direction:column; align-items:center; gap:16px; max-width:480px; margin:0 auto; }
@@ -1991,11 +2007,49 @@ section{ position:relative; z-index:2; }
 .bx-step.is-hot{ color:var(--gold-bright); }
 
 /* the strap ------------------------------------------------------------- */
-.bx-strap{ position:relative; display:flex; align-items:center; justify-content:center;
-  gap:clamp(6px,2.2vw,16px); padding:18px 0 10px; }
+/* THE CAROUSEL — the flat row of five became a ring you can turn, mirroring the app's
+   Bracelet3DView: the bead at front is large and upright, the ones turning away shrink, dim
+   and drop along the cord's arc. JS (main.js) writes --bx-x/--bx-y/--bx-s/--bx-o per slot and
+   owns the drag; the layout below is purely how those land. Slot indices, the tag badges and
+   every existing handler are untouched — only where a slot SITS changed. */
+.bx-strap{ position:relative; display:block; padding:10px 0 6px;
+  height:clamp(210px,32vw,290px); touch-action:pan-y; cursor:grab;
+  -webkit-user-select:none; user-select:none; }
+.bx-strap.is-drag{ cursor:grabbing; }
+.bx-strap:focus-visible{ outline:2px solid var(--gold-bright); outline-offset:6px; border-radius:20px; }
+/* the cord the beads ride: a single quiet arc, no braid detail at this scale */
+.bx-cord{ position:absolute; inset:0; width:100%; height:100%; overflow:visible; pointer-events:none; z-index:0; }
 
-.bx-slot{ position:relative; flex:none; display:flex; flex-direction:column; align-items:center; gap:6px;
-  width:clamp(60px,11vw,84px); }
+/* while the real carousel loads, nothing of the flat ring may flash — an empty stage reads
+   better than the wrong bracelet appearing and being replaced */
+.bx-strap.bx-upgrading .bx-slot, .bx-strap.bx-upgrading .bx-cord{ visibility:hidden; }
+
+/* THE REAL CAROUSEL (beadring3d.js) — the app's cord + CAD beads in WebGL. The canvas is the
+   scenery; the DOM slots keep the interaction (badges + press targets), projected over the
+   real geometry each frame. The flat renders and the SVG cord bow out. */
+.bx-gl{ position:absolute; inset:0; width:100%; height:100%; display:block; z-index:1; }
+.bx-strap.bx-3d .bx-orb, .bx-strap.bx-3d .bx-cord{ display:none; }
+/* In 3D mode the slots are POSITIONING ONLY: pointer-events off, so every tap on a drawn
+   sphere falls through to the canvas raycast (which presses the front bead / turns a side
+   bead). The job badge alone stays interactive; the .bx-bead button keeps keyboard focus and
+   its synthetic .click() role but no longer intercepts the pointer. */
+.bx-strap.bx-3d .bx-slot{ pointer-events:none; }
+.bx-strap.bx-3d .bx-slot .bx-tagbtn{ pointer-events:auto; }
+.bx-strap.bx-3d .bx-bead{ width:76px; height:76px; border-radius:50%; pointer-events:none; }
+
+/* gap:0 and a negative pull, because the bead PNG carries transparent margin around the
+   sphere — a positive gap reads as the badge floating away from its bead */
+.bx-slot{ position:absolute; left:50%; top:50%; flex:none;
+  display:flex; flex-direction:column; align-items:center; gap:0;
+  width:clamp(84px,17vw,124px);
+  transform:translate(-50%,-50%) translate(var(--bx-x,0px), var(--bx-y,0px)) scale(var(--bx-s,1));
+  opacity:var(--bx-o,1); z-index:var(--bx-z,1);
+  transition:opacity .18s linear; will-change:transform, opacity; }
+/* while a finger is down the ring must track it exactly — no easing lag */
+.bx-strap.is-drag .bx-slot{ transition:none; }
+/* only the bead at the front takes pointer input; the ones turning away are scenery, so a
+   mis-tap on a half-hidden bead can't fire someone's phone demo */
+.bx-slot[data-front="0"] .bx-bead, .bx-slot[data-front="0"] .bx-tagbtn{ pointer-events:none; }
 .bx-bead{ position:relative; width:100%; padding:0; border:0; background:none; cursor:pointer;
   display:block; transition:transform .22s var(--ease-out); }
 /* the bead itself is the CAD render, untouched — the adinkra engraving is the whole point of
@@ -2007,7 +2061,7 @@ section{ position:relative; z-index:2; }
 /* the assigned job rides ABOVE the bead on a hairline, never across the engraving */
 /* the badge is its own button: press the BEAD to fire it, tap the badge to change its job.
    Two clearly separate targets beat one target with a hidden second step. */
-.bx-tagbtn{ position:relative; display:grid; place-items:center; width:28px; height:28px; border-radius:50%;
+.bx-tagbtn{ position:relative; margin-bottom:-7px; display:grid; place-items:center; width:28px; height:28px; border-radius:50%;
   border:1px solid var(--line); background:rgba(12,12,14,.9); color:var(--gold-pale); font-size:.82rem;
   cursor:pointer; padding:0; transition:border-color .22s var(--ease), transform .22s var(--ease-out); }
 .bx-tagbtn::after{ content:""; position:absolute; top:100%; left:50%; width:1px; height:6px;
@@ -2043,7 +2097,8 @@ section{ position:relative; z-index:2; }
 
 /* AN ACTUAL PHONE: 19.5:9, a real titanium-ish rail with the four side controls, the Dynamic
    Island, a status bar and the home indicator. The old rounded rectangle read as a prop. */
-.bx-iphone{ position:relative; width:190px; aspect-ratio:9/19.5; margin:6px auto 0; border-radius:30px;
+/* -58px: the ring floats mid-strap, so the phone tucks up under the front bead */
+.bx-iphone{ position:relative; width:190px; aspect-ratio:9/19.5; margin:-58px auto 0; border-radius:30px;
   padding:3px; box-sizing:border-box;
   background:linear-gradient(150deg,#8e8e93 0%,#3a3a3e 18%,#6e6e73 38%,#2c2c30 62%,#7d7d82 82%,#37373b 100%);
   box-shadow:0 26px 60px rgba(0,0,0,.66), 0 2px 0 rgba(255,255,255,.08) inset; }
@@ -2104,8 +2159,8 @@ section{ position:relative; z-index:2; }
 .bx-mi.is-on{ color:var(--gold-bright); }
 .bx-mi--sos{ color:#e7b3a6; }
 .bx-mi--sos:hover{ background:rgba(214,109,92,.16); color:#f6d8d0; }
-.bx-legend{ max-width:520px; margin:22px auto 26px; font-size:.8rem; line-height:1.6; color:var(--ink-mute); }
-.bx-legend em{ font-style:normal; color:#e7b3a6; }
+/* .bx-legend removed with its markup — the strap's own menu names every job, and the section's
+   one lede line now carries the framing. */
 .bx-act{ display:inline-flex; align-items:center; gap:7px; padding:8px 14px; border-radius:999px;
   border:1px solid var(--line); background:rgba(255,255,255,.014); color:var(--ink-soft);
   font-family:var(--sans); font-size:.78rem; cursor:pointer;

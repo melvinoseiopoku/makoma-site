@@ -126,7 +126,7 @@
   </a>
   <nav class="nav-links" id="navLinks">
     <a href="#hero">The piece</a>
-    <a href="#join" data-open-box>Design yours</a>
+    <a href="/customize" data-open-box>Customize</a>
     <a href="#more">What else</a>
     <a href="#adoption">How it begins</a>
     <a href="#launch">The Road</a>
@@ -169,6 +169,11 @@
     <p class="sr-only">A 3D anatomy of the bracelet: each matte-black bead carries an engraved gold Adinkra symbol, a small circuit board and a haptic motor; the gold core hub holds the battery, microphone and speaker.</p>
 
     <div class="hero3d-overlay">
+      <!-- the cinematic opening (hero3d.js intro): the centred line INSIDE the top-down ring,
+           and the typewriter line that writes during the zoom-out. Both live only while
+           .intro-live is on the section; the headline below stays hidden until it lands. -->
+      <p class="intro-center" id="introCenter" aria-hidden="true">First beaded technology</p>
+      <p class="intro-type" id="introType" aria-hidden="true"></p>
       <div class="hero-intro" id="heroIntro">
         <p class="eyebrow">Fine jewelry</p>
         <h1 class="hero-title">The people<br/><span class="gold-ink">you carry.</span></h1>
@@ -180,7 +185,7 @@
            .hero3d-overlay a{pointer-events:auto} makes them tappable through the overlay. -->
       <div class="hero-cta" id="heroCta">
         <div class="hero-actions">
-          <a href="#join" data-open-box class="btn btn-gold">Customize bracelet</a>
+          <a href="/customize" data-open-box class="btn btn-gold">Customize bracelet</a>
           <a href="#join" class="btn btn-line">Join the waitlist</a>
         </div>
       </div>
@@ -316,9 +321,10 @@
   </div>
 </section>
 
-<!-- (the old "Make it yours" invitation section is gone: the designer now OWNS scroll
-     territory inside the hero itself — [data-open-box] links are intercepted by hero3d.js and simply
-     scroll you to that place) -->
+<!-- (the old "Make it yours" invitation section is gone. The designer is no longer scroll
+     territory either: it opens ONLY by explicit intent — a [data-open-box] tap (intercepted by
+     hero3d.js for an in-place open) or the /customize URL, which vercel.json rewrites onto this
+     same file. Scrolling the landing page never opens it.) -->
 
 
 <!-- ============ SECTION 5 - WHAT ELSE IT CAN DO ============
@@ -334,13 +340,22 @@
     <h2 class="reveal" style="font-family:var(--serif); font-weight:500; font-size:clamp(2rem,4.6vw,3.4rem); line-height:1.04; margin:0 0 18px;">
       It does more <span class="gold-ink">than you&rsquo;d think.</span>
     </h2>
-    <p class="tech-lede reveal" style="margin:0 auto 38px;">The same beads that carry your people can carry anything you ask of them.</p>
+    <!-- ONE line does the framing now, in the position that used to hold a lede AND a legend
+         below the strap. It states the mechanism (a physical button, off the phone) and the
+         range (anything the phone can do) without listing what #bxMenu already names. -->
+    <p class="tech-lede reveal" style="margin:0 auto 38px;">Every bead is a button. Press one, your phone runs a shortcut.</p>
 
     <!-- THE DEMO: every bead is a button. Assign one, press it, watch the phone obey. -->
     <div class="bx reveal" id="beadBtns">
       <p class="bx-step" id="bxStep">Pick a bead.</p>
 
-      <div class="bx-strap" role="group" aria-label="Your beads — pick one to assign">
+      <!-- Turnable like the app's bracelet carousel: drag, swipe, or arrow-key the ring; the
+           bead at the front is the one you can press, and its job badge rides above it. -->
+      <div class="bx-strap" id="bxStrap" role="group" tabindex="0"
+           aria-label="Your beads — drag to turn the bracelet, then pick one to assign">
+        <svg class="bx-cord" id="bxCord" viewBox="0 0 400 200" preserveAspectRatio="none" aria-hidden="true">
+          <path id="bxCordPath" fill="none" stroke="rgba(201,160,78,.20)" stroke-width="2" stroke-linecap="round" />
+        </svg>
         <span class="bx-pulse" aria-hidden="true"></span>
         <span class="bx-slot">
           <button class="bx-tagbtn" type="button" data-i="0" aria-label="Change what bead 1 does"><span class="bx-tg"></span></button>
@@ -390,7 +405,9 @@
       </div>
 
       <svg class="bx-link" viewBox="0 0 200 90" aria-hidden="true" preserveAspectRatio="none">
-        <path id="bxPath" d="M14 12 Q100 78 186 34" fill="none" stroke="rgba(201,160,78,.22)" stroke-width="1.6" stroke-dasharray="3 8" stroke-linecap="round"/>
+        <!-- stroke=none: the path exists ONLY as the spark's motion rail (mpath below). The
+             dashed arc it used to draw under the carousel is gone by Melvin's call. -->
+        <path id="bxPath" d="M14 12 Q100 78 186 34" fill="none" stroke="none"/>
         <circle class="bx-spark" r="3.4" fill="#f1e6cb"><animateMotion dur="0.26s" begin="indefinite" fill="freeze"><mpath href="#bxPath"/></animateMotion></circle>
       </svg>
 
@@ -403,7 +420,6 @@
         <button class="bx-mi" type="button" role="menuitem" data-act="home"><span class="bx-glyph">⌂</span>Lights</button>
         <button class="bx-mi bx-mi--sos" type="button" role="menuitem" data-act="sos"><span class="bx-glyph">△</span>Alert my circle</button>
       </div>
-      <p class="bx-legend">A bead can hold any of these &mdash; camera, music, do&nbsp;not&nbsp;disturb, find&nbsp;my&nbsp;phone, voice&nbsp;note, lights, or <em>alert&nbsp;my&nbsp;circle</em>.</p>
 
       <div class="bx-iphone" aria-hidden="true">
         <span class="bx-side bx-side--act"></span>
@@ -633,12 +649,6 @@
     <h2 class="vision-title">Carry them<br/><span class="gold-ink">with you.</span></h2>
     <p class="vision-sub">The first beads are being strung.</p>
 
-    <div class="founding">
-      <p class="founding-copy">
-        A founding circle of a few hundred. <strong>Pricing and ship dates go to them first.</strong>
-      </p>
-    </div>
-
     <form class="join-form" id="joinForm" novalidate>
       <div class="join-row">
         <label for="joinEmail" class="sr-only">Email address</label>
@@ -651,7 +661,6 @@
         <textarea id="joinSuggestion" name="suggestion" rows="2" maxlength="800"
                   placeholder="A symbol, a bead shape, a colour&hellip;"></textarea>
       </div>
-      <p class="join-note">No spam &mdash; one note when it&rsquo;s your turn. <a href="#faq">Questions?</a></p>
     </form>
     <p class="join-status" id="joinStatus" role="status"></p>
     <p class="join-follow">Follow the build on <a href="https://www.instagram.com/makoma.io/" target="_blank" rel="me noopener">Instagram&nbsp;→&nbsp;@makoma.io</a></p>
@@ -675,10 +684,6 @@
       <details class="faq-item">
         <summary>Is it a smartwatch or fitness tracker?</summary>
         <p>No. M&rsquo;AKOMA is jewelry first — no screens, no feeds, no step counts, no notifications. Just the few people you choose, with you all the time.</p>
-      </details>
-      <details class="faq-item">
-        <summary>Can I give one as a gift?</summary>
-        <p>Yes — it&rsquo;s one of our favorite ways to start a circle. Join the waitlist and say so when you reply; we&rsquo;ll help you make it special.</p>
       </details>
     </div>
   </div>
