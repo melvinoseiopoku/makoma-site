@@ -177,7 +177,13 @@ if (reduce || slowNet || !webglOK()) {
   // none of the scene-build cost. Play is started HERE, not by an autoplay attribute, so
   // desktop (display:none) never downloads a byte of it. The deferred boot below retires it.
   const hv = document.getElementById("heroVideo");
-  if (hv) hv.play().catch(() => {});
+  if (hv) {
+    // after `load`, and idle: the loop must stream in the gaps, never inside the first-paint
+    // window where it competes with the poster and fonts on a throttled connection
+    const go = () => (window.requestIdleCallback || ((fn) => setTimeout(fn, 300)))(() => hv.play().catch(() => {}));
+    if (document.readyState === "complete") go();
+    else window.addEventListener("load", go, { once: true });
+  }
   // PHONES: the poster is already a real render of the product, so hold there and build the
   // scene on the first sign the visitor wants it -- a scroll, a touch, or a tap on any
   // "design yours" control. init() still wires everything it owns (configurator included),

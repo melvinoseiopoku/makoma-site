@@ -824,7 +824,13 @@
   // UPGRADE to the app's actual carousel — real cord + CAD beads in WebGL — the moment the
   // section approaches the viewport. The CSS ring above stays as the no-WebGL / load-failure
   // fallback: same slots, same handlers, same drag state either way.
-  var up = new IntersectionObserver(function (es) {
+  // Phones keep the CSS ring: the 3D carousel means three.js + Draco + ~1MB of CAD on a
+  // throttled connection, and measured on production it blocked the HERO HEADLINE's first
+  // paint for 10.8s (the observer fired without a scroll — one-viewport hero, so #more sits
+  // inside any generous rootMargin). Desktop upgrades on TRUE visibility, after idle, so the
+  // work can never race first paint.
+  var wantRing3d = !(window.matchMedia("(pointer: coarse)").matches || (window.innerWidth > 0 && window.innerWidth <= 820));
+  var up = wantRing3d ? new IntersectionObserver(function (es) {
     var near = false;
     for (var k = 0; k < es.length; k++) if (es[k].isIntersecting) near = true;
     if (!near) return;
@@ -833,14 +839,16 @@
     var webgl = false;
     try { webgl = !!(window.WebGLRenderingContext && (probe.getContext("webgl2") || probe.getContext("webgl"))); } catch (e) {}
     if (!webgl) return;
-    import("./beadring3d.js")
-      .then(function (mod) {
-        return mod.initBeadRing3D({ strap: strap, slots: slots, ring: ring, getStep: function () { return STEP; } });
-      })
-      .then(function (ok) { if (ok) ring3dActive = true; })
-      .catch(function (e) { console.warn("[beadring3d] staying on the CSS ring:", e); });
-  }, { rootMargin: "400px" });
-  up.observe(root);
+    (window.requestIdleCallback || function (fn) { setTimeout(fn, 350); })(function () {
+      import("./beadring3d.js")
+        .then(function (mod) {
+          return mod.initBeadRing3D({ strap: strap, slots: slots, ring: ring, getStep: function () { return STEP; } });
+        })
+        .then(function (ok) { if (ok) ring3dActive = true; })
+        .catch(function (e) { console.warn("[beadring3d] staying on the CSS ring:", e); });
+    }, { timeout: 2000 });
+  }, { threshold: 0.05 }) : null;
+  if (up) up.observe(root);
   // the self-playing demo should bring its bead to the front rather than firing one behind you
   var _fire = fire;
   fire = function (i) { if (!ring.drag) ringFocus(i); _fire(i); };
