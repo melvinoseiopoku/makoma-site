@@ -163,17 +163,6 @@
            width="1100" height="2390" fetchpriority="high" decoding="async"
            alt="The M'AKOMA bracelet rendered in 3D — beads and core hub on a braided cord." />
     </picture>
-    <!-- W4: on phones the hero MOVES from the first frame — the Blender-rendered 12s loop
-         (one slow revolution, the CAD explosion opening and closing at its middle; 367 KB
-         webm). The poster underneath is still the first paint and the LCP; the video fades
-         in over it and the live 3D still replaces everything on first touch. Desktop never
-         sees this — it builds the real scene immediately. -->
-    <video class="hero3d-video" id="heroVideo" muted loop playsinline
-           poster="assets/img/makoma-hero-760.webp" preload="none"
-           width="720" height="900" aria-hidden="true">
-      <source src="assets/video/hero-12s.webm" type="video/webm" />
-      <source src="assets/video/hero-12s.mp4" type="video/mp4" />
-    </video>
     <div class="hero3d-veil" aria-hidden="true"></div>
     <!-- the cut: dipped to black across the object → threading boundary (hero3d.js sets opacity) -->
     <div class="hero-cut" id="heroCut" aria-hidden="true"></div>
@@ -411,7 +400,9 @@
       </div>
 
       <svg class="bx-link" viewBox="0 0 200 90" aria-hidden="true" preserveAspectRatio="none">
-        <path id="bxPath" d="M14 12 Q100 78 186 34" fill="none" stroke="rgba(201,160,78,.22)" stroke-width="1.6" stroke-dasharray="3 8" stroke-linecap="round"/>
+        <!-- stroke=none: the path exists ONLY as the spark's motion rail (mpath below). The
+             dashed arc it used to draw under the carousel is gone by Melvin's call. -->
+        <path id="bxPath" d="M14 12 Q100 78 186 34" fill="none" stroke="none"/>
         <circle class="bx-spark" r="3.4" fill="#f1e6cb"><animateMotion dur="0.26s" begin="indefinite" fill="freeze"><mpath href="#bxPath"/></animateMotion></circle>
       </svg>
 

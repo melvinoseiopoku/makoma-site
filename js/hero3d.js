@@ -173,17 +173,6 @@ if (reduce || slowNet || !webglOK()) {
   window.__openPosterPanel = posterPanel.openIt;       // the global CTA router below uses this
   if (wantsCustomize) posterPanel.openIt();
 } else if (!wantsCustomize && (coarse || (window.innerWidth > 0 && window.innerWidth <= 820))) {
-  // W4: phones get the rendered 12s loop over the poster — motion from the first frame with
-  // none of the scene-build cost. Play is started HERE, not by an autoplay attribute, so
-  // desktop (display:none) never downloads a byte of it. The deferred boot below retires it.
-  const hv = document.getElementById("heroVideo");
-  if (hv) {
-    // after `load`, and idle: the loop must stream in the gaps, never inside the first-paint
-    // window where it competes with the poster and fonts on a throttled connection
-    const go = () => (window.requestIdleCallback || ((fn) => setTimeout(fn, 300)))(() => hv.play().catch(() => {}));
-    if (document.readyState === "complete") go();
-    else window.addEventListener("load", go, { once: true });
-  }
   // PHONES: the poster is already a real render of the product, so hold there and build the
   // scene on the first sign the visitor wants it -- a scroll, a touch, or a tap on any
   // "design yours" control. init() still wires everything it owns (configurator included),
@@ -253,9 +242,6 @@ function armDeferredHero() {
     const t0 = performance.now();
     init().then(() => {
       if (window.__hero) window.__hero.bootMs = Math.round(performance.now() - t0);
-      // the live scene has taken over: retire the loop video
-      const hv = document.getElementById("heroVideo");
-      if (hv) { hv.pause(); section.classList.add("video-off"); }
       // the tap that woke the hero should still land on the designer
       if (thenOpenBox && window.__hero && window.__hero.box) window.__hero.box.open();
     });
@@ -1147,6 +1133,11 @@ async function init() {
      the segments placed so the fully-open hold straddles u = 0.5 — dead-front. Both ends of the
      sweep land on a closed state, which is also why the ±π wrap on the far side is invisible. */
   const OBJ_TURN = 0.16;                       // rad/s — the object's slow turn
+  // -1 = CLOCKWISE from the viewer: front beads travel right-to-left, so each glued word's
+  // successor enters to its RIGHT and an overlap reads left-to-right, the way a sentence does.
+  // (+1 spelled every pair backwards on screen.) Everything direction-dependent — the drift,
+  // the arm offset, the reveal envelope's sweep, and the word->bead assignment — keys off this.
+  const OBJ_DIR = -1;
   const OBJ_EX_WIN = 0.95;                     // rad (~54°) either side of dead-front that counts as "in frame"
   const OBJ_EX_LEAD = 0.30;                    // rad of closed turning before the bead first swings in (~2 s)
   let objTurn = SPIN_PHASE, objTurnPrev = 0, objTurnArmed = false;
@@ -1235,11 +1226,11 @@ async function init() {
       // assembled piece and the bead swings in about two seconds later. Left at SPIN_PHASE it
       // starts 0.33 rad from front — INSIDE the window — so the very first frame would already be
       // a half-split bead. (SPIN_PHASE is tuned for the threading timeline, not for this.)
-      if (!objTurnArmed && beadAsm) { objTurnArmed = true; objTurn = beadAsm.frontY - OBJ_EX_WIN - OBJ_EX_LEAD; objTurnPrev = idle; }
+      if (!objTurnArmed && beadAsm) { objTurnArmed = true; objTurn = beadAsm.frontY - OBJ_DIR * (OBJ_EX_WIN + OBJ_EX_LEAD); objTurnPrev = idle; }
 
-      objTurn += Math.min(0.1, Math.max(0, idle - objTurnPrev)) * OBJ_TURN;   // own accumulator, so the entry phase can be set without a jump
+      objTurn += Math.min(0.1, Math.max(0, idle - objTurnPrev)) * OBJ_TURN * OBJ_DIR;   // own accumulator, so the entry phase can be set without a jump
       objTurnPrev = idle;
-      if (beadAsm) beadAsm._e = objExplodeEnv(angDelta(objTurn, beadAsm.frontY));
+      if (beadAsm) beadAsm._e = objExplodeEnv(OBJ_DIR * angDelta(objTurn, beadAsm.frontY));   // the sweep mirrors with the direction
     } else {
       // Disarm on the way out, so coming BACK to the top re-arms and opens on a whole piece again.
       // Latched, a return landed on the frozen angle — mid-split in one frame if they left mid-
@@ -1975,9 +1966,11 @@ async function init() {
     const exAnim = info[EXPLODE_BEAD].anim;
     const chosen = info
       .filter((b) => b.i !== EXPLODE_BEAD)
-      .map((b) => ({ b, d: (((b.anim - exAnim) % 1) + 1) % 1 }))
+      .map((b) => ({ b, d: (((OBJ_DIR * (b.anim - exAnim)) % 1) + 1) % 1 }))   // encounter order FOR THIS direction
       .sort((p, q) => p.d - q.d)
-      .slice(0, words.length)
+      // skip the exploded bead's immediate successor: its whole front pass sits inside the
+      // reveal window, where every word is blanked — a word there never lights at all
+      .slice(1, words.length + 1)
       .map((x) => x.b);
     info.forEach((b) => { if (!chosen.includes(b)) model.remove(b.anchor); });
 
@@ -2025,7 +2018,7 @@ async function init() {
         b.anchor.add(mesh);
         return { anchor: b.anchor, mesh, mat, radial: n, frontAnim: b.anim };
       });
-      if (window.__hero) window.__hero.words3d = () => beadWords.map((W) => ({ w: 1, o: W.mat.opacity }));
+      if (window.__hero) window.__hero.words3d = () => beadWords.map((W) => ({ o: W.mat.opacity, x: W._sx || 0, y: W._sy || 0 }));
     }).catch((e) => console.warn("[beadwords3d] no 3D words:", e));
   }
 
@@ -2118,8 +2111,11 @@ async function init() {
       _bwR.copy(W.radial).applyQuaternion(model.getWorldQuaternion(_bwQ));   // radial lives in MODEL space
       _bwC.copy(camera.position).sub(_bwV).normalize();
       const facing = _bwR.dot(_bwC);
-      // tight window: one word at a time, and never far enough off-front to reach the headline
-      const o = clamp(smooth(0.70, 0.88, facing), 0, 1);   // tops out below cos(cam elevation), so dead-front genuinely reads 1
+      let o = clamp(smooth(0.70, 0.88, facing), 0, 1);     // ceiling below cos(cam elevation), so dead-front genuinely reads 1
+      _bwV.project(camera);
+      const cw = canvas.clientWidth || 1;
+      W._sx = (_bwV.x * 0.5 + 0.5) * cw;
+      W._sy = (-_bwV.y * 0.5 + 0.5) * (canvas.clientHeight || 1);
       W.mat.opacity = o;
       W.mesh.visible = o > 0.02;
     }
