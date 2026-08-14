@@ -29,6 +29,9 @@ const BEAD_POS = [
 ];
 const SLOT_COUNT = 8, BEAD_SCALE = 0.9, CAM_DIST = 5.4;   // the app frames portrait; our wide strap needs a tighter fit
 const MODELS = ["sankofa", "aya", "nsoroma", "gye_nyame", "nkyinkyim"];
+// The back of the ring is never empty on a real bracelet: the remaining three CAD beads fill
+// stations 5-7 as jewellery only — no job, no badge, no press target, never the front bead.
+const FILLERS = ["akoma", "akoma_ntoaso", "nkonsonkonson"];
 
 export async function initBeadRing3D(ctx) {
   const { strap, slots, ring, onFront } = ctx;
@@ -108,6 +111,30 @@ export async function initBeadRing3D(ctx) {
     bead.scale.setScalar(BEAD_SCALE);
     ringNode.add(bead);
     beads.push({ slot, node: bead, golds });
+  }
+  for (let f = 0; f < FILLERS.length; f++) {
+    const slot = MODELS.length + f;                    // stations 5, 6, 7
+    const g = await load(`assets/models/carousel/${FILLERS[f]}.glb`);
+    const bead = g.scene;
+    bead.traverse((o) => {
+      if (!o.isMesh) return;
+      const m = o.material, name = ((m && m.name) || "").toLowerCase();
+      const isGold = name.includes("gold") || name.includes("brass") || (m && m.metalness > 0.5);
+      o.material = isGold ? matGold.clone() : matBlack;
+      if (isGold) { o.material.emissive.setRGB(0.30, 0.225, 0.075); o.material.emissiveIntensity = 0.55; }
+    });
+    const [px, py, pz] = BEAD_POS[slot];
+    const phi = Math.atan2(py, px), c = Math.cos(phi), s = Math.sin(phi);
+    const rot = new THREE.Matrix4().set(
+      -s, 0, c, 0,
+       c, 0, s, 0,
+       0, 1, 0, 0,
+       0, 0, 0, 1);
+    bead.quaternion.setFromRotationMatrix(rot);
+    bead.position.set(px, py, pz);
+    bead.scale.setScalar(BEAD_SCALE);
+    ringNode.add(bead);
+    // NOT pushed into `beads`: fillers are scenery — no slot DOM, no front detection, no glow swap
   }
 
   const resize = () => {

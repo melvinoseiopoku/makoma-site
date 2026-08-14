@@ -1348,6 +1348,9 @@ async function init() {
 
   window.__hero = {
     setProgress(p) { p = clamp(p, 0, 1); target = progress = p; if (ready) { update(p); composer.render(); } },
+    // deterministic drive for the idle-clocked object turn — tests (and art direction) can
+    // sweep the ring without waiting on wall-clock rAF, which hidden/headless pages throttle
+    nudgeTurn(d) { objTurn += d; objTurnPrev = idle; if (ready) { update(progress); composer.render(); } },
     suppressOutro(v) { this._suppressOutro = v; },   // the touch-demo owns the outro fade once it's in view
     get progress() { return progress; },
     get ready() { return ready; },
@@ -1957,12 +1960,12 @@ async function init() {
   //      around AFTER the exploded bead, so the phrase spells out across the beads as they spin.
   //      Each word is anchored to its bead (a child of `model`) so it tracks the bead's spin. ----
   function setupBeadWords() {
-    if (!beadWordHost || !model) return;
-    // W1/W2: the theme that only works when the words ride the beads themselves — the piece
-    // IS the hidden technology, so the sentence spells across it as it turns. words.length
-    // decides how many beads get one, so keep it short.
+    if (!model) return;
+    // W1/W2, in REAL 3D: each word is an extruded serif mesh GLUED to its bead — a child of the
+    // model, riding the same spin, standing just above the cap like a hallmark. No pop-up, no
+    // projection: it is simply there, and the turn brings it to you. Font = the site's own
+    // Cormorant italic (woff2 re-expanded to TTF; opentype.js cannot read woff2).
     const words = ["Technology", "hidden", "in", "jewelry."];
-    // front-facing anim for every bead (the anim value where it swings frontmost to the camera)
     const info = BEAD_CENTERS.map((bc, i) => {
       const a = new THREE.Group(); a.position.set(bc[0], bc[1], bc[2]); model.add(a);
       model.updateMatrixWorld(true);
@@ -1970,20 +1973,60 @@ async function init() {
       return { i, anchor: a, anim };
     });
     const exAnim = info[EXPLODE_BEAD].anim;
-    // the beads whose front moment falls AFTER the exploded bead (circular), nearest first
     const chosen = info
       .filter((b) => b.i !== EXPLODE_BEAD)
       .map((b) => ({ b, d: (((b.anim - exAnim) % 1) + 1) % 1 }))
       .sort((p, q) => p.d - q.d)
       .slice(0, words.length)
       .map((x) => x.b);
-    info.forEach((b) => { if (!chosen.includes(b)) model.remove(b.anchor); });   // drop unused anchors
-    beadWordHost.innerHTML = "";
-    beadWords = chosen.map((b, k) => {
-      const el = document.createElement("div"); el.className = "bead-word"; el.textContent = words[k];
-      beadWordHost.appendChild(el);
-      return { anchor: b.anchor, el, frontAnim: b.anim };   // the anim where this bead is dead-front
-    });
+    info.forEach((b) => { if (!chosen.includes(b)) model.remove(b.anchor); });
+
+    // sized from modelR — the model's own radius, the unit every hero dimension already uses.
+    // (Deriving it from BEAD_CENTERS spacing produced words 20x too big: those centres are not
+    // adjacency-ordered, so [0] and [1] are nearly opposite sides of the ring.)
+    const beadR = modelR * 0.14;
+
+    Promise.all([
+      fetch("assets/vendor/text/CormorantGaramond-Italic-latin.ttf").then((r) => r.arrayBuffer()),
+      import("opentype.js"),
+      import("three/addons/loaders/SVGLoader.js"),
+    ]).then(([buf, ot, svgm]) => {
+      const font = (ot.parse || ot.default.parse)(buf);
+      const SVGLoader = svgm.SVGLoader;
+      beadWords = chosen.map((b, k) => {
+        const word = words[k];
+        const upm = font.unitsPerEm || 1000;
+        const path = font.getPath(word, 0, 0, upm);            // baseline at y=0, SVG y-down
+        const bb = path.getBoundingBox();
+        const doc = new SVGLoader().parse('<svg xmlns="http://www.w3.org/2000/svg"><path d="' + path.toPathData(3) + '"/></svg>');
+        const shapeList = doc.paths.flatMap((pp) => SVGLoader.createShapes(pp));
+        const capH = beadR * 0.62;                              // cap-height target
+        const scale = capH / (upm * 0.7);                       // Cormorant cap height ~ 0.7em
+        const geo = new THREE.ExtrudeGeometry(shapeList, { depth: upm * 0.06, bevelEnabled: false, curveSegments: 8 });
+        geo.scale(scale, -scale, scale);                        // SVG y-down -> up
+        geo.computeBoundingBox();
+        const gb = geo.boundingBox, cx = (gb.min.x + gb.max.x) / 2;
+        geo.translate(-cx, 0, 0);                               // centre on the bead
+        const mat = new THREE.MeshStandardMaterial({
+          color: 0xf6ecd4, roughness: 0.48, metalness: 0.08,
+          emissive: 0x6b6250, emissiveIntensity: 0.55,
+          transparent: true, opacity: 0, side: THREE.DoubleSide });
+        const mesh = new THREE.Mesh(geo, mat);
+        // basis in MODEL space: ring plane is XZ, world-up is model -Y (the mount is flipped)
+        const bc = b.anchor.position;
+        const n = new THREE.Vector3(bc.x, 0, bc.z).normalize(); // radial out = text normal
+        const u = new THREE.Vector3(0, -1, 0);                  // model -Y = world up
+        const t = new THREE.Vector3().crossVectors(u, n).normalize();
+        const u2 = new THREE.Vector3().crossVectors(n, t).normalize();
+        mesh.matrixAutoUpdate = false;
+        const m = new THREE.Matrix4().makeBasis(t, u2, n);
+        m.setPosition(new THREE.Vector3().copy(u).multiplyScalar(beadR * 1.55));
+        mesh.matrix.copy(m);
+        b.anchor.add(mesh);
+        return { anchor: b.anchor, mesh, mat, radial: n, frontAnim: b.anim };
+      });
+      if (window.__hero) window.__hero.words3d = () => beadWords.map((W) => ({ w: 1, o: W.mat.opacity }));
+    }).catch((e) => console.warn("[beadwords3d] no 3D words:", e));
   }
 
   function updateExplode(asm, e) {
@@ -2060,34 +2103,25 @@ async function init() {
 
   // ---- on-bead words: project each word to its bead's screen position every frame so it tracks
   //      the spin; fade in as the bead swings to the front, out as it rotates away ----
-  const _bwV = new THREE.Vector3();
+  const _bwV = new THREE.Vector3(), _bwC = new THREE.Vector3(), _bwR = new THREE.Vector3();
+  const _bwQ = new THREE.Quaternion();
   function updateBeadWords(anim, objectMode) {
     if (!beadWords.length) return;
-    if (beadAsm && beadAsm._e > 0.03 && beadAsm._e < 0.97) {   // exploded bead is mid-reveal → keep the words clear of it
-      for (const W of beadWords) W.el.style.opacity = "0"; return;
-    }
-    const startA = beadAsm ? beadAsm.pE - 0.02 : 0.14;     // full by the time the first after-bead swings front
-    // In the object phase the turn LOOPS, so the scroll-shaped envelope below (which assumes
-    // anim runs 0→1 exactly once) would blank the words for most of every revolution. There the
-    // master is simply on, and `facing` alone decides — which is the whole effect: each line
-    // rises from behind its bead as that bead comes round, one after another, forever.
-    const master = objectMode
-      ? 1
-      : clamp(smooth(startA, startA + 0.02, anim) * (1 - smooth(0.86, 0.96, anim)), 0, 1);
-    const w = canvas.clientWidth || window.innerWidth || 1, h = canvas.clientHeight || window.innerHeight || 1;
-    if (master < 0.01) { for (const W of beadWords) W.el.style.opacity = "0"; return; }
-    camera.updateMatrixWorld();
+    // GLUED text needs no choreography — only honesty about physics: a word is legible while
+    // its face is toward you, and it dips away with its bead. Opacity follows the facing dot
+    // with a SHARP ramp (readable well before dead-front, gone quickly past it) and nothing
+    // else moves, because nothing else would move on a real object.
+    const hideAll = (!objectMode) || boxMode || (beadAsm && beadAsm._e > 0.03 && beadAsm._e < 0.97);
     for (const W of beadWords) {
-      W.anchor.getWorldPosition(_bwV);
-      let d = anim - W.frontAnim; d = ((d % 1) + 1) % 1; if (d > 0.5) d -= 1;   // signed circular distance to this bead's front
-      const facing = clamp(1 - smooth(0, 0.085, Math.abs(d)), 0, 1);            // full at dead-front, gone within ±0.085 → words fire one after another
-      _bwV.project(camera);
-      if (_bwV.z >= 1 || facing < 0.01) { W.el.style.opacity = "0"; continue; }
-      const x = (_bwV.x * 0.5 + 0.5) * w, y = (-_bwV.y * 0.5 + 0.5) * h;
-      const rise = h * (0.085 + 0.06 * facing);             // pops UP from behind the bead as it turns to front; always sits ABOVE it
-      W.el.style.left = Math.round(x) + "px";
-      W.el.style.top = Math.round(y - rise) + "px";
-      W.el.style.opacity = String(master * facing);
+      if (hideAll) { W.mat.opacity = 0; W.mesh.visible = false; continue; }
+      W.mesh.getWorldPosition(_bwV);
+      _bwR.copy(W.radial).applyQuaternion(model.getWorldQuaternion(_bwQ));   // radial lives in MODEL space
+      _bwC.copy(camera.position).sub(_bwV).normalize();
+      const facing = _bwR.dot(_bwC);
+      // tight window: one word at a time, and never far enough off-front to reach the headline
+      const o = clamp(smooth(0.70, 0.88, facing), 0, 1);   // tops out below cos(cam elevation), so dead-front genuinely reads 1
+      W.mat.opacity = o;
+      W.mesh.visible = o > 0.02;
     }
   }
 
@@ -2498,6 +2532,7 @@ async function init() {
     const cust = $("#customize"); if (!cust) return;
     for (const rv of reveals) { rv._e = 0; rv._prevE = 0; updateExplode(rv, 0); }   // the open bead closes for the catch
     for (const id of ["#hubLabels", "#beadLabels", "#beadWords"]) { const h = $(id); if (h) h.style.opacity = "0"; }
+    for (const W of beadWords) { W.mat.opacity = 0; W.mesh.visible = false; }   // glued text stays OUT of the vitrine
     buildVitrine();
     if (groundMesh) groundMesh.visible = false;
     if (gatherGroup) gatherGroup.visible = false;
