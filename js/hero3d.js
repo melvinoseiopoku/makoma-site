@@ -1107,6 +1107,7 @@ async function init() {
     ready = true;
     if (loaderEl) loaderEl.classList.add("hide");
     poster.classList.add("hide");
+    section.classList.add("live3d");   // light-mode overlays that rely on the canvas occluding them key off this
     // NOTE: the first render is kicked from the loader callback, AFTER setupExplode(), not here.
     // The object phase arms its turn off beadAsm.frontY, so a frame drawn before that rig exists
     // would paint at SPIN_PHASE and then visibly snap ~53° on the next one.
@@ -3182,6 +3183,7 @@ async function init() {
   const fail = (err) => {
     console.warn("[hero3d] CAD load failed:", err);
     section.classList.add("no3d");
+    section.classList.remove("live3d");
     if (loaderEl) loaderEl.style.display = "none";
     poster.classList.remove("hide");
     // A visitor who explicitly asked for the designer (/customize, or a CTA tap mid-load) must

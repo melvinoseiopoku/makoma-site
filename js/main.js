@@ -301,6 +301,20 @@
       document.addEventListener("keydown", (e) => { if (e.key === "Escape") setMenu(false); });
       document.addEventListener("click", (e) => { if (nav.classList.contains("menu-open") && !nav.contains(e.target)) setMenu(false); });
     }
+    // Nav anchors jump INSTANTLY via JS. The CSS smooth scroll dies on phones: the same tap
+    // wakes the deferred 3D hero, the main thread disappears under module + GLB work, and iOS
+    // abandons the animated scroll at ~0px — which read as "the menu does nothing".
+    if (nav) {
+      nav.addEventListener("click", (e) => {
+        const a = e.target.closest && e.target.closest('a[href^="#"]');
+        if (!a) return;
+        const target = document.getElementById(a.getAttribute("href").slice(1));
+        if (!target) return;
+        e.preventDefault();
+        window.scrollTo({ top: target.getBoundingClientRect().top + window.scrollY, behavior: "instant" });   // "auto" defers to the CSS smooth-behavior — "instant" is the hard jump
+        try { history.replaceState(history.state, "", a.getAttribute("href")); } catch (err) {}
+      });
+    }
 
     const onScroll = () => {
       if (nav) nav.classList.toggle("scrolled", window.scrollY > 40);
@@ -584,7 +598,7 @@
   var spark = root.querySelector(".bx-spark");
   var motion = spark && spark.querySelector("animateMotion");
   var screen = document.getElementById("bxScreen");
-  var step = document.getElementById("bxStep");
+
   var GLYPH = { camera: "◉", music: "♪", dnd: "☾", find: "◎", voice: "▮", home: "⌂", sos: "△" };
   // the screens speak for themselves now — only the alert keeps a caption, because its
   // outcome (who was reached) is not otherwise visible
@@ -732,9 +746,6 @@
     slots[i].classList.toggle("is-sos", act === "sos");
   }
   assigned.forEach(function (a, i) { paint(i); });
-
-  function say(t) { step.textContent = t; }
-  say("Press a bead.");
 
   // ---- press: bead → cord → hub → phone ----
   function fire(i) {

@@ -57,7 +57,7 @@
     document.documentElement.setAttribute('data-theme', t);
   }catch(e){ document.documentElement.setAttribute('data-theme','dark'); } })();
 </script>
-<link rel="stylesheet" href="css/style.css" />
+<link rel="stylesheet" href="css/style.css?v=3" />
 <script type="importmap">
 {
   "imports": {
@@ -347,7 +347,6 @@
 
     <!-- THE DEMO: every bead is a button. Assign one, press it, watch the phone obey. -->
     <div class="bx reveal" id="beadBtns">
-      <p class="bx-step" id="bxStep">Pick a bead.</p>
 
       <!-- Turnable like the app's bracelet carousel: drag, swipe, or arrow-key the ring; the
            bead at the front is the one you can press, and its job badge rides above it. -->
@@ -708,9 +707,9 @@
      reads when submitting the waitlist form. Classic scripts, not modules, because
      main.js is a classic IIFE and cannot import. -->
 <script src="js/design.js"></script>
-<script src="js/main.js"></script>
+<script src="js/main.js?v=3"></script>
 <script src="js/configurator.js"></script>
-<script type="module" src="js/hero3d.js"></script>
+<script type="module" src="js/hero3d.js?v=3"></script>
 <!-- Neither js/positioning.js (its "Where we live" section is cut) nor js/coach.js is loaded:
      the bracelet no longer explains itself. Touching a bead summons the other person
      unannounced, and being surprised by it IS the moment. Every window.__coach call in

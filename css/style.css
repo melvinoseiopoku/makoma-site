@@ -1715,7 +1715,14 @@ section{ position:relative; z-index:2; }
    anywhere. Strong behind the copy (lower-left), easing to a barely-there floor at the far
    side so the bracelet is essentially untouched. Rendered BEHIND the canvas (z:0 < canvas z:1)
    so the opaque 3-D phone/beads occlude it — otherwise this light floor washed over the phone. */
-:root[data-theme="light"] .hero3d-sticky::after{
+/* until the 3D is live, the light hero still shows the DARK poster render — the copy
+   must keep the dark-theme ink or the headline sinks into the image. The gold + buttons
+   already read on both grounds; only the neutral ink needs the hold. */
+:root[data-theme="light"] .hero3d:not(.live3d) .hero3d-overlay{
+  --ink:#ece6d8; --ink-soft:#b7b0a1; --ink-mute:#9a9285;
+}
+:root[data-theme="light"] .hero3d:not(.live3d) .hero-title{ color:var(--ink); }
+:root[data-theme="light"] .hero3d.live3d .hero3d-sticky::after{
   content:""; position:absolute; inset:0; z-index:0; pointer-events:none;
   opacity:var(--intro-op, 1);                 /* fades out together with the hero intro copy */
   background:radial-gradient(70% 78% at 24% 63%,
@@ -2002,9 +2009,6 @@ section{ position:relative; z-index:2; }
    phone → the phone obeys. So the whole thing is one live rig, not a picture.
 --------------------------------------------------------------------------- */
 .bx{ position:relative; max-width:760px; margin:38px auto 0; text-align:center; }  /* anchors the popover */
-.bx-step{ font-family:var(--mono); font-size:.7rem; letter-spacing:.16em; text-transform:uppercase;
-  color:var(--ink-mute); margin:0 0 22px; min-height:1em; transition:color .3s var(--ease); }
-.bx-step.is-hot{ color:var(--gold-bright); }
 
 /* the strap ------------------------------------------------------------- */
 /* THE CAROUSEL — the flat row of five became a ring you can turn, mirroring the app's
