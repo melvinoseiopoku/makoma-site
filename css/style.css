@@ -1458,32 +1458,6 @@ section{ position:relative; z-index:2; }
     .ig-pulse-core{ animation:none; opacity:1; }
   }
 
-  /* ---- THE ROAD: a closing-circle progress ring (the circle completes only when we ship) ---- */
-  .rd-fig{ margin:0 auto; width:min(92vw,520px); }
-  .rd-fig svg{ width:100%; height:auto; display:block; overflow:visible; }
-  .rd-track{ fill:none; stroke:var(--line); stroke-width:3; }
-  .rd-prog{ fill:none; stroke:var(--gold); stroke-width:4.5; stroke-linecap:round;
-    stroke-dasharray:942.48; stroke-dashoffset:942.48;
-    filter:drop-shadow(0 0 6px color-mix(in srgb, var(--gold-bright) 55%, transparent)); }
-  .reveal.in .rd-prog{ animation:rd-fill 1.9s var(--ease) .25s forwards; }
-  @keyframes rd-fill{ to{ stroke-dashoffset:235.6; } }                 /* 75% — gap left is the road to ship */
-  .rd-dot{ stroke-width:1.6; }
-  .rd-dot--done{ fill:var(--gold); stroke:var(--gold-bright); }
-  .rd-dot--goal{ fill:none; stroke:var(--ink-mute); stroke-width:2; stroke-dasharray:3 4.5; }  /* hollow: not reached yet */
-  .rd-check{ fill:none; stroke:#060607; stroke-width:1.7; stroke-linecap:round; stroke-linejoin:round; }
-  .rd-head-ring{ fill:none; stroke:var(--gold-bright); stroke-width:1.5; }
-  .rd-head{ fill:var(--gold-bright); stroke:var(--gold-pale); stroke-width:1.6; }
-  .reveal.in .rd-head-ring{ animation:rd-pulse 2.6s ease-out 1.9s infinite; }
-  @keyframes rd-pulse{ 0%{ r:9; opacity:.85; } 70%{ r:30; opacity:0; } 100%{ r:30; opacity:0; } }
-  .rd-eyebrow{ font-family:"JetBrains Mono",monospace; font-size:11px; letter-spacing:.26em; text-transform:uppercase; fill:var(--gold); }
-  .rd-now{ font-family:"Cormorant Garamond",Georgia,serif; font-weight:500; font-size:30px; fill:var(--ink); }
-  .rd-sub{ font-family:"Inter",sans-serif; font-size:13px; fill:var(--ink-mute); }
-  .rd-label{ font-family:"Inter",sans-serif; font-size:13px; letter-spacing:.03em; fill:var(--ink-soft); }
-  .rd-goal-lab{ font-family:"JetBrains Mono",monospace; font-size:12px; letter-spacing:.2em; text-transform:uppercase; fill:var(--gold); font-weight:500; }
-  @media (prefers-reduced-motion: reduce){
-    .reveal.in .rd-prog{ animation:none; stroke-dashoffset:235.6; }
-    .reveal.in .rd-head-ring{ animation:none; opacity:0; }
-  }
 
 /* ----- v2: still-photo hero (shown FIRST, before the 3D anatomy) ----- */
 .hero-still{ position:relative; height:100svh; min-height:600px; overflow:hidden; display:flex; align-items:flex-end; }
@@ -2073,6 +2047,15 @@ section{ position:relative; z-index:2; }
 .bx-tagbtn:hover, .bx-tagbtn[aria-expanded="true"]{ border-color:var(--gold); transform:translateY(-2px); }
 .bx-tagbtn:focus-visible{ outline:2px solid var(--gold-bright); outline-offset:3px; }
 .bx-slot.is-press .bx-tagbtn{ border-color:var(--gold-bright); box-shadow:0 0 14px rgba(232,197,122,.45); }
+/* light mode: the chip stays dark (it echoes the beads), so the glyph must stay BRIGHT gold —
+   the light theme's gold tokens go dark and vanished against the dark chip. */
+:root[data-theme="light"] .bx-tagbtn{
+  background:rgba(20,17,10,.92);
+  border-color:rgba(155,122,54,.55);
+  color:#e8c57a;
+  box-shadow:0 2px 10px rgba(40,30,10,.28);
+}
+:root[data-theme="light"] .bx-tagbtn::after{ background:linear-gradient(180deg, rgba(155,122,54,.75), transparent); }
 .bx-bead:hover{ transform:translateY(-3px); }
 .bx-bead:focus-visible{ outline:2px solid var(--gold-bright); outline-offset:4px; border-radius:14px; }
 /* the selected bead lifts and wears a ring */
@@ -2364,3 +2347,37 @@ section{ position:relative; z-index:2; }
 /* Said where the choice is actually made, not buried in a policy page: initials are derived
    from a third party's name and artwork is a personal upload, so both leave the device. */
 .cfg-privacy{ margin:10px 2px 0; font-size:.68rem; line-height:1.5; color:var(--ink-mute); }
+
+/* ============================================================
+   BUILDING IN PUBLIC — the evidence strip (replaces the road ring)
+   ============================================================ */
+.bip-strip{ display:flex; gap:16px; overflow-x:auto; -webkit-overflow-scrolling:touch;
+  scroll-snap-type:x proximity; padding:6px max(24px, calc((100vw - 1060px)/2)) 20px;
+  scrollbar-width:none; }
+.bip-strip::-webkit-scrollbar{ display:none; }
+.bip-card{ position:relative; flex:0 0 auto; height:clamp(320px, 46vw, 440px); aspect-ratio:4/5;
+  margin:0; border-radius:18px; overflow:hidden; background:var(--panel);
+  border:1px solid var(--line-soft); scroll-snap-align:center; }
+.bip-card--wide{ aspect-ratio:1.88; }
+.bip-card--photo{ aspect-ratio:1.5; }
+.bip-card img, .bip-card video{ width:100%; height:100%; object-fit:cover; display:block; }
+/* captions sit ON the media in both themes, so their colours are literal, not tokens */
+.bip-card figcaption{ position:absolute; left:0; right:0; bottom:0; padding:36px 16px 14px;
+  font-family:var(--mono); font-size:.66rem; letter-spacing:.15em; text-transform:uppercase;
+  color:#e9e2d2; background:linear-gradient(180deg, transparent, rgba(4,4,5,.78) 62%); }
+.bip-when{ color:#d9b25f; margin-right:10px; }
+.bip-sound{ position:absolute; top:12px; right:12px; z-index:2; font-family:var(--mono);
+  font-size:.62rem; letter-spacing:.12em; text-transform:uppercase; color:#f0e8d6;
+  background:rgba(8,8,9,.55); border:1px solid rgba(217,178,95,.55); border-radius:999px;
+  padding:8px 14px; cursor:pointer; backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px);
+  transition:background .3s, color .3s; }
+.bip-sound[aria-pressed="true"]{ background:rgba(217,178,95,.92); color:#141005; }
+/* the slim road that survives from the old ring: 3 of 4 lit, Ship still open */
+.bip-road{ max-width:560px; margin:34px auto 0; padding:0 24px; }
+.bip-track{ position:relative; height:2px; background:var(--line-soft); border-radius:2px; }
+.bip-fill{ position:absolute; top:0; bottom:0; left:0; right:22%; display:block; border-radius:2px;
+  background:linear-gradient(90deg, var(--gold), var(--gold-bright)); }
+.bip-ticks{ display:flex; justify-content:space-between; margin-top:10px; font-family:var(--mono);
+  font-size:.6rem; letter-spacing:.12em; text-transform:uppercase; color:var(--ink-mute); }
+.bip-ticks .is-done{ color:var(--gold-bright); }
+.bip-follow{ display:flex; gap:14px; justify-content:center; margin-top:30px; flex-wrap:wrap; padding:0 24px; }

@@ -285,6 +285,29 @@
   /* ------------------------------------------------------------------
      Nav, cursor glow, parallax
   ------------------------------------------------------------------ */
+  // Building in public — the evidence strip. The build film autoplays muted while in
+  // view (paused off-screen; never autoplayed under reduced motion), and the sound pill
+  // unmutes the bench audio — the whole point of an ASMR cut.
+  function setupBip() {
+    const vid = $("#bipVideo"), btn = $("#bipSound");
+    if (!vid) return;
+    if (!reduce && "IntersectionObserver" in window) {
+      new IntersectionObserver((es) => {
+        es.forEach((en) => { if (en.isIntersecting) vid.play().catch(() => {}); else vid.pause(); });
+      }, { threshold: 0.35 }).observe(vid);
+    }
+    vid.addEventListener("click", () => { if (vid.paused) vid.play().catch(() => {}); else vid.pause(); });
+    if (btn) btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      vid.muted = !vid.muted;
+      const on = !vid.muted;
+      btn.setAttribute("aria-pressed", on ? "true" : "false");
+      btn.textContent = on ? "Sound off" : "Sound on";
+      btn.setAttribute("aria-label", on ? "Turn sound off" : "Turn sound on");
+      if (on && vid.paused) vid.play().catch(() => {});
+    });
+  }
+
   function setupChrome() {
     const nav = $("#nav");
 
@@ -541,6 +564,7 @@
     staggerRefusals();
     observeReveals();
     setupChrome();
+    setupBip();
     setupForm();
     setupLogoTrace();
     setupTheme();

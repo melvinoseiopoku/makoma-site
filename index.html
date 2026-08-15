@@ -57,7 +57,7 @@
     document.documentElement.setAttribute('data-theme', t);
   }catch(e){ document.documentElement.setAttribute('data-theme','dark'); } })();
 </script>
-<link rel="stylesheet" href="css/style.css?v=3" />
+<link rel="stylesheet" href="css/style.css?v=4" />
 <script type="importmap">
 {
   "imports": {
@@ -128,8 +128,8 @@
     <a href="#hero">The piece</a>
     <a href="/customize" data-open-box>Customize</a>
     <a href="#more">What else</a>
-    <a href="#adoption">How it begins</a>
-    <a href="#launch">The Road</a>
+    <a href="how-it-begins.html">How it begins</a>
+    <a href="#launch">Building in public</a>
     <a href="#join" class="nav-link-cta">Waitlist</a>
   </nav>
   <div class="nav-right">
@@ -543,89 +543,55 @@
      not desire. It belongs in the pitch deck, not on a jewellery landing page. -->
 
 
-<!-- ============ HOW IT BEGINS — adoption (infographic + real app) ============ -->
-<section class="circle" id="adoption">
-  <div class="wrap" style="text-align:center;">
-    <p class="eyebrow reveal" style="display:block; margin-bottom:18px;">How it begins</p>
-    <h2 class="reveal" style="font-family:var(--serif); font-weight:500; font-size:clamp(2rem,4.6vw,3.4rem); line-height:1.04; margin:0 0 38px;">
-      Two ways into <span class="gold-ink">your circle.</span>
-    </h2>
 
-    <div class="hib-grid reveal">
-      <figure class="hib-panel">
-        <div class="cw-grid">
-          <span class="cw"><img src="assets/img/colourways/onyx-320.webp" srcset="assets/img/colourways/onyx-320.webp 320w, assets/img/colourways/onyx-640.webp 640w" sizes="150px" alt="Onyx bracelet" width="640" height="384" loading="lazy"></span>
-          <span class="cw"><img src="assets/img/colourways/clay-320.webp" srcset="assets/img/colourways/clay-320.webp 320w, assets/img/colourways/clay-640.webp 640w" sizes="150px" alt="Clay bracelet" width="640" height="384" loading="lazy"></span>
-          <span class="cw"><img src="assets/img/colourways/forest-320.webp" srcset="assets/img/colourways/forest-320.webp 320w, assets/img/colourways/forest-640.webp 640w" sizes="150px" alt="Forest bracelet" width="640" height="384" loading="lazy"></span>
-          <span class="cw"><img src="assets/img/colourways/midnight-320.webp" srcset="assets/img/colourways/midnight-320.webp 320w, assets/img/colourways/midnight-640.webp 640w" sizes="150px" alt="Midnight bracelet" width="640" height="384" loading="lazy"></span>
-        </div>
-        <figcaption class="hib-cap">
-          <h3>Buy the bundle.</h3>
-          <p>Four bracelets. One for each of them.</p>
-        </figcaption>
-      </figure>
-
-      <figure class="hib-panel">
-        <div class="hib-scene hib-scene--app">
-          <span class="hib-phone"><img src="assets/img/app-beads-dark.webp" alt="M&rsquo;AKOMA app" width="256" height="557" loading="lazy"><span class="hib-tap" aria-hidden="true"></span></span>
-          <svg class="hib-link" viewBox="0 0 130 70" aria-hidden="true" preserveAspectRatio="none">
-            <defs><linearGradient id="hibg" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#c9a04e" stop-opacity="0"/><stop offset="1" stop-color="#e8c57a"/></linearGradient></defs>
-            <path d="M8 56 Q66 4 122 34" fill="none" stroke="url(#hibg)" stroke-width="2.2" stroke-dasharray="3 7" stroke-linecap="round"/>
-          </svg>
-          <span class="hib-real"><!-- No srcset here on purpose: .hib-real is 62% of a fluid panel, so it paints anywhere from
-     ~200px to ~380px and any fixed `sizes` value would under-request on some viewport. The 640w
-     file is 22 KB — cheaper than getting the maths wrong and shipping a soft product shot. -->
-<img src="assets/img/colourways/onyx-640.webp" alt="M&rsquo;AKOMA bracelet" width="640" height="384" loading="lazy"></span>
-        </div>
-        <figcaption class="hib-cap">
-          <h3>No bracelet? They still reach you.</h3>
-          <p>From the free app.</p>
-        </figcaption>
-      </figure>
-    </div>
-  </div>
-</section>
 
 <!-- ============ THE ROAD — road-to-launch meter (replaces Proof) ============ -->
-<section class="tech" id="launch">
+<section class="tech bip" id="launch">
   <div class="wrap" style="text-align:center;">
-    <p class="eyebrow reveal" style="display:block; margin-bottom:18px;">The road</p>
-    <h2 class="tech-title reveal">Almost<br/><span class="gold-ink">in your hands.</span></h2>
-    <p class="tech-lede reveal" style="margin:0 auto 38px;">A small circle first. Then yours.</p>
-    <figure class="rd-fig reveal" aria-label="Road to launch — the circle closes when we ship" style="margin:0 auto;">
-      <svg viewBox="0 0 520 480" xmlns="http://www.w3.org/2000/svg" role="img">
-        <title>Road to launch — the circle closes when we ship</title>
-        <!-- ring: faint track + gold progress (fills clockwise from the top, closes at Ship) -->
-        <circle class="rd-track" cx="260" cy="235" r="150"/>
-        <circle class="rd-prog"  cx="260" cy="235" r="150" transform="rotate(-90 260 235)"/>
+    <p class="eyebrow reveal" style="display:block; margin-bottom:18px;">Building in public</p>
+    <h2 class="tech-title reveal">Not a render.<br/><span class="gold-ink">Watch it become real.</span></h2>
+    <p class="tech-lede reveal" style="margin:0 auto 30px;">The first bracelets are on the bench right now. These are the receipts.</p>
+  </div>
 
-        <!-- centre = the unambiguous current status (replaces the floating "we are here") -->
-        <text class="rd-eyebrow" x="260" y="216" text-anchor="middle">Right now</text>
-        <text class="rd-now"     x="260" y="247" text-anchor="middle">Assembling</text>
-        <text class="rd-sub"     x="260" y="271" text-anchor="middle">the first bracelets</text>
-
-        <!-- Ship: the goal at the top, where the circle closes when the product is ready -->
-        <g transform="translate(260 85)"><circle class="rd-dot rd-dot--goal" r="11"/></g>
-        <text class="rd-goal-lab" x="260" y="56" text-anchor="middle">Ship</text>
-
-        <!-- completed milestones (clockwise) -->
-        <g transform="translate(348 114)"><circle class="rd-dot rd-dot--done" r="10"/><path class="rd-check" d="M-4 0 L-1 3 L4.5 -3.5"/></g>
-        <text class="rd-label" x="372" y="110" text-anchor="start">Idea</text>
-
-        <g transform="translate(396 299)"><circle class="rd-dot rd-dot--done" r="10"/><path class="rd-check" d="M-4 0 L-1 3 L4.5 -3.5"/></g>
-        <text class="rd-label" x="420" y="303" text-anchor="start">Hardware proven</text>
-
-        <g transform="translate(223 380)"><circle class="rd-dot rd-dot--done" r="10"/><path class="rd-check" d="M-4 0 L-1 3 L4.5 -3.5"/></g>
-        <text class="rd-label" x="223" y="411" text-anchor="middle">Bracelet in hand</text>
-
-        <!-- current position: the glowing head of the progress arc -->
-        <g transform="translate(110 235)">
-          <circle class="rd-head-ring" r="9"/>
-          <circle class="rd-head" r="13"/>
-          <circle r="4" fill="#060607"/>
-        </g>
-      </svg>
+  <!-- the evidence strip: swipeable, dated receipts. Cards are height-uniform; the factory
+       panel rides wider (a receipt-shaped card among portraits, on purpose). -->
+  <div class="bip-strip reveal" id="bipStrip" aria-label="Evidence of the build — swipe through">
+    <figure class="bip-card">
+      <img src="assets/img/bip/on-wrist.webp" alt="The first M'AKOMA prototype worn on the wrist — three beads with laser-marked Adinkra symbols" loading="lazy" decoding="async" width="880" height="1100" />
+      <figcaption><span class="bip-when">August</span>On the wrist.</figcaption>
     </figure>
+    <figure class="bip-card bip-card--video">
+      <video id="bipVideo" playsinline muted loop preload="none" poster="assets/img/bip/asmr-poster.webp"
+             aria-label="From the build film: first light on the soldered bead boards, then the app driving them">
+        <source src="assets/video/build-asmr-15s.mp4" type="video/mp4" />
+      </video>
+      <button class="bip-sound" id="bipSound" type="button" aria-pressed="false" aria-label="Turn sound on">Sound on</button>
+      <figcaption><span class="bip-when">July</span>First light, from the bench.</figcaption>
+    </figure>
+    <figure class="bip-card">
+      <img src="assets/img/bip/bench-solder.webp" alt="A soldering iron on a M'AKOMA bead circuit, smaller than a fingertip" loading="lazy" decoding="async" width="880" height="1100" />
+      <figcaption><span class="bip-when">July</span>Every bead, soldered by hand.</figcaption>
+    </figure>
+    <figure class="bip-card bip-card--wide">
+      <img src="assets/img/bip/factory-panel.webp" alt="The flex-spine circuit panel — core hub and six bead boards — at the assembly house" loading="lazy" decoding="async" width="1100" height="584" />
+      <figcaption><span class="bip-when">August</span>The spine, on the line.</figcaption>
+    </figure>
+    <figure class="bip-card bip-card--photo">
+      <img src="assets/img/bip/prototype.webp" alt="The assembled prototype bracelet — matte black beads and core hub on a knotted cord" loading="lazy" decoding="async" width="1100" height="733" />
+      <figcaption><span class="bip-when">August</span>Assembled. Waiting for its circle.</figcaption>
+    </figure>
+  </div>
+
+  <div class="bip-road reveal" role="img" aria-label="Progress: idea, hardware proven and bracelet in hand are done; shipping is next">
+    <div class="bip-track"><i class="bip-fill"></i></div>
+    <div class="bip-ticks">
+      <span class="is-done">Idea</span><span class="is-done">Hardware proven</span><span class="is-done">In hand</span><span>Ship</span>
+    </div>
+  </div>
+
+  <div class="bip-follow reveal">
+    <a class="btn btn-line" href="https://www.instagram.com/makoma.io/" target="_blank" rel="me noopener">Follow the build</a>
+    <a class="btn btn-gold" href="#join">Join the waitlist</a>
   </div>
 </section>
 
@@ -707,7 +673,7 @@
      reads when submitting the waitlist form. Classic scripts, not modules, because
      main.js is a classic IIFE and cannot import. -->
 <script src="js/design.js"></script>
-<script src="js/main.js?v=3"></script>
+<script src="js/main.js?v=4"></script>
 <script src="js/configurator.js"></script>
 <script type="module" src="js/hero3d.js?v=3"></script>
 <!-- Neither js/positioning.js (its "Where we live" section is cut) nor js/coach.js is loaded:
