@@ -308,6 +308,54 @@
     });
   }
 
+  // Instant anchor jump, cleared of the fixed header + chapter bar. scrollTo ignores CSS
+  // scroll-padding, so the offset is explicit; #hero clamps to the true top.
+  function jumpTo(a) {
+    const target = document.getElementById(a.getAttribute("href").slice(1));
+    if (!target) return false;
+    const nav = $("#nav");
+    const off = (nav ? nav.offsetHeight : 64) + 52;
+    const top = Math.max(0, target.getBoundingClientRect().top + window.scrollY - off);
+    window.scrollTo({ top, behavior: "instant" });
+    try { history.replaceState(history.state, "", a.getAttribute("href")); } catch (err) {}
+    return true;
+  }
+
+  // CHAPTER BAR — appears once the hero scrolls past; tracks the active section; jumps are
+  // instant (same reasoning as the nav handler: smooth scroll dies under phone load).
+  function setupChapters() {
+    const bar = $("#chapters"); if (!bar) return;
+    const nav = $("#nav");
+    const setTop = () => { if (nav) document.documentElement.style.setProperty("--chapters-top", nav.offsetHeight + "px"); };
+    setTop(); window.addEventListener("resize", setTop);
+    let on = false;
+    const gate = () => {
+      const want = window.scrollY > window.innerHeight * 0.85;
+      if (want !== on) { on = want; bar.classList.toggle("on", on); bar.setAttribute("aria-hidden", on ? "false" : "true"); }
+    };
+    window.addEventListener("scroll", gate, { passive: true });
+    gate();
+    // active chapter: the section closest to the upper-middle of the viewport wins
+    const links = [...bar.querySelectorAll('.ch-link[href^="#"]')];
+    const byId = {}; links.forEach((a) => { byId[a.getAttribute("href").slice(1)] = a; });
+    const secs = Object.keys(byId).map((id) => document.getElementById(id)).filter(Boolean);
+    if ("IntersectionObserver" in window && secs.length) {
+      const io = new IntersectionObserver((es) => {
+        for (const en of es) {
+          if (!en.isIntersecting) continue;
+          links.forEach((a) => a.classList.remove("is-active"));
+          const a = byId[en.target.id];
+          if (a) { a.classList.add("is-active"); if (on) a.scrollIntoView({ inline: "center", block: "nearest", behavior: "auto" }); }
+        }
+      }, { rootMargin: "-35% 0px -55% 0px" });
+      secs.forEach((sc) => io.observe(sc));
+    }
+    bar.addEventListener("click", (e) => {
+      const a = e.target.closest && e.target.closest('a[href^="#"]');
+      if (a && jumpTo(a)) e.preventDefault();
+    });
+  }
+
   // PRESS FEEL — every control acknowledges the finger the moment it lands (Apple's rule:
   // feedback on pointerdown, commit on release). iOS applies :active unreliably inside
   // scrollers, so a delegated handler owns an .is-pressed class instead. Touch pointers get
@@ -353,12 +401,7 @@
     if (nav) {
       nav.addEventListener("click", (e) => {
         const a = e.target.closest && e.target.closest('a[href^="#"]');
-        if (!a) return;
-        const target = document.getElementById(a.getAttribute("href").slice(1));
-        if (!target) return;
-        e.preventDefault();
-        window.scrollTo({ top: target.getBoundingClientRect().top + window.scrollY, behavior: "instant" });   // "auto" defers to the CSS smooth-behavior — "instant" is the hard jump
-        try { history.replaceState(history.state, "", a.getAttribute("href")); } catch (err) {}
+        if (a && jumpTo(a)) e.preventDefault();
       });
     }
 
@@ -587,6 +630,7 @@
     staggerRefusals();
     observeReveals();
     setupPressFeel();
+    setupChapters();
     setupChrome();
     setupBip();
     setupForm();

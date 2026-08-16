@@ -57,7 +57,7 @@
     document.documentElement.setAttribute('data-theme', t);
   }catch(e){ document.documentElement.setAttribute('data-theme','dark'); } })();
 </script>
-<link rel="stylesheet" href="css/style.css?v=5" />
+<link rel="stylesheet" href="css/style.css?v=6" />
 <script type="importmap">
 {
   "imports": {
@@ -143,6 +143,19 @@
     </button>
   </div>
 </header>
+
+<!-- CHAPTER BAR — the localnav: slides in once the hero scrolls past. Day-to-day section
+     hops stop hiding behind the burger; the burger keeps the full menu + subpages. -->
+<nav class="chapters" id="chapters" aria-label="Page sections" aria-hidden="true">
+  <div class="ch-rail" id="chRail">
+    <a href="#hero" class="ch-link">The piece</a>
+    <a href="/customize" data-open-box class="ch-link">Customize</a>
+    <a href="#more" class="ch-link">What else</a>
+    <a href="how-it-begins.html" class="ch-link">Begins</a>
+    <a href="#launch" class="ch-link">Building</a>
+  </div>
+  <a href="#join" class="ch-join">Join</a>
+</nav>
 
 <main id="top">
 
@@ -298,7 +311,6 @@
 
     </div>
 
-    <div class="hero-progress" id="heroProgress" aria-hidden="true"><span></span></div>
     <div class="scroll-cue" id="heroCue" aria-hidden="true"><span></span></div>
     <div class="hero-loader" id="heroLoader" aria-hidden="true"><i></i><span>Rendering the bracelet…</span></div>
 
@@ -673,9 +685,9 @@
      reads when submitting the waitlist form. Classic scripts, not modules, because
      main.js is a classic IIFE and cannot import. -->
 <script src="js/design.js"></script>
-<script src="js/main.js?v=5"></script>
+<script src="js/main.js?v=6"></script>
 <script src="js/configurator.js"></script>
-<script type="module" src="js/hero3d.js?v=6"></script>
+<script type="module" src="js/hero3d.js?v=7"></script>
 <!-- Neither js/positioning.js (its "Where we live" section is cut) nor js/coach.js is loaded:
      the bracelet no longer explains itself. Touching a bead summons the other person
      unannounced, and being surprised by it IS the moment. Every window.__coach call in

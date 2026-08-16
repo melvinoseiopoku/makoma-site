@@ -1122,7 +1122,7 @@ async function init() {
   }
 
   // ---- overlay ----
-  const intro = $("#heroIntro"), outro = $("#heroOutro"), cue = $("#heroCue"), bar = $("#heroProgress span");
+  const intro = $("#heroIntro"), outro = $("#heroOutro"), cue = $("#heroCue");
   const heroCta = $("#heroCta");   // the opening CTAs, pinned bottom-centre; fades with the intro copy
   const cutEl = $("#heroCut");     // full-bleed black, dipped through the object → threading cut
   const gatherGuideEl = $("#gatherGuide");
@@ -1150,7 +1150,6 @@ async function init() {
     const outOp = smooth(0.9, 0.99, p) * (1 - smooth(0.04, 0.34, gd));   // "Five people" rises at the settle, then fades as the drop plays
     // the touch-demo takes over the outro fade once you scroll into it (suppressOutro); default off = unchanged
     if (outro && !(window.__hero && window.__hero._suppressOutro)) { outro.style.opacity = outOp; outro.style.pointerEvents = outOp > 0.5 ? "auto" : "none"; }
-    if (bar) bar.style.transform = `scaleX(${p})`;
     // bottom prose captions removed: the exploded-bead callouts (TOUCH/LIGHT/A pulse), the
     // on-bead words ("Everyone gets their own"), and the hub component labels carry the story.
     if (capWrap) capWrap.style.opacity = "0";
