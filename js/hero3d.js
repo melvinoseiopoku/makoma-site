@@ -121,6 +121,7 @@ const canvas = $("#heroCanvas");
 const poster = $("#heroPoster");
 const loaderEl = $("#heroLoader");
 const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+let frameDt = 0.016;   // real per-frame seconds, set by the render loop (and the test hooks)
 // SHIPPED SIMPLE (2026-08-14, Melvin's call): the multi-shot cinematic intro and the
 // 6-beads strike beat are OFF — the hero opens straight on the turning piece. The
 // machinery stays for the next iteration round; flip these to bring either back.
@@ -395,8 +396,8 @@ async function init() {
     const vHalf = Math.tan(camera.fov * 0.5 * DEG);
     const aspect = Math.max(camera.aspect, 0.05), portrait = aspect < 1;
     const bHalfV = 0.62 * modelR, bHalfW = 1.08 * modelR;   // scale 1 here, not GATHER_YOU_SCALE
-    const wFill = portrait ? 0.84 : 0.62;   // leave the title its room; on desktop it shares the frame
-    const hFill = portrait ? 0.42 : 0.66;   // portrait: the title owns the top, so sit smaller
+    const wFill = portrait ? 0.97 : 0.62;   // leave the title its room; on desktop it shares the frame
+    const hFill = portrait ? 0.54 : 0.66;   // portrait: the title owns the top — but phones are most of the traffic, so the piece takes what it can
     return Math.max(bHalfW / (vHalf * aspect * wFill), bHalfV / (vHalf * hFill));
   }
   // ---------------- THE INTRO (cine) ----------------
@@ -1099,6 +1100,13 @@ async function init() {
     model.position.sub(c);
     const size = box.getSize(new THREE.Vector3());
     modelR = Math.max(size.x, size.y, size.z) * 0.5;
+    // Depth precision: the camera shipped with near 0.01 / far 1000 — a 100,000:1 range that
+    // starves the depth buffer, and on phones the beads' bright internal plates won pixels
+    // THROUGH the closed shells ("the bead looks like it leaks"). Scale the planes to the
+    // scene: everything lives within a few modelR of the origin.
+    camera.near = modelR * 0.04;
+    camera.far = modelR * 60;
+    camera.updateProjectionMatrix();
 
     const ground = new THREE.Mesh(new THREE.PlaneGeometry(modelR * 40, modelR * 40), new THREE.ShadowMaterial({ opacity: 0.2 }));
     ground.rotation.x = -Math.PI / 2; ground.position.y = -modelR * 1.15; ground.receiveShadow = true; scene.add(ground);
@@ -1377,7 +1385,7 @@ async function init() {
     if (gatherGroup) gatherGroup.position.set(0, dropClusterY, 0);
     // When someone is summoned in the object phase, ease the framing out to the gather fit so
     // the arriving bracelet is actually in shot, and let it close again as they recede.
-    const cineOwnsCam = inObject ? introFrame(0.016) : false;
+    const cineOwnsCam = inObject ? introFrame(frameDt) : false;
     if (cineOwnsCam) { /* the intro is the camera while it plays */ }
     else placeCamera(settle, objectMode ? gRecvPres : fg, camY);
     threadAmbient(smooth(0.04, 0.16, anim) * (1 - smooth(0.86, 1.0, anim)) * (1 - Math.min(1, fg * 3)));   // slight ambient pad while the bracelet threads (off during the drop)
@@ -1419,12 +1427,18 @@ async function init() {
     updateGather(inObject ? 1 : fg);
   }
 
-  let raf = 0;
+  let raf = 0, _prevNow = 0;
   function render() {
     cancelAnimationFrame(raf);
     raf = requestAnimationFrame(render);
-    idle += 0.016;
-    progress += (target - progress) * 0.09;
+    // REAL frame delta, not a fixed 16ms. The old fixed step ran every idle-clocked animation
+    // in slow motion whenever rAF throttled — on phones (most of the traffic) the box entry
+    // crawled at half speed and read as broken. Clamped so a backgrounded tab can't jump.
+    const _now = performance.now();
+    frameDt = _prevNow ? Math.min(0.05, Math.max(0.001, (_now - _prevNow) / 1000)) : 0.016;
+    _prevNow = _now;
+    idle += frameDt;
+    progress += (target - progress) * (1 - Math.exp(-5.6 * frameDt));   // time-based smoothing: same feel at any fps
     if (Math.abs(target - progress) < 0.0002) progress = target;
     if (ready && inView) {
       // The designer is entered by EXPLICIT INTENT only — a [data-open-box] tap or landing on
@@ -1440,7 +1454,7 @@ async function init() {
       if (boxMode) updateBox(); else update(progress);
       updateDye();
 
-      if (laser && laser.busy) laser.update(0.016);
+      if (laser && laser.busy) laser.update(frameDt);
       if (volSmoke && volSmoke.active) {
         // packed-depth prepass for the smoke march — glass, blob and the volume itself sit out
         const vis = boxDepthHide.map((o) => o.visible);
@@ -1459,10 +1473,10 @@ async function init() {
     nudgeTurn(d) { objTurn += d; objTurnPrev = idle; if (ready) { update(progress); composer.render(); } },
     // advance the WHOLE idle clock by hand — throttled pages starve rAF and every
     // idle-driven behaviour (the turn, the word beat, the reveal) crawls with it
-    tick(dt) { idle += Math.max(0, dt); if (ready) { update(progress); composer.render(); } },
+    tick(dt) { frameDt = Math.min(0.05, Math.max(0.001, dt)); idle += Math.max(0, dt); if (ready) { update(progress); composer.render(); } },
     // bulk fast-forward: run the update pipeline WITHOUT the post chain (headless renders on
     // swiftshader cost ~200ms each — a 30s hunt would take minutes). One render at the end.
-    ff(dt, steps, draw) { for (let i = 0; i < steps; i++) { idle += Math.max(0, dt); if (ready) update(progress); } if (draw && ready) composer.render(); },
+    ff(dt, steps, draw) { frameDt = Math.min(0.05, Math.max(0.001, dt)); for (let i = 0; i < steps; i++) { idle += Math.max(0, dt); if (ready) update(progress); } if (draw && ready) composer.render(); },
     // drive the intro's clock by hand (hidden/headless pages throttle rAF); dt in seconds
     introTick(dt) { if (cine.phase) { cine.t += Math.max(0, dt - 0.016); if (ready) { update(progress); composer.render(); } } },
     get introPhase() { return cine.phase; },
@@ -1582,7 +1596,11 @@ async function init() {
   // the platform behind each lit bead's symbol: a bright warm-gold EMISSIVE so the internal LED reads as light
   // through the symbol cut-throughs — a genuinely BACKLIT symbol. The bloom pass turns the lit symbol into a soft
   // halo. Low metalness so it reads as a glowing light source, not shiny metal. Breathed gently in update().
-  const matGlow = new THREE.MeshStandardMaterial({ color: 0xffd089, emissive: 0xffb247, emissiveIntensity: 2.3, roughness: 0.5, metalness: 0.15 });
+  const matGlow = new THREE.MeshStandardMaterial({ color: 0xffd089, emissive: 0xffb247, emissiveIntensity: 2.3, roughness: 0.5, metalness: 0.15,
+    // the plate hugs the shell's inner wall: bias its depth back a hair so grazing-angle depth
+    // ties resolve to the SHELL — without this, phones showed the glow speckling through the
+    // closed bead ("it leaks"). Clones (boxPlatMat) inherit the offset.
+    polygonOffset: true, polygonOffsetFactor: 2, polygonOffsetUnits: 2 });
   // the gold CAPACITIVE TOUCH / backlight plate inside each bead. In the explode it's a flat disc seen near edge-on
   // from the low camera, so a plain gold finish barely reads — instead it GLOWS warm gold (the "touch it, it answers
   // in light" moment made literal), which stays unmistakable at any angle and blooms softly.
@@ -2515,7 +2533,7 @@ async function init() {
     if (!volSmoke || !volSmoke.active) return;
     volSmoke.mesh.visible = true;
     volSmoke.updateCam(camera);
-    const r = volSmoke.step(0.016, idle);
+    const r = volSmoke.step(frameDt, idle);
     // the swap runs ONLY while the piece is fully shrouded; the t-gate is a safety net so a
     // pathological run can never leave the chosen colour unapplied
     if (smokeCb && (r.hidden || r.t > 1.4)) { const cb = smokeCb; smokeCb = null; cb(); }
@@ -2860,7 +2878,11 @@ async function init() {
     boxSpin = spin.rotation.y; boxSpinTgt = null;
     boxGroup.visible = true; boxLight.visible = true;
     for (const f of boxFolds) { f.done = false; f.hinge.rotation.x = Math.PI / 2; }
-    boxCamFrom = { pos: camera.position.clone(), tgt: new THREE.Vector3(0, 0, 0) };
+    // start the flight from the camera's REAL current aim — snapping the look-target to the
+    // origin on frame one visibly threw the piece into the top corner on phones
+    const _fwd = new THREE.Vector3();
+    camera.getWorldDirection(_fwd);
+    boxCamFrom = { pos: camera.position.clone(), tgt: camera.position.clone().addScaledVector(_fwd, camera.position.length() || 10) };
     boxRevFrom = null; boxCamBlend = 0;
     section.classList.add("in-box");
     // The fixed nav sits ABOVE the designer (z-index 60) and the page behind is only
@@ -2934,15 +2956,17 @@ async function init() {
     // 0.82, not 0.78: the turntable holds the case at up to 45° where its projected width is
     // the DIAGONAL (~0.75×side half-width for the 1.06× base) — 0.78 clipped the near corner
     // off-frame at the rotation extremes
-    const hHalf = (boxWallH + boxBaseTh) * 0.64, wHalf = boxSide * 0.82 * (1 + 0.7 * boxSpread);
-    const wFill = portrait ? 0.86 : 0.6, hFill = portrait ? 0.42 : 0.72;
+    // portrait: the piece is the subject — fit tight and let the OPEN NET clip at the sides
+    // during the fold (it is packaging); desktop keeps room for the whole net
+    const hHalf = (boxWallH + boxBaseTh) * 0.64, wHalf = boxSide * 0.82 * (1 + (portrait ? 0.22 : 0.7) * boxSpread);
+    const wFill = portrait ? 0.95 : 0.6, hFill = portrait ? 0.52 : 0.72;
     const d = Math.max(wHalf / (vHalf * aspect * wFill), hHalf / (vHalf * hFill));
     const ce = Math.cos(el);
     const pos = new THREE.Vector3(Math.cos(az) * ce * d, Math.sin(el) * d + boxCY, Math.sin(az) * ce * d);
     const tgt = new THREE.Vector3(0, boxCY, 0);
     if (boxCamFrom && blend < 1) {
       pos.lerpVectors(boxCamFrom.pos, pos, blend);
-      tgt.lerpVectors(boxCamFrom.tgt, tgt, blend);
+      tgt.lerpVectors(boxCamFrom.tgt, tgt, smooth(0.3, 1, blend));   // aim leaves the piece only once the box is around it
     }
     camera.position.copy(pos);
     camera.lookAt(tgt);
@@ -3006,7 +3030,7 @@ async function init() {
       const cust = $("#customize");
       if (cust) { cust.classList.add("is-open"); window.dispatchEvent(new CustomEvent("makoma:boxopen")); }
     }
-    const dt = 0.016;
+    const dt = frameDt;
     // THE TURNTABLE: case + piece revolve as one once the glass has closed, until first touch.
     if (!boxEngaged && !reduce && t >= BOX_PANEL_AT) {
       boxIdleSpin += BOX_IDLE_RATE * dt;
