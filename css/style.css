@@ -160,11 +160,11 @@ h1,h2,h3{ font-family:var(--serif); font-weight:500; line-height:1.04; letter-sp
   background:linear-gradient(120deg, var(--gold-deep), var(--gold-bright));
   color:#1a1407; box-shadow:0 10px 36px -10px rgba(201,160,78,.55);
 }
-.btn-gold:hover{ transform:translateY(-2px); box-shadow:0 16px 46px -10px rgba(232,197,122,.7); }
+@media (hover:hover){ .btn-gold:hover{ transform:translateY(-2px); box-shadow:0 16px 46px -10px rgba(232,197,122,.7); } }
 .btn-line{ border:1px solid var(--line); color:var(--ink-soft); }
-.btn-line:hover{ border-color:var(--gold); color:var(--gold-bright); }
+@media (hover:hover){ .btn-line:hover{ border-color:var(--gold); color:var(--gold-bright); } }
 .btn-ghost{ font-size:.8rem; padding:.6em 1.2em; border:1px solid var(--line); }
-.btn-ghost:hover{ border-color:var(--gold); color:var(--gold-bright); }
+@media (hover:hover){ .btn-ghost:hover{ border-color:var(--gold); color:var(--gold-bright); } }
 
 /* ============ NAV ============ */
 .nav{
@@ -189,8 +189,8 @@ h1,h2,h3{ font-family:var(--serif); font-weight:500; line-height:1.04; letter-sp
 .nav-links{ display:flex; gap:30px; }
 .nav-links a{ font-size:.82rem; color:var(--ink-soft); letter-spacing:.04em; position:relative; transition:color .3s; }
 .nav-links a::after{ content:""; position:absolute; left:0; bottom:-6px; width:0; height:1px; background:var(--gold); transition:width .35s var(--ease); }
-.nav-links a:hover{ color:var(--gold-bright); }
-.nav-links a:hover::after{ width:100%; }
+@media (hover:hover){ .nav-links a:hover{ color:var(--gold-bright); } }
+@media (hover:hover){ .nav-links a:hover::after{ width:100%; } }
 
 /* ============ reveal animation ============ */
 .reveal{ opacity:0; transform:translateY(34px); transition:opacity 1s var(--ease-out), transform 1s var(--ease-out); }
@@ -1647,7 +1647,7 @@ section{ position:relative; z-index:2; }
 /* theme toggle */
 .theme-toggle{ display:inline-flex; align-items:center; justify-content:center; width:38px; height:38px;
   border-radius:50%; border:1px solid var(--line); color:var(--ink-soft); transition:border-color .3s, color .3s; flex:0 0 auto; }
-.theme-toggle:hover{ border-color:var(--gold); color:var(--gold-bright); }
+@media (hover:hover){ .theme-toggle:hover{ border-color:var(--gold); color:var(--gold-bright); } }
 .theme-toggle svg{ width:18px; height:18px; }
 .theme-toggle .ic-sun{ display:none; }
 :root[data-theme="light"] .theme-toggle .ic-moon{ display:none; }
@@ -1866,7 +1866,7 @@ section{ position:relative; z-index:2; }
 .cfg-upstatus.is-warn{ color:#e0a52a; }
 .cfg-cutfile{ margin:10px 0 0; font-size:.75rem; }
 .cfg-cutfile a{ color:var(--ink-mute); text-decoration:underline; text-underline-offset:3px; }
-.cfg-cutfile a:hover{ color:var(--gold); }
+@media (hover:hover){ .cfg-cutfile a:hover{ color:var(--gold); } }
 .cfg-cutpane[hidden]{ display:none; }
 
 .cfg-next{ margin-top:20px; width:100%; justify-content:center; }
@@ -1874,7 +1874,7 @@ section{ position:relative; z-index:2; }
 .cfg-actions{ display:flex; align-items:center; gap:16px; margin-top:26px; flex-wrap:wrap; }
 .cfg-reset{ background:none; border:0; color:var(--ink-mute); font-size:.78rem; cursor:pointer;
   text-decoration:underline; text-underline-offset:3px; }
-.cfg-reset:hover{ color:var(--gold); }
+@media (hover:hover){ .cfg-reset:hover{ color:var(--gold); } }
 .cfg-ctasub{ font-size:.78rem; color:var(--ink-mute); margin:12px 0 0; }
 
 .cfg-toast{ position:fixed; left:50%; bottom:24px; transform:translate(-50%,10px); z-index:60;
@@ -2044,7 +2044,8 @@ section{ position:relative; z-index:2; }
   cursor:pointer; padding:0; transition:border-color .22s var(--ease), transform .22s var(--ease-out); }
 .bx-tagbtn::after{ content:""; position:absolute; top:100%; left:50%; width:1px; height:6px;
   background:linear-gradient(180deg, rgba(201,160,78,.6), transparent); }
-.bx-tagbtn:hover, .bx-tagbtn[aria-expanded="true"]{ border-color:var(--gold); transform:translateY(-2px); }
+@media (hover:hover){ .bx-tagbtn:hover{ border-color:var(--gold); transform:translateY(-2px); } }
+.bx-tagbtn[aria-expanded="true"]{ border-color:var(--gold); transform:translateY(-2px); }
 .bx-tagbtn:focus-visible{ outline:2px solid var(--gold-bright); outline-offset:3px; }
 .bx-slot.is-press .bx-tagbtn{ border-color:var(--gold-bright); box-shadow:0 0 14px rgba(232,197,122,.45); }
 /* light mode: the chip stays dark (it echoes the beads), so the glyph must stay BRIGHT gold —
@@ -2056,7 +2057,7 @@ section{ position:relative; z-index:2; }
   box-shadow:0 2px 10px rgba(40,30,10,.28);
 }
 :root[data-theme="light"] .bx-tagbtn::after{ background:linear-gradient(180deg, rgba(155,122,54,.75), transparent); }
-.bx-bead:hover{ transform:translateY(-3px); }
+@media (hover:hover){ .bx-bead:hover{ transform:translateY(-3px); } }
 .bx-bead:focus-visible{ outline:2px solid var(--gold-bright); outline-offset:4px; border-radius:14px; }
 /* the selected bead lifts and wears a ring */
 .bx-bead.is-sel{ transform:translateY(-5px); }
@@ -2381,3 +2382,22 @@ section{ position:relative; z-index:2; }
   font-size:.6rem; letter-spacing:.12em; text-transform:uppercase; color:var(--ink-mute); }
 .bip-ticks .is-done{ color:var(--gold-bright); }
 .bip-follow{ display:flex; gap:14px; justify-content:center; margin-top:30px; flex-wrap:wrap; padding:0 24px; }
+
+/* ============================================================
+   PRESS FEEL — feedback the instant the finger lands (commit stays on release).
+   The .is-pressed class is set by a delegated pointerdown handler in main.js:
+   iOS applies :active unreliably inside scrollers, so JS owns the state.
+   ============================================================ */
+a, button, [role="button"], input, select, label{ touch-action:manipulation; }
+:where(.btn, button, [role="button"], .bx-bead, .bip-sound, .nav-burger, .theme-toggle, .box-close).is-pressed{
+  transform:scale(.965);
+  filter:brightness(.92);
+  transition:transform .12s var(--ease-out), filter .12s var(--ease-out) !important;
+}
+/* text links dim rather than shrink — scaling running text reads as a glitch */
+a:not(.btn):not(.nav-burger).is-pressed{ opacity:.55; transition:opacity .1s ease-out !important; }
+/* the tappable film card gives a gentler acknowledgement */
+.bip-card--video.is-pressed{ transform:scale(.985); transition:transform .12s var(--ease-out) !important; }
+@media (prefers-reduced-motion: reduce){
+  .is-pressed{ transform:none !important; }
+}

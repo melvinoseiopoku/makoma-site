@@ -396,8 +396,8 @@ async function init() {
     const vHalf = Math.tan(camera.fov * 0.5 * DEG);
     const aspect = Math.max(camera.aspect, 0.05), portrait = aspect < 1;
     const bHalfV = 0.62 * modelR, bHalfW = 1.08 * modelR;   // scale 1 here, not GATHER_YOU_SCALE
-    const wFill = portrait ? 0.97 : 0.62;   // leave the title its room; on desktop it shares the frame
-    const hFill = portrait ? 0.54 : 0.66;   // portrait: the title owns the top — but phones are most of the traffic, so the piece takes what it can
+    const wFill = portrait ? 1.06 : 0.62;   // portrait: >1 on purpose — the ring's widest passes crop a hair off-frame; presence beats completeness on a phone
+    const hFill = portrait ? 0.58 : 0.66;   // portrait: the title owns the top — but phones are most of the traffic, so the piece takes what it can
     return Math.max(bHalfW / (vHalf * aspect * wFill), bHalfV / (vHalf * hFill));
   }
   // ---------------- THE INTRO (cine) ----------------
@@ -495,7 +495,7 @@ async function init() {
     let pan = CAM_PAN_END * modelR * settle;   // pan the framing DOWN so the bracelet rises into the upper frame
     // THE OBJECT sits DEAD CENTRE and fits whatever viewport it is in: CAM_PAN_END exists to lift
     // the bracelet into the upper frame for the settle, which is wrong for the opening.
-    if (objectMode) { d = objectFitDist(); pan = 0; }
+    if (objectMode) { d = objectFitDist(); pan = camera.aspect < 1 ? -0.08 * modelR : 0; }   // portrait: seat the piece a touch lower — it was floating in the void above the CTAs
     if (g > 0) { d = lerp(d, gatherFitDist(), g); pan = lerp(pan, 0, g); }   // gather: aim dead-centre on YOU; the frame is STATIC (never chases a receiver), so YOU never moves (#3)
     const ce = Math.cos(el);
     camera.position.set(Math.cos(az) * ce * d, Math.sin(el) * d - pan + dropY, Math.sin(az) * ce * d);
@@ -2896,6 +2896,7 @@ async function init() {
 
   function finalizeClose() {
     boxMode = false; boxExitT0 = null; boxRevFrom = null;
+    if (camera.fov !== 32) { camera.fov = 32; camera.updateProjectionMatrix(); }   // hand the lens back to the object phase
     if (designApplied) applyDesign();                  // unchosen beads go back to their baked display symbols
     boxGroup.visible = false; if (boxLight) boxLight.visible = false;
     orient.position.y = 0;
@@ -2948,6 +2949,12 @@ async function init() {
 
   function boxCamera(blend) {
     const az = BOX_AZ * DEG, el = BOX_EL * DEG;
+    // portrait gets a LONGER LENS in the vitrine: at fov 32 up close, the near glass wall
+    // blooms in perspective while the piece — half a case deeper — renders small. Narrowing
+    // to 26 flattens that; blended with the entry so there is no zoom pop.
+    const portrait0 = Math.max(camera.aspect, 0.05) < 1;
+    const wantFov = portrait0 ? 24 : 32;
+    if (Math.abs(camera.fov - (32 + (wantFov - 32) * blend)) > 0.01) { camera.fov = 32 + (wantFov - 32) * blend; camera.updateProjectionMatrix(); }
     const vHalf = Math.tan(camera.fov * 0.5 * DEG);
     const aspect = Math.max(camera.aspect, 0.05), portrait = aspect < 1;
     // fit the vitrine: its own half-extents, with room for the drop above it
@@ -2958,8 +2965,9 @@ async function init() {
     // off-frame at the rotation extremes
     // portrait: the piece is the subject — fit tight and let the OPEN NET clip at the sides
     // during the fold (it is packaging); desktop keeps room for the whole net
-    const hHalf = (boxWallH + boxBaseTh) * 0.64, wHalf = boxSide * 0.82 * (1 + (portrait ? 0.22 : 0.7) * boxSpread);
-    const wFill = portrait ? 0.95 : 0.6, hFill = portrait ? 0.52 : 0.72;
+    const hHalf = (boxWallH + boxBaseTh) * (portrait ? 0.48 : 0.64);
+    const wHalf = boxSide * (portrait ? 0.58 : 0.82) * (1 + (portrait ? 0.15 : 0.7) * boxSpread);
+    const wFill = portrait ? 1.0 : 0.6, hFill = portrait ? 0.60 : 0.72;
     const d = Math.max(wHalf / (vHalf * aspect * wFill), hHalf / (vHalf * hFill));
     const ce = Math.cos(el);
     const pos = new THREE.Vector3(Math.cos(az) * ce * d, Math.sin(el) * d + boxCY, Math.sin(az) * ce * d);

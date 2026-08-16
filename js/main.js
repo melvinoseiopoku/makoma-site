@@ -308,6 +308,29 @@
     });
   }
 
+  // PRESS FEEL — every control acknowledges the finger the moment it lands (Apple's rule:
+  // feedback on pointerdown, commit on release). iOS applies :active unreliably inside
+  // scrollers, so a delegated handler owns an .is-pressed class instead. Touch pointers get
+  // implicit capture, so slide-off is detected by coordinates, not event targets.
+  function setupPressFeel() {
+    const SEL = 'a, button, [role="button"], input[type="submit"], .bx-bead, .bip-card--video';
+    let el = null, rect = null;
+    const clear = () => { if (el) { el.classList.remove("is-pressed"); el = null; rect = null; } };
+    document.addEventListener("pointerdown", (e) => {
+      if (e.pointerType === "mouse" && e.button !== 0) return;
+      const t = e.target.closest && e.target.closest(SEL);
+      if (!t || t.disabled) return;
+      el = t; rect = t.getBoundingClientRect();
+      t.classList.add("is-pressed");
+    }, { capture: true, passive: true });
+    document.addEventListener("pointermove", (e) => {
+      if (!el || !rect) return;
+      const M = 14;   // slop: fingers wobble
+      if (e.clientX < rect.left - M || e.clientX > rect.right + M || e.clientY < rect.top - M || e.clientY > rect.bottom + M) clear();
+    }, { capture: true, passive: true });
+    for (const ev of ["pointerup", "pointercancel", "dragend"]) document.addEventListener(ev, clear, { capture: true, passive: true });
+  }
+
   function setupChrome() {
     const nav = $("#nav");
 
@@ -563,6 +586,7 @@
     // were merged into the carousel (carousel.js) and the 2D→3D viz (positioning.js).
     staggerRefusals();
     observeReveals();
+    setupPressFeel();
     setupChrome();
     setupBip();
     setupForm();
