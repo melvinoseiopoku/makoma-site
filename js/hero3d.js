@@ -1473,10 +1473,10 @@ async function init() {
     nudgeTurn(d) { objTurn += d; objTurnPrev = idle; if (ready) { update(progress); composer.render(); } },
     // advance the WHOLE idle clock by hand — throttled pages starve rAF and every
     // idle-driven behaviour (the turn, the word beat, the reveal) crawls with it
-    tick(dt) { frameDt = Math.min(0.05, Math.max(0.001, dt)); idle += Math.max(0, dt); if (ready) { update(progress); composer.render(); } },
+    tick(dt) { frameDt = Math.min(0.05, Math.max(0.001, dt)); idle += Math.max(0, dt); if (ready) { if (boxMode) updateBox(); else update(progress); composer.render(); } },
     // bulk fast-forward: run the update pipeline WITHOUT the post chain (headless renders on
     // swiftshader cost ~200ms each — a 30s hunt would take minutes). One render at the end.
-    ff(dt, steps, draw) { frameDt = Math.min(0.05, Math.max(0.001, dt)); for (let i = 0; i < steps; i++) { idle += Math.max(0, dt); if (ready) update(progress); } if (draw && ready) composer.render(); },
+    ff(dt, steps, draw) { frameDt = Math.min(0.05, Math.max(0.001, dt)); for (let i = 0; i < steps; i++) { idle += Math.max(0, dt); if (ready) { if (boxMode) updateBox(); else update(progress); } } if (draw && ready) composer.render(); },
     // drive the intro's clock by hand (hidden/headless pages throttle rAF); dt in seconds
     introTick(dt) { if (cine.phase) { cine.t += Math.max(0, dt - 0.016); if (ready) { update(progress); composer.render(); } } },
     get introPhase() { return cine.phase; },
@@ -3071,6 +3071,8 @@ async function init() {
     open: openBox,
     close: closeBox,
     get isOpen() { return boxMode; },
+    // diagnosis hook (harmless, like seq()): the live state machine at a glance
+    get debug() { return { boxMode, exit: boxExitT0 != null, reopen: reopenAfterExit, pending: pendingBox, panel: boxPanelShown, t: boxT0 != null ? +(idle - boxT0).toFixed(2) : null, hist: history.state ? JSON.stringify(history.state) : null }; },
     focus(node) {
       if (!boxMode || !model) return;
       // aim the bead at where the camera ACTUALLY is (including the dock's screen shift) —
@@ -3144,6 +3146,11 @@ async function init() {
   const exitBox = () => {
     unlockScroll();
     setBoxURL(false);
+    // An explicit close CANCELS any queued re-entry. Without this, X pressed while the exit
+    // fold was still playing (with a Back/Forward reopen queued) let finalizeClose race the
+    // history popstate and re-open the designer against the visitor's action — the box came
+    // back by itself and, from the suite's angle, never closed.
+    reopenAfterExit = false;
     const pendingOnly = pendingBox && !boxMode;        // intent armed but the fold never started —
     pendingBox = false;                                // there is no choreography to reverse
     if (section.classList.contains("no3d")) { closeBox(); consumeNavHash(); return; }
