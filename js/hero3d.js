@@ -388,7 +388,7 @@ async function init() {
   orient.rotation.x = FLIP_X;
   spin.add(orient);
   scene.add(spin);
-  let modelR = 10;
+  let modelR = 10, modelHalfY = 1;   // the piece's own dimensions at load — the ONLY safe basis for sizing the vitrine
   // OBJECT MODE: the hero's opening phase reuses the gather machinery so a tap can summon a
   // receiver, but WITHOUT the cluster's staging — YOU stays at the hero bracelet's exact size
   // and position, the exposure lift is off, and every instructional overlay stays hidden.
@@ -1164,6 +1164,7 @@ async function init() {
     model.position.sub(c);
     const size = box.getSize(new THREE.Vector3());
     modelR = Math.max(size.x, size.y, size.z) * 0.5;
+    modelHalfY = size.y * 0.5;                        // canonical, measured before any staging touches the piece
     // Depth precision: the camera shipped with near 0.01 / far 1000 — a 100,000:1 range that
     // starves the depth buffer, and on phones the beads' bright internal plates won pixels
     // THROUGH the closed shells ("the bead looks like it leaks"). Scale the planes to the
@@ -2653,46 +2654,20 @@ async function init() {
   }
   function buildVitrine() {
     if (boxGroup) return;
-    // MEASURE THE PIECE WHOLE AND CLOSED. Both reveal rigs (hub and bead) park their parts far
-    // out while the scroll phase has them open — an audit found hidden hub parts sitting at
-    // r≈8 against a real piece radius of ~5.5. enterBox zeroes the reveals before it builds,
-    // but the idle prewarm does not, so the case came out ~45% too big and the camera pulled
-    // back with it. Zero, measure, restore: no frame renders in between, so it is invisible.
-    const savedE = reveals.map((rv) => rv._e || 0);
-    const anyOpen = savedE.some((e) => e > 0.001);
-    if (anyOpen) reveals.forEach((rv) => updateExplode(rv, 0));
-    orient.updateMatrixWorld(true);
-    const bb = new THREE.Box3().setFromObject(orient);   // Y only — see below
-    // SIZE THE CASE FROM A RADIUS, NOT A BOX. The piece is a RING and it sits on a turntable,
-    // so an axis-aligned box around it swings as it spins: measured 10.54 at one angle and
-    // 12.18 at another, a 16% difference. boxSide fed the camera fit, so the SAME build framed
-    // the bracelet big or small purely by what angle it happened to be at when the vitrine got
-    // built — which is what Melvin caught between two devices on 2026-08-17. Distance from the
-    // spin axis is invariant under that rotation, so the case is now deterministic AND correct
-    // for a piece that turns inside it.
-    // Bounding SPHERES overshoot badly here (the cord is one long mesh whose sphere swallows the
-    // whole ring — it measured 40% too big), so take the real vertices.
-    let r2 = 0;
-    const _rv = new THREE.Vector3();
-    orient.traverse((o) => {
-      if (!o.isMesh || !o.geometry || !o.geometry.attributes || !o.geometry.attributes.position) return;
-      if (!o.visible) return;                            // swapped-out caps and hidden internals do not size the case
-      const pos = o.geometry.attributes.position;
-      const step = pos.count > 60000 ? 3 : 1;          // dense CAD parts: every third vertex is plenty for a radius
-      for (let i = 0; i < pos.count; i += step) {
-        _rv.fromBufferAttribute(pos, i).applyMatrix4(o.matrixWorld);
-        const d2 = _rv.x * _rv.x + _rv.z * _rv.z;
-        if (d2 > r2) r2 = d2;
-      }
-    });
-    boxPieceR = Math.sqrt(r2);
-    if (anyOpen) reveals.forEach((rv, i) => { updateExplode(rv, savedE[i]); });   // put the reveal back, same frame
-    if (!(boxPieceR > 0)) boxPieceR = Math.max(bb.max.x - bb.min.x, bb.max.z - bb.min.z) * 0.5;   // fallback
-    boxSide = boxPieceR * 2 * 1.08;   // snug: the piece owns the case, at every angle it can turn to
+    // SIZE THE CASE FROM THE MODEL, NOT FROM THE LIVE SCENE. Every scene-derived measurement
+    // here has failed in a different way, and each failure only showed up on someone's actual
+    // phone: an axis-aligned box around a piece that SPINS swings 16% with the angle; the
+    // reveal rigs park hidden parts far out; bounding spheres overshoot 40% because the cord is
+    // one long mesh; and a scan of live meshes also picks up whatever the cut/laser stack has
+    // added by then. modelR and modelHalfY are measured ONCE from the loaded GLB, before
+    // anything stages the piece — so the case is now a pure function of the product, identical
+    // on every device, at every moment, however the hero happens to be posed.
+    boxPieceR = modelR;                       // a ring's max dimension IS its diameter
+    boxSide = boxPieceR * 2 * 1.08;           // snug: the piece owns the case at any angle it turns to
     boxWallH = boxSide * 0.56;
     boxBaseTh = boxSide * 0.15;
     // the piece FLOATS, riding LOW in the glass — just clear of the plate, most of the air above
-    boxFloorY = bb.min.y - boxWallH * 0.16;
+    boxFloorY = -modelHalfY - boxWallH * 0.16;   // canonical: the piece rides at y≈0 in box mode
     boxCY = boxFloorY + boxWallH * 0.42;    // what the box camera looks at
     boxGroup = new THREE.Group();
     const base = new THREE.Mesh(new THREE.BoxGeometry(boxSide * 1.06, boxBaseTh, boxSide * 1.06),
