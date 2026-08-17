@@ -14,25 +14,25 @@
       meaning:"It is not wrong to go back for what you have forgotten.",
       proverb:"“Se wo were fi na wosankofa a yenkyi.”", color:"#a78bfa", note:523.25 },
     { key:"nkonsonkonson", person:"The group",  name:"Nkonsonkonson", lit:"Linked together",
-      meaning:"Unity and human bonds — we are chained together in life and in death.",
+      meaning:"Unity and human bonds: we are chained together in life and in death.",
       proverb:"One link is weak; together, unbreakable.", color:"#5fd3e0", note:659.25 },
     { key:"akoma_ntoaso",  person:"Amara",      name:"Akoma Ntoaso",  lit:"Linked hearts",
-      meaning:"Two hearts joined — agreement, partnership, an enduring bond.",
+      meaning:"Two hearts joined: agreement, partnership, an enduring bond.",
       proverb:"Hearts bound together beat as one.", color:"#ecb07a", note:440.00 },
     { key:"akoma",         person:"Mum",        name:"Akoma",         lit:"The heart",
-      meaning:"Patience, love and the readiness to forgive — the seat of feeling.",
-      proverb:"“Nya akoma” — take heart.", color:"#e8c57a", note:392.00 },
+      meaning:"Patience, love and the readiness to forgive: the seat of feeling.",
+      proverb:"“Nya akoma”: take heart.", color:"#e8c57a", note:392.00 },
     { key:"gye_nyame",     person:"Nana",       name:"Gye Nyame",     lit:"Except God",
-      meaning:"Awe at what is greater than us — the supremacy of the divine.",
+      meaning:"Awe at what is greater than us: the supremacy of the divine.",
       proverb:"None has seen its beginning; none will see its end.", color:"#f1e9d2", note:880.00 },
     { key:"aya",           person:"Kwame",      name:"Aya",           lit:"The fern",
-      meaning:"Endurance and resourcefulness — I have grown through hard ground.",
+      meaning:"Endurance and resourcefulness: I have grown through hard ground.",
       proverb:"The fern thrives where others cannot.", color:"#6fcf97", note:783.99 },
     { key:"nsoroma",       person:"Kojo",       name:"Nsoroma",       lit:"Child of the heavens",
-      meaning:"A star — hope, and a light to steer by in the dark.",
+      meaning:"A star: hope, and a light to steer by in the dark.",
       proverb:"I shine, guided by a light above.", color:"#f4d58d", note:587.33 },
     { key:"nkyinkyim",     person:"Adwoa",      name:"Nkyinkyim",     lit:"The winding path",
-      meaning:"Life twists and turns — adaptability, devotion, resilience.",
+      meaning:"Life twists and turns: adaptability, devotion, resilience.",
       proverb:"The road bends, and so do the wise.", color:"#6aa6ff", note:1046.50 },
   ];
 
@@ -91,7 +91,7 @@
       const el = document.createElement("button");
       el.className = "bead";
       el.style.setProperty("--g", b.color);
-      el.setAttribute("aria-label", `${b.person} — ${b.name}`);
+      el.setAttribute("aria-label", `${b.person} · ${b.name}`);
       el.dataset.i = i;
       el.innerHTML = `<span class="halo"></span><span class="ring-pulse"></span><span class="glyph">${glyphSVG(b.key)}</span>`;
       el.addEventListener("click", () => selectBead(i, el));
@@ -138,7 +138,7 @@
     panel.wrap.style.borderColor = "color-mix(in srgb, " + b.color + " 40%, transparent)";
     panel.wrap.style.boxShadow = `0 30px 90px -50px ${b.color}, 0 30px 80px -40px #000`;
     const hint = $("#braceletHint");
-    if (hint) hint.textContent = `${b.person} · ${b.name} — ${b.lit}`;
+    if (hint) hint.textContent = `${b.person} · ${b.name} · ${b.lit}`;
   }
 
   /* panel actions: Echo / Pulse / Glow */
@@ -330,51 +330,21 @@
     const heroCta = $("#heroCta"), join = $("#join");
     let heroAway = false, joinHere = false;
     const apply = () => {
-      const on = heroAway && !joinHere;
+      // in-box: the hero CTAs are hidden, so the observer sees them as "away" and would switch
+      // the dock on right over the designer's own controls. The designer owns the screen.
+      const inBox = document.documentElement.classList.contains("box-lock");
+      const on = heroAway && !joinHere && !inBox;
       dock.classList.toggle("on", on);
       dock.setAttribute("aria-hidden", on ? "false" : "true");
     };
+    // re-evaluate when the designer opens or closes (class changes fire no observer)
+    for (const ev of ["makoma:boxopen", "makoma:boxclose"]) window.addEventListener(ev, () => setTimeout(apply, 0));
     if ("IntersectionObserver" in window) {
       if (heroCta) new IntersectionObserver(([e]) => { heroAway = !e.isIntersecting; apply(); }, { threshold: 0 }).observe(heroCta);
       if (join) new IntersectionObserver(([e]) => { joinHere = e.isIntersecting; apply(); }, { rootMargin: "0px 0px -25% 0px" }).observe(join);
     } else {
       window.addEventListener("scroll", () => { heroAway = window.scrollY > window.innerHeight * 0.8; apply(); }, { passive: true });
     }
-  }
-
-  // CHAPTER BAR — appears once the hero scrolls past; tracks the active section; jumps are
-  // instant (same reasoning as the nav handler: smooth scroll dies under phone load).
-  function setupChapters() {
-    const bar = $("#chapters"); if (!bar) return;
-    const nav = $("#nav");
-    const setTop = () => { if (nav) document.documentElement.style.setProperty("--chapters-top", nav.offsetHeight + "px"); };
-    setTop(); window.addEventListener("resize", setTop);
-    let on = false;
-    const gate = () => {
-      const want = window.scrollY > window.innerHeight * 0.85;
-      if (want !== on) { on = want; bar.classList.toggle("on", on); bar.setAttribute("aria-hidden", on ? "false" : "true"); }
-    };
-    window.addEventListener("scroll", gate, { passive: true });
-    gate();
-    // active chapter: the section closest to the upper-middle of the viewport wins
-    const links = [...bar.querySelectorAll('.ch-link[href^="#"]')];
-    const byId = {}; links.forEach((a) => { byId[a.getAttribute("href").slice(1)] = a; });
-    const secs = Object.keys(byId).map((id) => document.getElementById(id)).filter(Boolean);
-    if ("IntersectionObserver" in window && secs.length) {
-      const io = new IntersectionObserver((es) => {
-        for (const en of es) {
-          if (!en.isIntersecting) continue;
-          links.forEach((a) => a.classList.remove("is-active"));
-          const a = byId[en.target.id];
-          if (a) { a.classList.add("is-active"); if (on) a.scrollIntoView({ inline: "center", block: "nearest", behavior: "auto" }); }
-        }
-      }, { rootMargin: "-35% 0px -55% 0px" });
-      secs.forEach((sc) => io.observe(sc));
-    }
-    bar.addEventListener("click", (e) => {
-      const a = e.target.closest && e.target.closest('a[href^="#"]');
-      if (a && jumpTo(a)) e.preventDefault();
-    });
   }
 
   // PRESS FEEL — every control acknowledges the finger the moment it lands (Apple's rule:
@@ -530,7 +500,7 @@
       const v = (email.value || "").trim();
       if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v)) {
         e.preventDefault();
-        say("A real email, please — your circle is waiting.", true);
+        say("A real email, please. Your circle is waiting.", true);
         email.focus();
         return;
       }
@@ -620,7 +590,6 @@
     staggerRefusals();
     observeReveals();
     setupPressFeel();
-    setupChapters();
     setupCtaDock();
     setupChrome();
     setupBip();
@@ -767,7 +736,47 @@
   // bring SLOT i to the front. The ring wraps, so step counts drift away from 0..n-1 as you
   // turn — target the nearest position congruent to i, or the bracelet spins the long way
   // round every time the demo advances.
+  /* BEAD TAP FEEDBACK — sound + haptic, the way the product itself answers a touch.
+     Each bead carries its own note (a pentatonic run) so pressing along the strap plays as a
+     phrase rather than one repeated beep; the front bead (which actually fires its job) gets
+     the fuller bell and a firmer double-tap haptic. Self-contained on purpose: this demo is
+     its own closure, so the page-level charm()/buzz() are NOT in scope here (they were tried
+     and threw "charm is not defined"). Gesture-triggered, so the same tap unlocks audio;
+     silent where the platform has no vibration or WebAudio. */
+  var BEAD_NOTES = [523.25, 587.33, 659.25, 783.99, 880.0, 987.77, 1046.5, 1174.66];
+  var bxAc = null;
+  function bxAudio() {
+    if (!bxAc) { try { bxAc = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { bxAc = null; } }
+    if (bxAc && bxAc.state === "suspended") bxAc.resume();
+    return bxAc;
+  }
+  function bxBell(freq, dur, vol) {
+    var c = bxAudio(); if (!c) return;
+    try {
+      var t = c.currentTime, g = c.createGain();
+      g.connect(c.destination);
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(vol, t + 0.012);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      [[1, 0.55], [2.01, 0.2], [2.99, 0.1]].forEach(function (pair) {   // two partials over the fundamental = a warm bell, not a beep
+        var o = c.createOscillator(), og = c.createGain();
+        o.type = "sine"; o.frequency.value = freq * pair[0];
+        og.gain.value = pair[1];
+        o.connect(og); og.connect(g);
+        o.start(t); o.stop(t + dur + 0.05);
+      });
+    } catch (e) {}
+  }
+  function bxBuzz(v) { try { if (navigator.vibrate) navigator.vibrate(v); } catch (e) {} }
+  function beadTapFeedback(i, isFire) {
+    if (reduce) { bxBuzz(isFire ? 16 : 8); return; }         // reduced motion keeps the touch, drops the ring
+    var note = BEAD_NOTES[((i % BEAD_NOTES.length) + BEAD_NOTES.length) % BEAD_NOTES.length];
+    bxBell(note, isFire ? 1.1 : 0.42, isFire ? 0.22 : 0.13);
+    bxBuzz(isFire ? [0, 20, 45, 14] : 11);
+  }
+
   function ringFocus(i) {
+    beadTapFeedback(i, false);
     var m = ring.N || slots.length;
     var t = ring.focusTarget ? ring.focusTarget(i) : i;   // the off value that puts bead i front
     var d = (((t - ring.off) % m) + m) % m;
@@ -824,8 +833,8 @@
   function paint(i) {
     var act = assigned[i];
     tags[i].querySelector(".bx-tg").textContent = GLYPH[act] || "•";
-    tags[i].setAttribute("aria-label", "Change what this bead does — now " + (NAME[act] || ""));
-    beads[i].setAttribute("aria-label", NAME[act] + " — press to try it");
+    tags[i].setAttribute("aria-label", "Change what this bead does, now " + (NAME[act] || ""));
+    beads[i].setAttribute("aria-label", NAME[act] + ", press to try it");
     slots[i].classList.toggle("is-sos", act === "sos");
   }
   assigned.forEach(function (a, i) { paint(i); });
@@ -833,6 +842,7 @@
   // ---- press: bead → cord → hub → phone ----
   function fire(i) {
     var act = assigned[i], b = beads[i];
+    beadTapFeedback(i, true);
     b.classList.remove("is-press"); void b.offsetWidth; b.classList.add("is-press");
     slots[i].classList.add("is-press");
     setTimeout(function () { slots[i].classList.remove("is-press"); }, 600);

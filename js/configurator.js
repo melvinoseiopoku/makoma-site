@@ -107,6 +107,7 @@
   }
 
   function buildRoster() {
+    if (!roster) return;                       // the roster strip was removed from the designer (Next bead walks the six)
     roster.innerHTML = "";
     var st = D.get();
     st.people.forEach(function (p, i) {
@@ -125,6 +126,7 @@
   }
 
   function paintRoster() {
+    if (!roster) return;
     var st = D.get();
     [].forEach.call(roster.children, function (chip, i) {
       var p = st.people[i];
@@ -149,7 +151,7 @@
       b.className = "cfg-sym";
       b.dataset.sym = key;
       b.setAttribute("role", "radio");
-      b.setAttribute("aria-label", SYM[key].name + " — " + SYM[key].lit.toLowerCase());
+      b.setAttribute("aria-label", SYM[key].name + " · " + SYM[key].lit.toLowerCase());
       b.innerHTML = '<span class="cfg-symface">' + glyphSVG(key, "cfg-glyph") + "</span>";
       b.addEventListener("click", function () { chooseSymbol(key); });
       symRail.appendChild(b);
@@ -203,7 +205,7 @@
     paintNext();
     paintEditor();
     paintRoster();
-    if (scrollChip && roster.children[selected]) {
+    if (scrollChip && roster && roster.children[selected]) {
       progScroll = Date.now();     // an explicit tap wins; don't let our own smooth-scroll re-derive it
       roster.children[selected].scrollIntoView({ inline: "center", block: "nearest", behavior: reduce ? "auto" : "smooth" });
     }
@@ -276,7 +278,7 @@
   function paintNext() {
     var nextBtn = $(".cfg-next", root);
     if (!nextBtn) return;
-    nextBtn.textContent = step === "colors" ? "Next — your six"
+    nextBtn.textContent = step === "colors" ? "Next · your six"
                         : selected < D.SLOTS - 1 ? "Next bead" : "Finish";
   }
 
@@ -371,21 +373,21 @@
           var m = /rgb\((\d+),(\d+),(\d+)/.exec(f);
           return m ? (+m[1] + +m[2] + +m[3]) < 384 : (f === "#000000" || f === "black");
         });
-        if (!paths.length) { upSay("Couldn’t find a dark shape in that image — try a higher-contrast one.", true); return; }
+        if (!paths.length) { upSay("Couldn’t find a dark shape in that image. Try a higher-contrast one.", true); return; }
         var vb = doc.documentElement.getAttribute("viewBox") || ("0 0 " + cv.width + " " + cv.height);
         var out = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="' + vb + '">' +
           paths.map(function (el) { return '<path d="' + el.getAttribute("d") + '"/>'; }).join("") + "</svg>";
-        if (out.length > 280000) { upSay("That shape traced too complex to cut — simplify the image.", true); return; }
+        if (out.length > 280000) { upSay("That shape traced too complex to cut. Simplify the image.", true); return; }
         // manufacturability: islands (enclosed pieces fall out of a real cut) + thin strokes
         var islands = countIslands(out);
         var thin = thinStrokeShare(paths, vb);
         var warn = [];
-        if (islands > 0) warn.push(islands + " enclosed piece" + (islands > 1 ? "s" : "") + " removed — they’d fall out of a real cut");
+        if (islands > 0) warn.push(islands + " enclosed piece" + (islands > 1 ? "s" : "") + " removed, they’d fall out of a real cut");
         if (thin > 0.75) warn.push("most of this is thinner than 0.8 mm and may not survive manufacturing");
         D.setCut(selected, { type: "upload", svg: out });
         boxFocus(D.beadNode(selected));
         upSay(warn.length ? warn.join(". ") + "." : "Traced. Cut onto the bead.", warn.length > 0);
-      }).catch(function () { upSay("Tracing failed — try a PNG or JPG.", true); });
+      }).catch(function () { upSay("Tracing failed. Try a PNG or JPG.", true); });
     };
     img.onerror = function () { URL.revokeObjectURL(url); upSay("Couldn’t read that file.", true); };
     img.src = url;
@@ -501,7 +503,7 @@
     /* Settling the rail on a chip selects that person — which turns the piece in the box.
        Passive listener; the browser keeps full ownership of the gesture. */
     var scrollT = null;
-    roster.addEventListener("scroll", function () {
+    if (roster) roster.addEventListener("scroll", function () {
       clearTimeout(scrollT);
       scrollT = setTimeout(function () {                        // Safari has no scrollend
         if (Date.now() - progScroll < 700) return;   // this scroll was ours, not the user's
@@ -514,6 +516,7 @@
        from a scrollLeft fraction, because scroll-padding + snap mean the travel does
        not map linearly onto the five chips. */
     function centredChip() {
+      if (!roster) return selected;
       var mid = roster.getBoundingClientRect().left + roster.clientWidth / 2;
       var best = selected, bd = Infinity;
       [].forEach.call(roster.children, function (c, i) {
@@ -567,7 +570,7 @@
       var em = (saveEmail && saveEmail.value || "").trim();
       var who = (saveName && saveName.value || "").trim();
       if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em)) {
-        saveStatus.textContent = "A real email, please — it keeps your design saved.";
+        saveStatus.textContent = "A real email, please. It keeps your design saved.";
         saveStatus.classList.add("is-error");
         if (saveEmail) saveEmail.focus();
         return;
@@ -581,10 +584,10 @@
         if (r && r.ok) {
           // the browser is navigating to Buttondown to confirm (see MAKOMA_JOIN): promise the
           // step, not the outcome — this copy is only ever seen for the moment before it leaves
-          saveStatus.textContent = "Saved — taking you to confirm your spot…";
+          saveStatus.textContent = "Saved. Taking you to confirm your spot…";
         } else {
           saveStatus.classList.add("is-error");
-          saveStatus.textContent = r && r.reason === "email" ? "A real email, please." : "Hmm — that didn’t go through. Try again in a moment?";
+          saveStatus.textContent = r && r.reason === "email" ? "A real email, please." : "Hmm, that didn’t go through. Try again in a moment?";
         }
       });
     });

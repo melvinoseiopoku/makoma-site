@@ -388,7 +388,7 @@ async function init() {
   orient.rotation.x = FLIP_X;
   spin.add(orient);
   scene.add(spin);
-  let modelR = 10, modelHalfY = 1;   // the piece's own dimensions at load — the ONLY safe basis for sizing the vitrine
+  let modelR = 10, modelHalfY = 1, modelRingR = 10;   // the piece's own dimensions at load — the ONLY safe basis for sizing the vitrine
   // OBJECT MODE: the hero's opening phase reuses the gather machinery so a tap can summon a
   // receiver, but WITHOUT the cluster's staging — YOU stays at the hero bracelet's exact size
   // and position, the exposure lift is off, and every instructional overlay stays hidden.
@@ -1165,6 +1165,25 @@ async function init() {
     const size = box.getSize(new THREE.Vector3());
     modelR = Math.max(size.x, size.y, size.z) * 0.5;
     modelHalfY = size.y * 0.5;                        // canonical, measured before any staging touches the piece
+    // The piece's real radius about the spin axis, measured HERE and cached forever: at this
+    // moment the model is centred and nothing else exists yet (no cut caps, no laser rig, no
+    // reveal staging), which is what made every later measurement unreliable. modelR alone is
+    // half the max DIMENSION, and the hub makes the ring wider than that at some angles — the
+    // case sized on modelR let the piece poke through the glass.
+    let rr2 = 0;
+    const _mv = new THREE.Vector3();
+    model.updateMatrixWorld(true);
+    model.traverse((o) => {
+      if (!o.isMesh || !o.geometry || !o.geometry.attributes || !o.geometry.attributes.position) return;
+      const pa = o.geometry.attributes.position;
+      const st = pa.count > 60000 ? 3 : 1;
+      for (let i = 0; i < pa.count; i += st) {
+        _mv.fromBufferAttribute(pa, i).applyMatrix4(o.matrixWorld);
+        const d2 = _mv.x * _mv.x + _mv.z * _mv.z;
+        if (d2 > rr2) rr2 = d2;
+      }
+    });
+    modelRingR = Math.max(Math.sqrt(rr2), modelR);
     // Depth precision: the camera shipped with near 0.01 / far 1000 — a 100,000:1 range that
     // starves the depth buffer, and on phones the beads' bright internal plates won pixels
     // THROUGH the closed shells ("the bead looks like it leaks"). Scale the planes to the
@@ -1201,10 +1220,10 @@ async function init() {
   // per moment, never a spec dump. Claim discipline: descriptive only — no battery hours, no waterproof rating,
   // no GPS here until the specs are shippable (see the hub copy + the spec-claims note).
   const SCENE = {
-    bead:    { k: "Alive in your hand",   t: "Touch it. It answers.",         l: "A gold plate beneath each symbol feels your touch — and answers in light, a soft pulse, and a voice." },
-    person:  { k: "One bead, one person", t: "Everyone gets their own.",      l: "Not one screen for everyone — each person you love lives on their own bead. Nothing else is built this way." },
-    symbols: { k: "Adinkra",              t: "Every symbol means something.", l: "Each bead is engraved with an Adinkra symbol — endurance, return, the bonds that hold people together." },
-    hub:     { k: "The core",             t: "Everything, quietly inside.",   l: "The battery, the sound, the mic, the brains — sealed into a hub small enough to forget you're wearing." },
+    bead:    { k: "Alive in your hand",   t: "Touch it. It answers.",         l: "A gold plate beneath each symbol feels your touch, and answers in light, a soft pulse, and a voice." },
+    person:  { k: "One bead, one person", t: "Everyone gets their own.",      l: "Not one screen for everyone. Each person you love lives on their own bead. Nothing else is built this way." },
+    symbols: { k: "Adinkra",              t: "Every symbol means something.", l: "Each bead is engraved with an Adinkra symbol: endurance, return, the bonds that hold people together." },
+    hub:     { k: "The core",             t: "Everything, quietly inside.",   l: "The battery, the sound, the mic, the brains: sealed into a hub small enough to forget you're wearing." },
   };
   function overlay(p, rawP, gd = 0) {    // p == anim (de-dwelled); rawP == raw scroll (keeps advancing through dwells); gd == drop progress
     // Fade the intro on RAW scroll, not anim. The bead explodes at its natural front (early), and anim
@@ -2662,8 +2681,14 @@ async function init() {
     // added by then. modelR and modelHalfY are measured ONCE from the loaded GLB, before
     // anything stages the piece — so the case is now a pure function of the product, identical
     // on every device, at every moment, however the hero happens to be posed.
-    boxPieceR = modelR;                       // a ring's max dimension IS its diameter
-    boxSide = boxPieceR * 2 * 1.08;           // snug: the piece owns the case at any angle it turns to
+    // The load measurement is taken before the designer swaps caps (blank caps for unchosen
+    // beads, CSG cut caps for chosen ones), and those reach further than the beads they replace:
+    // measured worst live span 11.14 against a load radius of 4.90, i.e. 1.14x. The pad covers
+    // that so the piece can never clip through the glass, and it keeps the case only ~1% wider
+    // than the piece's widest turn — which is what lets the WHOLE case be in frame and the
+    // bracelet still read large.
+    boxPieceR = modelRingR * 1.15;
+    boxSide = boxPieceR * 2;
     boxWallH = boxSide * 0.56;
     boxBaseTh = boxSide * 0.15;
     // the piece FLOATS, riding LOW in the glass — just clear of the plate, most of the air above
@@ -3101,11 +3126,12 @@ async function init() {
     // off-frame at the rotation extremes
     // portrait: the piece is the subject — fit tight and let the OPEN NET clip at the sides
     // during the fold (it is packaging); desktop keeps room for the whole net
-    const hHalf = (boxWallH + boxBaseTh) * (portrait ? 0.48 : 0.64);
-    // Portrait frames the PIECE (its spin-axis radius), not the case — the glass is allowed to
-    // run off the sides. Fitting the case meant the bracelet's apparent size rode on how big the
-    // case came out, which is exactly how it ended up looking tiny on one device.
-    const wHalf = (portrait && boxPieceR ? boxPieceR * 1.02 : boxSide * 0.82)
+    const hHalf = (boxWallH + boxBaseTh) * (portrait ? 0.58 : 0.64);   // portrait: show the plinth and the lid rim, not just the glass
+    // Portrait fits the WHOLE CASE (Melvin: "I want to be able to see the whole box, but it
+    // should still be large"), measured at the turntable's worst angle where the case presents
+    // its DIAGONAL rather than a flat face — otherwise the corners clip as it revolves.
+    // 0.5*sqrt(2)*1.03 ≈ 0.73 of the side, so the glass just clears the frame at every angle.
+    const wHalf = (portrait ? boxSide * 0.70 : boxSide * 0.82)
                   * (1 + (portrait ? 0.15 : 0.7) * boxSpread);
     const wFill = portrait ? 1.0 : 0.6, hFill = portrait ? 0.60 : 0.72;
     const d = Math.max(wHalf / (vHalf * aspect * wFill), hHalf / (vHalf * hFill));

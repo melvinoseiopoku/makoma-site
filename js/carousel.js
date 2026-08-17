@@ -9,11 +9,11 @@
   var ASSET_BASE = "assets/"; // beads/<sym>.png, beads/<sym>_glow.png, avatars/<name>.png
 
   var PEOPLE = [
-    { name:"Maya",  avatar:"maya",  symbol:"sankofa",        sym:"Sankofa",        color:"#B77AF4", presence:"Quiet Violet", meaning:"Return & retrieve — it is not wrong to go back for what you forgot.", phrase:"Comes back around" },
-    { name:"Ava",   avatar:"ama",   symbol:"akoma",          sym:"Akoma",          color:"#D6A84F", presence:"Warm Gold",    meaning:"The heart — patience, love, and the readiness to forgive.",            phrase:"Always close" },
-    { name:"Leo",   avatar:"kwame", symbol:"aya",            sym:"Aya",            color:"#63CE88", presence:"Steady Green", meaning:"The fern — endurance; I have grown through hard ground.",               phrase:"Endures" },
-    { name:"Mia",   avatar:"nana",  symbol:"gye_nyame",      sym:"Gye Nyame",      color:"#E7A94E", presence:"Soft Amber",   meaning:"Except God — awe at what is greater than us.",                          phrase:"Steady faith" },
-    { name:"Noah",  avatar:"kofi",  symbol:"nkyinkyim",      sym:"Nkyinkyim",      color:"#5C9CEB", presence:"Calm Blue",    meaning:"The winding path — adaptability, devotion, resilience.",                phrase:"Bends, never breaks" }
+    { name:"Maya",  avatar:"maya",  symbol:"sankofa",        sym:"Sankofa",        color:"#B77AF4", presence:"Quiet Violet", meaning:"Return & retrieve: it is not wrong to go back for what you forgot.", phrase:"Comes back around" },
+    { name:"Ava",   avatar:"ama",   symbol:"akoma",          sym:"Akoma",          color:"#D6A84F", presence:"Warm Gold",    meaning:"The heart: patience, love, and the readiness to forgive.",            phrase:"Always close" },
+    { name:"Leo",   avatar:"kwame", symbol:"aya",            sym:"Aya",            color:"#63CE88", presence:"Steady Green", meaning:"The fern: endurance; I have grown through hard ground.",               phrase:"Endures" },
+    { name:"Mia",   avatar:"nana",  symbol:"gye_nyame",      sym:"Gye Nyame",      color:"#E7A94E", presence:"Soft Amber",   meaning:"Except God: awe at what is greater than us.",                          phrase:"Steady faith" },
+    { name:"Noah",  avatar:"kofi",  symbol:"nkyinkyim",      sym:"Nkyinkyim",      color:"#5C9CEB", presence:"Calm Blue",    meaning:"The winding path: adaptability, devotion, resilience.",                phrase:"Bends, never breaks" }
   ];
   // Presence palette for the GLOW cycle (the 7 presences, in order)
   var PRESENCES = PEOPLE.map(function (p) { return { color:p.color, presence:p.presence }; });
@@ -112,7 +112,7 @@
       var btn = document.createElement("button");
       btn.type = "button";
       btn.className = "car-bead";
-      btn.setAttribute("aria-label", p.name + " — " + p.sym);
+      btn.setAttribute("aria-label", p.name + " · " + p.sym);
       btn.dataset.i = i;
       btn.innerHTML =
         '<span class="car-bead-inner">' +

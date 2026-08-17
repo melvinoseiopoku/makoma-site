@@ -2400,54 +2400,6 @@ a:not(.btn):not(.nav-burger).is-pressed{ opacity:.55; transition:opacity .1s eas
 }
 
 /* ============================================================
-   CHAPTER BAR — the localnav. Fixed under the header; appears
-   after the hero, gone inside the designer and under the menu.
-   ============================================================ */
-.chapters{
-  position:fixed; left:0; right:0; top:var(--chapters-top, 64px); z-index:55;
-  display:flex; align-items:center; gap:10px; height:46px; padding:0 14px 0 6px;
-  background:color-mix(in srgb, var(--black) 86%, transparent);
-  -webkit-backdrop-filter:blur(14px); backdrop-filter:blur(14px);
-  border-bottom:1px solid var(--line-soft);
-  transform:translateY(-8px); opacity:0; pointer-events:none;
-  transition:transform .32s var(--ease), opacity .32s var(--ease);
-}
-.chapters.on{ transform:none; opacity:1; pointer-events:auto; }
-html.box-lock .chapters, .nav.menu-open + .chapters{ opacity:0; pointer-events:none; }
-.ch-rail{
-  display:flex; gap:4px; overflow-x:auto; scrollbar-width:none; flex:1; padding:0 6px;
-  -webkit-overflow-scrolling:touch;
-  mask-image:linear-gradient(90deg, transparent, #000 14px, #000 calc(100% - 14px), transparent);
-  -webkit-mask-image:linear-gradient(90deg, transparent, #000 14px, #000 calc(100% - 14px), transparent);
-}
-.ch-rail::-webkit-scrollbar{ display:none; }
-.ch-link{
-  flex:0 0 auto; padding:7px 12px; border-radius:999px;
-  font-family:var(--mono); font-size:.64rem; letter-spacing:.13em; text-transform:uppercase;
-  color:var(--ink-mute); white-space:nowrap; transition:color .25s, background .25s;
-}
-.ch-link.is-active{ color:var(--gold-bright); background:color-mix(in srgb, var(--gold) 14%, transparent); }
-.ch-join{
-  flex:0 0 auto; padding:8px 16px; border-radius:999px;
-  font-size:.74rem; font-weight:600; letter-spacing:.02em;
-  background:linear-gradient(120deg, var(--gold-deep), var(--gold-bright)); color:#1a1407;
-}
-@media (hover:hover){ .ch-link:hover{ color:var(--gold-bright); } }
-
-/* ============================================================
-   FILM HERO (phones) — the landing hero is a pre-rendered loop
-   of the live scene; the canvas only exists for the designer.
-   ============================================================ */
-.hero3d-film{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover;
-  z-index:1; opacity:0; transition:opacity .7s var(--ease); display:none; }
-.hero3d.film-mode .hero3d-film{ display:block; }
-.hero3d.film-mode.film-live .hero3d-film{ opacity:1; }
-.hero3d.film-mode #heroCanvas{ display:none; }          /* no live GL behind the film */
-.hero3d.film-mode .hero3d-poster{ display:none; }       /* no still first-frame either — the film IS the hero */
-.hero3d.film-mode.in-box #heroCanvas{ display:block; }  /* …except inside the designer */
-.hero3d.in-box .hero3d-film{ display:none; }
-
-/* ============================================================
    CTA DOCK — the hero's actions, kept in reach on phones.
    ============================================================ */
 .cta-dock{
@@ -2462,7 +2414,6 @@ html.box-lock .chapters, .nav.menu-open + .chapters{ opacity:0; pointer-events:n
 @media (max-width: 820px){
   .cta-dock{ display:flex; }
   .cta-dock.on{ transform:none; opacity:1; pointer-events:auto; }
-  .ch-join{ display:none; }        /* the dock owns the actions on phones — no duplicate Join */
 }
 html.box-lock .cta-dock{ transform:translateY(105%); opacity:0; pointer-events:none; }
 /* the designer's own dock sits at the bottom too — never stack ours under it */

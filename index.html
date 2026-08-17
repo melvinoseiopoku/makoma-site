@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>M'AKOMA — The People You Carry</title>
-<meta name="description" content="M'AKOMA is beaded technology — a jewelry-first wearable where the few people you choose live as beads on your wrist: their light, their pulse, their voice. No feed. No algorithm. No filter." />
+<title>M'AKOMA · The People You Carry</title>
+<meta name="description" content="M'AKOMA is beaded technology: a jewelry-first wearable where the few people you choose live as beads on your wrist: their light, their pulse, their voice. No feed. No algorithm. No filter." />
 
 <!-- Canonical = the live custom domain (makoma.io, on Vercel). Google must attribute the site HERE, not the
      github.io mirror — otherwise the brand domain never ranks. -->
@@ -16,19 +16,19 @@
 <!-- Open Graph (LinkedIn / Facebook / Slack / Discord / iMessage link previews) -->
 <meta property="og:type" content="website" />
 <meta property="og:site_name" content="M'AKOMA" />
-<meta property="og:title" content="M'AKOMA — The People You Carry" />
-<meta property="og:description" content="Beaded technology. A jewelry-first wearable where the few people you choose live as beads on your wrist — their light, their pulse, their voice. No feed. No algorithm. No filter." />
+<meta property="og:title" content="M'AKOMA · The People You Carry" />
+<meta property="og:description" content="Beaded technology. A jewelry-first wearable where the few people you choose live as beads on your wrist: their light, their pulse, their voice. No feed. No algorithm. No filter." />
 <meta property="og:url" content="https://makoma.io/" />
 <meta property="og:image" content="https://makoma.io/assets/img/og-image.jpg" />
 <meta property="og:image:width" content="1200" />
 <meta property="og:image:height" content="630" />
-<meta property="og:image:alt" content="The M'AKOMA bracelet — black Adinkra beads glowing gold around a core hub." />
+<meta property="og:image:alt" content="The M'AKOMA bracelet: black Adinkra beads glowing gold around a core hub." />
 <meta property="og:locale" content="en_US" />
 
 <!-- Twitter / X card -->
 <meta name="twitter:card" content="summary_large_image" />
-<meta name="twitter:title" content="M'AKOMA — The People You Carry" />
-<meta name="twitter:description" content="Beaded technology. The people you choose, alive as beads on your wrist — light, pulse, voice. No feed. No algorithm." />
+<meta name="twitter:title" content="M'AKOMA · The People You Carry" />
+<meta name="twitter:description" content="Beaded technology. The people you choose, alive as beads on your wrist: light, pulse, voice. No feed. No algorithm." />
 <meta name="twitter:image" content="https://makoma.io/assets/img/og-image.jpg" />
 
 <link rel="icon" type="image/svg+xml" href="assets/logo/favicon.svg" />
@@ -57,7 +57,7 @@
     document.documentElement.setAttribute('data-theme', t);
   }catch(e){ document.documentElement.setAttribute('data-theme','dark'); } })();
 </script>
-<link rel="stylesheet" href="css/style.css?v=7" />
+<link rel="stylesheet" href="css/style.css?v=8" />
 <script type="importmap">
 {
   "imports": {
@@ -81,7 +81,7 @@
       "url": "https://makoma.io/",
       "logo": "https://makoma.io/assets/logo/icon-gold.svg",
       "image": "https://makoma.io/assets/img/og-image.jpg",
-      "description": "M'AKOMA is beaded technology — a jewelry-first wearable where the few people you choose live as beads on your wrist: their light, their pulse, their voice. No feed, no algorithm, no filter.",
+      "description": "M'AKOMA is beaded technology: a jewelry-first wearable where the few people you choose live as beads on your wrist: their light, their pulse, their voice. No feed, no algorithm, no filter.",
       "slogan": "The People You Carry",
       "founder": {
         "@type": "Person",
@@ -101,7 +101,7 @@
       "@type": "Product",
       "name": "M'AKOMA",
       "alternateName": "Akoma",
-      "description": "M'AKOMA is beaded technology — a jewelry-first wearable where the few people you choose live as beads on your wrist: their light, their pulse, their voice. The first product in a new wearable form factor. No feed, no algorithm, no filter.",
+      "description": "M'AKOMA is beaded technology: a jewelry-first wearable where the few people you choose live as beads on your wrist: their light, their pulse, their voice. The first product in a new wearable form factor. No feed, no algorithm, no filter.",
       "image": "https://makoma.io/assets/img/og-image.jpg",
       "url": "https://makoma.io/",
       "category": "Wearable technology",
@@ -144,18 +144,7 @@
   </div>
 </header>
 
-<!-- CHAPTER BAR — the localnav: slides in once the hero scrolls past. Day-to-day section
-     hops stop hiding behind the burger; the burger keeps the full menu + subpages. -->
-<nav class="chapters" id="chapters" aria-label="Page sections" aria-hidden="true">
-  <div class="ch-rail" id="chRail">
-    <a href="#hero" class="ch-link">The piece</a>
-    <a href="/customize" data-open-box class="ch-link">Customize</a>
-    <a href="#more" class="ch-link">What else</a>
-    <a href="how-it-begins.html" class="ch-link">Begins</a>
-    <a href="#launch" class="ch-link">Building</a>
-  </div>
-  <a href="#join" class="ch-join">Join</a>
-</nav>
+
 
 <!-- CTA DOCK (phones) — the hero's two actions must stay reachable instead of sliding under
      the next section. Appears once they scroll away, hides inside the designer and over the
@@ -182,7 +171,7 @@
               sizes="100vw" />
       <img src="assets/img/makoma-hero.jpg" class="hero3d-poster" id="heroPoster"
            width="1100" height="2390" fetchpriority="high" decoding="async"
-           alt="The M'AKOMA bracelet rendered in 3D — beads and core hub on a braided cord." />
+           alt="The M'AKOMA bracelet rendered in 3D: beads and core hub on a braided cord." />
     </picture>
     <div class="hero3d-veil" aria-hidden="true"></div>
     <!-- the cut: dipped to black across the object → threading boundary (hero3d.js sets opacity) -->
@@ -233,8 +222,6 @@
         </div>
 
         <div class="box-controls">
-          <div class="cfg-roster" role="tablist" aria-label="Your six people"></div>
-
           <div class="cfg-editor" role="tabpanel">
             <div class="cfg-cuttabs" role="tablist" aria-label="Mark type">
               <button type="button" class="cfg-cuttab is-on" data-tab="adinkra" role="tab">Symbols</button>
@@ -252,7 +239,6 @@
                 <input type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" hidden></label>
               <p class="cfg-upstatus" aria-live="polite"></p>
             </div>
-            <p class="cfg-privacy">Your bead choices &mdash; including any initials or artwork you add &mdash; are sent with your signup so we can make it. Your people&rsquo;s full names stay on this device.</p>
           </div>
 
           <div class="cfg-finish">
@@ -371,14 +357,14 @@
       <!-- Turnable like the app's bracelet carousel: drag, swipe, or arrow-key the ring; the
            bead at the front is the one you can press, and its job badge rides above it. -->
       <div class="bx-strap" id="bxStrap" role="group" tabindex="0"
-           aria-label="Your beads — drag to turn the bracelet, then pick one to assign">
+           aria-label="Your beads. Drag to turn the bracelet, then pick one to assign">
         <svg class="bx-cord" id="bxCord" viewBox="0 0 400 200" preserveAspectRatio="none" aria-hidden="true">
           <path id="bxCordPath" fill="none" stroke="rgba(201,160,78,.20)" stroke-width="2" stroke-linecap="round" />
         </svg>
         <span class="bx-pulse" aria-hidden="true"></span>
         <span class="bx-slot">
           <button class="bx-tagbtn" type="button" data-i="0" aria-label="Change what bead 1 does"><span class="bx-tg"></span></button>
-          <button class="bx-bead" type="button" data-i="0" aria-label="Camera — press to try it">
+          <button class="bx-bead" type="button" data-i="0" aria-label="Camera, press to try it">
             <span class="bx-orb">
               <img class="bx-base" src="assets/beads/sankofa.webp" alt="" width="256" height="256" loading="lazy">
               <img class="bx-lit" src="assets/beads/sankofa_glow.webp" alt="" width="256" height="256" loading="lazy">
@@ -387,7 +373,7 @@
         </span>
         <span class="bx-slot">
           <button class="bx-tagbtn" type="button" data-i="1" aria-label="Change what bead 2 does"><span class="bx-tg"></span></button>
-          <button class="bx-bead" type="button" data-i="1" aria-label="Music — press to try it">
+          <button class="bx-bead" type="button" data-i="1" aria-label="Music, press to try it">
             <span class="bx-orb">
               <img class="bx-base" src="assets/beads/aya.webp" alt="" width="256" height="256" loading="lazy">
               <img class="bx-lit" src="assets/beads/aya_glow.webp" alt="" width="256" height="256" loading="lazy">
@@ -396,7 +382,7 @@
         </span>
         <span class="bx-slot">
           <button class="bx-tagbtn" type="button" data-i="2" aria-label="Change what bead 3 does"><span class="bx-tg"></span></button>
-          <button class="bx-bead" type="button" data-i="2" aria-label="Do not disturb — press to try it">
+          <button class="bx-bead" type="button" data-i="2" aria-label="Do not disturb, press to try it">
             <span class="bx-orb">
               <img class="bx-base" src="assets/beads/nsoroma.webp" alt="" width="256" height="256" loading="lazy">
               <img class="bx-lit" src="assets/beads/nsoroma_glow.webp" alt="" width="256" height="256" loading="lazy">
@@ -405,7 +391,7 @@
         </span>
         <span class="bx-slot">
           <button class="bx-tagbtn" type="button" data-i="3" aria-label="Change what bead 4 does"><span class="bx-tg"></span></button>
-          <button class="bx-bead" type="button" data-i="3" aria-label="Alert my circle — press to try it">
+          <button class="bx-bead" type="button" data-i="3" aria-label="Alert my circle, press to try it">
             <span class="bx-orb">
               <img class="bx-base" src="assets/beads/gye_nyame.webp" alt="" width="256" height="256" loading="lazy">
               <img class="bx-lit" src="assets/beads/gye_nyame_glow.webp" alt="" width="256" height="256" loading="lazy">
@@ -414,7 +400,7 @@
         </span>
         <span class="bx-slot">
           <button class="bx-tagbtn" type="button" data-i="4" aria-label="Change what bead 5 does"><span class="bx-tg"></span></button>
-          <button class="bx-bead" type="button" data-i="4" aria-label="Voice note — press to try it">
+          <button class="bx-bead" type="button" data-i="4" aria-label="Voice note, press to try it">
             <span class="bx-orb">
               <img class="bx-base" src="assets/beads/nkyinkyim.webp" alt="" width="256" height="256" loading="lazy">
               <img class="bx-lit" src="assets/beads/nkyinkyim_glow.webp" alt="" width="256" height="256" loading="lazy">
@@ -524,7 +510,7 @@
             <div class="nt-bar"><span>&lsaquo; Notes</span><span class="nt-done">Done</span></div>
             <div class="nt-title">New Note</div>
             <div class="nt-body">
-              <p class="nt-l1">Ideas for the weekend —</p>
+              <p class="nt-l1">Ideas for the weekend&hellip;</p>
               <p class="nt-l2">walk by the river, then</p>
               <p class="nt-l3">coffee at the corner place.</p>
             </div>
@@ -575,9 +561,9 @@
 
   <!-- the evidence strip: swipeable, dated receipts. Cards are height-uniform; the factory
        panel rides wider (a receipt-shaped card among portraits, on purpose). -->
-  <div class="bip-strip reveal" id="bipStrip" aria-label="Evidence of the build — swipe through">
+  <div class="bip-strip reveal" id="bipStrip" aria-label="Evidence of the build. Swipe through">
     <figure class="bip-card">
-      <img src="assets/img/bip/on-wrist.webp" alt="The first M'AKOMA prototype worn on the wrist — three beads with laser-marked Adinkra symbols" loading="lazy" decoding="async" width="880" height="1100" />
+      <img src="assets/img/bip/on-wrist.webp" alt="The first M'AKOMA prototype worn on the wrist: three beads with laser-marked Adinkra symbols" loading="lazy" decoding="async" width="880" height="1100" />
       <figcaption><span class="bip-when">August</span>On the wrist.</figcaption>
     </figure>
     <figure class="bip-card bip-card--video">
@@ -593,11 +579,11 @@
       <figcaption><span class="bip-when">July</span>Every bead, soldered by hand.</figcaption>
     </figure>
     <figure class="bip-card bip-card--wide">
-      <img src="assets/img/bip/factory-panel.webp" alt="The flex-spine circuit panel — core hub and six bead boards — at the assembly house" loading="lazy" decoding="async" width="1100" height="584" />
+      <img src="assets/img/bip/factory-panel.webp" alt="The flex-spine circuit panel (core hub and six bead boards) at the assembly house" loading="lazy" decoding="async" width="1100" height="584" />
       <figcaption><span class="bip-when">August</span>The spine, on the line.</figcaption>
     </figure>
     <figure class="bip-card bip-card--photo">
-      <img src="assets/img/bip/prototype.webp" alt="The assembled prototype bracelet — matte black beads and core hub on a knotted cord" loading="lazy" decoding="async" width="1100" height="733" />
+      <img src="assets/img/bip/prototype.webp" alt="The assembled prototype bracelet: matte black beads and core hub on a knotted cord" loading="lazy" decoding="async" width="1100" height="733" />
       <figcaption><span class="bip-when">August</span>Assembled. Waiting for its circle.</figcaption>
     </figure>
   </div>
@@ -664,7 +650,7 @@
     <div class="faq-list">
       <details class="faq-item">
         <summary>When can I get one?</summary>
-        <p>We&rsquo;re hand-building the first units now. Join the waitlist and you&rsquo;ll be first to hear ship dates — before any public announcement.</p>
+        <p>We&rsquo;re hand-building the first units now. Join the waitlist and you&rsquo;ll be first to hear ship dates, before any public announcement.</p>
       </details>
       <details class="faq-item">
         <summary>How much will it cost?</summary>
@@ -672,11 +658,11 @@
       </details>
       <details class="faq-item">
         <summary>Do my friends need to buy one too?</summary>
-        <p>No. You buy one bracelet and invite people from the app — they can light and speak to your beads from their phone before they ever own hardware. When they get a bracelet, it becomes two-way.</p>
+        <p>No. You buy one bracelet and invite people from the app. They can light and speak to your beads from their phone before they ever own hardware. When they get a bracelet, it becomes two-way.</p>
       </details>
       <details class="faq-item">
         <summary>Is it a smartwatch or fitness tracker?</summary>
-        <p>No. M&rsquo;AKOMA is jewelry first — no screens, no feeds, no step counts, no notifications. Just the few people you choose, with you all the time.</p>
+        <p>No. M&rsquo;AKOMA is jewelry first: no screens, no feeds, no step counts, no notifications. Just the few people you choose, with you all the time.</p>
       </details>
     </div>
   </div>
@@ -701,9 +687,9 @@
      reads when submitting the waitlist form. Classic scripts, not modules, because
      main.js is a classic IIFE and cannot import. -->
 <script src="js/design.js"></script>
-<script src="js/main.js?v=8"></script>
-<script src="js/configurator.js?v=2"></script>
-<script type="module" src="js/hero3d.js?v=10"></script>
+<script src="js/main.js?v=9"></script>
+<script src="js/configurator.js?v=3"></script>
+<script type="module" src="js/hero3d.js?v=11"></script>
 <!-- Neither js/positioning.js (its "Where we live" section is cut) nor js/coach.js is loaded:
      the bracelet no longer explains itself. Touching a bead summons the other person
      unannounced, and being surprised by it IS the moment. Every window.__coach call in
