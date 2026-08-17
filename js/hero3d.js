@@ -178,12 +178,14 @@ if (reduce || slowNet || !webglOK()) {
   })();
   window.__openPosterPanel = posterPanel.openIt;       // the global CTA router below uses this
   if (wantsCustomize) posterPanel.openIt();
-} else if (!wantsCustomize && (coarse || (window.innerWidth > 0 && window.innerWidth <= 820))) {
-  // PHONES: the poster is already a real render of the product, so hold there and build the
-  // scene on the first sign the visitor wants it -- a scroll, a touch, or a tap on any
-  // "design yours" control. init() still wires everything it owns (configurator included),
-  // just at that moment instead of during first paint. Arriving at /customize IS the intent,
-  // so that path skips the deferral and boots straight into the designer.
+} else if (!wantsCustomize && (coarse || (window.innerWidth > 0 && window.innerWidth <= 820))
+           && !new URLSearchParams(location.search).has("live3d")) {
+  // (?live3d=1 is the authoring hatch: the film is CAPTURED from this live scene at phone
+  // framing, so re-rendering it after any scene change needs the renderer on a phone viewport.)
+  // PHONES: the hero is a FILM of the live scene — the renderer never boots on landing, so
+  // there is no first-touch stall and scroll stays native. The designer is the one place
+  // interactivity earns the GPU: a [data-open-box] tap boots the full scene on demand while
+  // the film keeps playing, and the vitrine takes over only when it is actually ready.
   armDeferredHero();
 } else {
   init();
@@ -236,6 +238,59 @@ document.addEventListener("click", (ev) => {
   earlyBoxIntent = true;
 }, true);
 
+// FILM HERO — TRIED AND REJECTED 2026-08-16. Melvin on an iPhone: "the hero film is itself
+// laggy and makes the website feel cheap. Live cad is much smoother." Root cause of the judder
+// was the capture rate: 18 fps divides evenly into NEITHER 60 Hz nor 120 Hz (3.33 / 6.67
+// display-frames per film-frame), so the cadence stutters, while the live scene is rAF-synced
+// and paces evenly even at a lower rate — plus the film had no motion blur and upscaled
+// 810->1170 device px (soft). A future attempt needs 30 or 60 fps (both divide evenly) AND
+// baked motion blur; at natural cruise that is 1131+ frames (~2 h capture).
+// The film asset, <video> markup and phone-poster removal live in commits 0671275/fcffef9 —
+// restore those to re-enable. setFilmLock() and ?live3d=1 below stay: any capture needs them.
+function armFilmHero() {
+  if (loaderEl) loaderEl.style.display = "none";
+  window.__hero = { film: true };
+  section.classList.add("film-mode");
+  const film = $("#heroFilm");
+  if (film) {
+    film.preload = "auto";
+    film.addEventListener("canplay", () => { section.classList.add("film-live"); }, { once: true });
+    // Low Power Mode (and some data-saver settings) reject muted autoplay: bring the still
+    // back as the hero rather than leaving an empty dark stage. The phone <picture> resolves
+    // to a 1px gif, so the real file is swapped in only on this path.
+    let posterBack = false;
+    const filmFailed = () => {
+      if (posterBack) return;
+      posterBack = true;
+      if (poster) {
+        // the <picture> sources outrank the img — drop them so the real file resolves
+        const pic = poster.closest("picture");
+        if (pic) for (const src of [...pic.querySelectorAll("source")]) src.remove();
+        poster.srcset = "assets/img/makoma-hero-760.webp";
+        poster.src = "assets/img/makoma-hero.jpg";
+        poster.style.display = "block";
+      }
+    };
+    const go = () => film.play().then(() => { if (poster && posterBack) { posterBack = false; poster.style.display = ""; } }).catch(filmFailed);
+    go();
+    // pause the loop while the designer owns the stage; resume when it folds away
+    window.addEventListener("makoma:boxopen", () => film.pause());
+    window.addEventListener("makoma:boxclose", () => { if (!document.hidden) go(); });
+    document.addEventListener("visibilitychange", () => { if (!section.classList.contains("in-box")) { if (document.hidden) film.pause(); else go(); } });
+  }
+  // designer intent is the ONLY thing that boots the renderer on a phone
+  let started = false;
+  const onClick = (ev) => {
+    const el = ev.target && ev.target.closest && ev.target.closest("[data-open-box]");
+    if (!el || started) return;
+    ev.preventDefault();
+    started = true;
+    document.removeEventListener("click", onClick, true);
+    init().then(() => { if (window.__hero && window.__hero.box) window.__hero.box.open(); });
+  };
+  document.addEventListener("click", onClick, true);
+}
+
 function armDeferredHero() {
   if (loaderEl) loaderEl.style.display = "none";
   window.__hero = { deferred: true };
@@ -258,7 +313,13 @@ function armDeferredHero() {
   // NOT passive, and separate from the touch handler: only this one may preventDefault.
   const onClick = (ev) => {
     const el = ev.target && ev.target.closest && ev.target.closest("[data-open-box]");
-    if (el) ev.preventDefault();
+    if (el) {
+      ev.preventDefault();
+      // A tap that lands BEFORE the scene has booted waits on the renderer, the decoder and
+      // the model. Silence there reads as a dead button, so every Customize control says it is
+      // working; enterBox clears it when the fold actually starts.
+      document.querySelectorAll("[data-open-box]").forEach((o) => o.classList.add("is-working"));
+    }
     boot(!!el);
   };
 
@@ -276,12 +337,15 @@ function armDeferredHero() {
 async function init() {
   await loadDeps();
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, powerPreference: "high-performance" });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, coarse ? 1.75 : 2));
+  // PHONE BUDGET: 1.75 -> 1.5 is 27% fewer fragments for a difference nobody can see on a
+  // 3x screen. MSAA is left alone on purpose — Apple's tile-based GPUs resolve it in tile
+  // memory, so it is nearly free, unlike resolution.
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, coarse ? 1.5 : 2));
   // vitrine VFX state — declared THIS early on purpose: resize() and render() touch volSmoke
   // and both run during init, long before the box section's code is evaluated (TDZ trap)
   const vfx = createVitrineFX(THREE);
 
-  let volSmoke = null, smokeCb = null;
+  let volSmoke = null, smokeCb = null, bloomPass = null;   // bloomPass: resize() lowers its resolution on phones and can run before the pass is built
   const boxDepthHide = [];                 // glass walls + blob + smoke volume: excluded from the depth prepass
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1.12;
@@ -304,7 +368,7 @@ async function init() {
 
   // camera looks from +X (az 0) low; key lights the front so the near symbols catch gold
   const key = new THREE.DirectionalLight(0xfff4e6, 3.6); key.position.set(20, 16, 7);
-  key.castShadow = true; key.shadow.mapSize.set(coarse ? 1024 : 2048, coarse ? 1024 : 2048);
+  key.castShadow = true; key.shadow.mapSize.set(coarse ? 768 : 2048, coarse ? 768 : 2048);   // the shadow pass is a whole extra scene render every frame — 768 halves its bandwidth on phones
   key.shadow.camera.near = 1; key.shadow.camera.far = 120;
   key.shadow.camera.left = -22; key.shadow.camera.right = 22; key.shadow.camera.top = 22; key.shadow.camera.bottom = -22;
   key.shadow.bias = -0.0004;
@@ -489,7 +553,7 @@ async function init() {
   }
 
   function placeCamera(settle = 0, g = 0, dropY = 0) {
-    const az = (CAM_AZ + Math.sin(idle * 0.18) * 0.7 * (1 - settle) * (1 - g)) * DEG;   // idle sway fades out as we settle
+    const az = (CAM_AZ + (filmLock ? 0 : Math.sin(idle * 0.18)) * 0.7 * (1 - settle) * (1 - g)) * DEG;   // idle sway fades out as we settle (frozen for film capture — its 35s period can never loop)
     const el = (CAM_EL + (CAM_EL_END - CAM_EL) * settle) * DEG;               // rise toward the top-front edge
     let d = (3.15 + (CAM_DIST_END - 3.15) * settle) * modelR;                  // pull back to frame the whole bracelet
     let pan = CAM_PAN_END * modelR * settle;   // pan the framing DOWN so the bracelet rises into the upper frame
@@ -1113,6 +1177,9 @@ async function init() {
     groundMesh = ground;   // box mode hides it — its shadow plane would otherwise hang mid-air inside the vitrine
 
     ready = true;
+    // pay the designer's build + shader compile while nobody is waiting (see prewarmDesigner)
+    const _idle = window.requestIdleCallback || ((fn) => setTimeout(fn, 1));
+    setTimeout(() => _idle(() => prewarmDesigner(), { timeout: 4000 }), 2500);
     if (loaderEl) loaderEl.classList.add("hide");
     poster.classList.add("hide");
     section.classList.add("live3d");   // light-mode overlays that rely on the canvas occluding them key off this
@@ -1173,6 +1240,7 @@ async function init() {
     const h = canvas.clientHeight || window.innerHeight || 800;
     renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix();
     composer.setSize(w, h);
+    if (coarse && bloomPass) bloomPass.setSize(Math.max(1, Math.round(w * 0.6)), Math.max(1, Math.round(h * 0.6)));   // bloom is a mip blur — 0.6x is invisible and saves a real pass on phones
     if (volSmoke) { const dbs = renderer.getDrawingBufferSize(new THREE.Vector2()); volSmoke.setSize(dbs.x, dbs.y); }
     sizeEchoCanvas();
   }
@@ -1196,6 +1264,7 @@ async function init() {
   const composer = new EffectComposer(renderer, new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType, samples: coarse ? 4 : 8 }));   // HalfFloat = HDR, matching the default composer live uses → ACES desaturates the bright emissive to white (not clamped amber); samples = MSAA for the alphaToCoverage fade
   composer.addPass(new RenderPass(scene, camera));
   const bloom = new UnrealBloomPass(new THREE.Vector2(1, 1), 0.22, 0.7, 0.86); // soft gold glints
+  bloomPass = bloom;
   composer.addPass(bloom);
   composer.addPass(new OutputPass());
 
@@ -1257,6 +1326,7 @@ async function init() {
   const OBJ_EX_WIN = 0.95;                     // rad (~54°) either side of dead-front that counts as "in frame"
   const OBJ_EX_LEAD = 0.30;                    // rad of closed turning before the bead first swings in (~2 s)
   let objTurn = SPIN_PHASE, objTurnPrev = 0, objTurnArmed = false;
+  let filmLock = false;   // film capture: freeze the non-looping breathers + hand the turn to nudgeTurn
   const OBJ_EX_SEG = [
     [0.00, 0.10, 0,    0   ],   // swinging in — still shut
     [0.10, 0.35, 0,    0.46],   // tilt up + split out
@@ -1344,7 +1414,7 @@ async function init() {
       // a half-split bead. (SPIN_PHASE is tuned for the threading timeline, not for this.)
       if (!objTurnArmed && beadAsm) { objTurnArmed = true; objTurn = beadAsm.frontY - OBJ_DIR * (OBJ_EX_WIN + OBJ_EX_LEAD); objTurnPrev = idle; }
 
-      objTurn += Math.min(0.1, Math.max(0, idle - objTurnPrev)) * OBJ_TURN * OBJ_DIR * cine.rate * seqRate;   // own accumulator, so the entry phase can be set without a jump
+      if (!filmLock) objTurn += Math.min(0.1, Math.max(0, idle - objTurnPrev)) * OBJ_TURN * OBJ_DIR * cine.rate * seqRate;   // own accumulator, so the entry phase can be set without a jump; filmLock hands the turn to nudgeTurn so a capture sums to EXACTLY 2*pi
       objTurnPrev = idle;
       if (beadAsm) {
         beadAsm._e = cine.phase
@@ -1362,7 +1432,7 @@ async function init() {
     let spinY = SPIN_PHASE + anim * TAU * SPIN_TURNS;
     if (settle > 0) { let dd = endSpin - spinY; dd = ((dd + Math.PI) % TAU + TAU) % TAU - Math.PI; spinY += dd * settle; }   // ease to hub-at-back
     spin.rotation.y = inObject ? objTurn : spinY;   // the object phase owns its turn (set just above); the timeline owns it everywhere else
-    const f = Math.min(1, anim * 1.8);             // trace draws faster than the spin so it keeps pace — threading begins only when the bead scroll (hero phase) does
+    const f = boxMode ? 1 : Math.min(1, anim * 1.8);   // trace draws with the bead scroll — but the DESIGNER always shows the COMPLETE piece
     if (cordMesh) {
       cordMesh.geometry.setDrawRange(0, Math.floor(cordTotal * f));
       if (cordTip && cordCurve) {                    // rounded tip caps the growing end (and the far hub end at full trace)
@@ -1372,8 +1442,8 @@ async function init() {
       }
     }
     if (braidB) { const n = Math.floor(braidTotal * f); braidB.geometry.setDrawRange(0, n); braidC.geometry.setDrawRange(0, n); }
-    matGlow.emissiveIntensity = 2.0 + 0.45 * (0.5 + 0.5 * Math.sin(idle * 0.55));   // LED breathing, toned down (2.0..2.45)
-    matLED.emissiveIntensity = 3.4 + 0.7 * (0.5 + 0.5 * Math.sin(idle * 0.6));      // the exploded bead's small PCB LED breathes (3.4..4.1)
+    matGlow.emissiveIntensity = 2.0 + 0.45 * (filmLock ? 0.5 : 0.5 + 0.5 * Math.sin(idle * 0.55));   // LED breathing, toned down (2.0..2.45); mid-frozen for film capture
+    matLED.emissiveIntensity = 3.4 + 0.7 * (filmLock ? 0.5 : 0.5 + 0.5 * Math.sin(idle * 0.6));      // the exploded bead's small PCB LED breathes (3.4..4.1)
     // GRAVITY DROP: the cluster free-falls from the hero "table" (y=0) to the how-it-works one (y=-DROP_DIST), then one
     // weighty rebound. The camera follows DOWN but LAGS, so the fall reads on screen before it settles centred.
     let dFall, dBounce = 0;
@@ -1439,6 +1509,8 @@ async function init() {
     idle += frameDt;
     progress += (target - progress) * (1 - Math.exp(-5.6 * frameDt));   // time-based smoothing: same feel at any fps
     if (Math.abs(target - progress) < 0.0002) progress = target;
+    // film mode outside the designer: the canvas is display:none — skip the whole frame
+    if (section.classList.contains("film-mode") && !boxMode && boxExitT0 == null && !pendingBox) { return; }
     if (ready && inView) {
       // The designer is entered by EXPLICIT INTENT only — a [data-open-box] tap or landing on
       // /customize — never by crossing a scroll boundary. (It used to own everything past
@@ -1480,6 +1552,8 @@ async function init() {
     introTick(dt) { if (cine.phase) { cine.t += Math.max(0, dt - 0.016); if (ready) { update(progress); composer.render(); } } },
     get introPhase() { return cine.phase; },
     suppressOutro(v) { this._suppressOutro = v; },   // the touch-demo owns the outro fade once it's in view
+    setFilmLock(v) { filmLock = !!v; },              // film capture: see filmLock above
+    get prewarmed() { return prewarmed; },           // diagnosis: did the designer's idle prewarm run?
     get progress() { return progress; },
     get ready() { return ready; },
   };
@@ -2526,7 +2600,38 @@ async function init() {
     boxDepthHide.push(volSmoke.mesh);
     const dbs = renderer.getDrawingBufferSize(new THREE.Vector2());
     volSmoke.setSize(dbs.x, dbs.y);
-    renderer.compile(scene, camera);       // pay the shader compile now, not on the first click
+    // never block on this: compileAsync uses KHR_parallel_shader_compile where available.
+    // (The idle prewarm below normally has it compiled long before the first colour tap.)
+    if (renderer.compileAsync) renderer.compileAsync(scene, camera).catch(() => {});
+    else renderer.compile(scene, camera);
+  }
+  // THE ENTRY STALL, PAID IN ADVANCE. Tapping Customize used to build the vitrine and compile
+  // every one of its shaders (glass, plate, platforms, blob, and the smoke volume's 22-step
+  // raymarch) inside the click — measured as a multi-second freeze on a CPU-throttled phone
+  // before the fold could start moving. All of it now happens on an idle callback once the
+  // hero has settled.
+  //
+  // The trap: renderer.compile() walks the scene with traverseVisible, and the vitrine is
+  // built INVISIBLE — so compiling it in place warms nothing. Making it visible to compile
+  // would flash the case into the hero on any frame that lands mid-compile. Instead a clone
+  // (which SHARES materials and geometries, so the programs are the same ones) is staged in a
+  // throwaway scene that is never rendered, and compiled against the live scene for lights.
+  let prewarmed = false;
+  function prewarmDesigner() {
+    if (prewarmed || !ready || !model || boxMode) return;
+    prewarmed = true;
+    try {
+      buildVitrine();
+      buildSmoke();
+      const probe = boxGroup.clone(true);
+      probe.traverse((o) => { o.visible = true; });
+      const tmp = new THREE.Scene();
+      tmp.add(probe);
+      const done = () => { tmp.remove(probe); };
+      if (renderer.compileAsync) renderer.compileAsync(tmp, camera, scene).then(done).catch(done);
+      else { renderer.compile(tmp, camera, scene); done(); }
+    } catch (e) { /* prewarming is an optimisation: never let it break the designer */ }
+    if (!slowNet) ensureCutEngine();          // the CSG stack is a network fetch — get it early too
   }
   function updateSmoke() {
     if (!volSmoke || !volSmoke.active) return;
@@ -2855,7 +2960,13 @@ async function init() {
     target = progress = 0;
     setBoxURL(true);
     if (ready) { enterBox(); lockScroll(); }
-    else pendingBox = true;                            // model still loading: enter the moment it's ready
+    else {
+      pendingBox = true;                               // model still loading: enter the moment it's ready
+      // …and SAY so. This is the tap that reads as lag: the boot may already be running (a
+      // scroll started it), so the deferred-boot handler has detached and nothing else was
+      // acknowledging the press. enterBox clears it when the fold starts.
+      document.querySelectorAll("[data-open-box]").forEach((o) => o.classList.add("is-working"));
+    }
   }
   // the state change the boundary crossing performs
   function enterBox() {
@@ -2865,6 +2976,14 @@ async function init() {
     for (const id of ["#hubLabels", "#beadLabels", "#beadWords"]) { const h = $(id); if (h) h.style.opacity = "0"; }
     if (seqLine1) { seqLine1.group.visible = false; seqLine2.group.visible = false; }   // the word beat stays OUT of the vitrine
     buildVitrine();
+    // the vitrine shows the FINISHED piece: on a direct /customize load no scroll-driven
+    // update() has traced the cord yet, and the bracelet presented BARE (obvious on clay).
+    if (cordMesh) {
+      cordMesh.geometry.setDrawRange(0, cordTotal);
+      if (cordTip && cordCurve) { cordTip.visible = true; cordTip.position.copy(cordCurve.getPointAt(1)); }
+      if (cordStart) cordStart.visible = true;
+    }
+    if (braidB) { braidB.geometry.setDrawRange(0, braidTotal); braidC.geometry.setDrawRange(0, braidTotal); }
     if (groundMesh) groundMesh.visible = false;
     if (gatherGroup) gatherGroup.visible = false;
     spin.visible = true;
@@ -2883,6 +3002,7 @@ async function init() {
     camera.getWorldDirection(_fwd);
     boxCamFrom = { pos: camera.position.clone(), tgt: camera.position.clone().addScaledVector(_fwd, camera.position.length() || 10) };
     boxRevFrom = null; boxCamBlend = 0;
+    document.querySelectorAll("[data-open-box].is-working").forEach((o) => o.classList.remove("is-working"));
     section.classList.add("in-box");
     // The fixed nav sits ABOVE the designer (z-index 60) and the page behind is only
     // overflow-locked — Tab and hash-navigation could still drag it around under the vitrine.
@@ -2895,6 +3015,7 @@ async function init() {
 
   function finalizeClose() {
     boxMode = false; boxExitT0 = null; boxRevFrom = null;
+    window.dispatchEvent(new CustomEvent("makoma:boxclose"));
     if (camera.fov !== 32) { camera.fov = 32; camera.updateProjectionMatrix(); }   // hand the lens back to the object phase
     if (designApplied) applyDesign();                  // unchosen beads go back to their baked display symbols
     boxGroup.visible = false; if (boxLight) boxLight.visible = false;

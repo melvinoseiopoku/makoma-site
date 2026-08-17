@@ -321,6 +321,27 @@
     return true;
   }
 
+  // CTA DOCK — the hero's two actions used to slide under the next section and become
+  // unreachable without scrolling back up. They now dock to the bottom of the screen once the
+  // hero's own pair leaves the viewport, and step aside where they would be noise: inside the
+  // designer (box-lock) and over the waitlist form itself.
+  function setupCtaDock() {
+    const dock = $("#ctaDock"); if (!dock) return;
+    const heroCta = $("#heroCta"), join = $("#join");
+    let heroAway = false, joinHere = false;
+    const apply = () => {
+      const on = heroAway && !joinHere;
+      dock.classList.toggle("on", on);
+      dock.setAttribute("aria-hidden", on ? "false" : "true");
+    };
+    if ("IntersectionObserver" in window) {
+      if (heroCta) new IntersectionObserver(([e]) => { heroAway = !e.isIntersecting; apply(); }, { threshold: 0 }).observe(heroCta);
+      if (join) new IntersectionObserver(([e]) => { joinHere = e.isIntersecting; apply(); }, { rootMargin: "0px 0px -25% 0px" }).observe(join);
+    } else {
+      window.addEventListener("scroll", () => { heroAway = window.scrollY > window.innerHeight * 0.8; apply(); }, { passive: true });
+    }
+  }
+
   // CHAPTER BAR — appears once the hero scrolls past; tracks the active section; jumps are
   // instant (same reasoning as the nav handler: smooth scroll dies under phone load).
   function setupChapters() {
@@ -600,6 +621,7 @@
     observeReveals();
     setupPressFeel();
     setupChapters();
+    setupCtaDock();
     setupChrome();
     setupBip();
     setupForm();

@@ -57,7 +57,7 @@
     document.documentElement.setAttribute('data-theme', t);
   }catch(e){ document.documentElement.setAttribute('data-theme','dark'); } })();
 </script>
-<link rel="stylesheet" href="css/style.css?v=6" />
+<link rel="stylesheet" href="css/style.css?v=7" />
 <script type="importmap">
 {
   "imports": {
@@ -156,6 +156,14 @@
   </div>
   <a href="#join" class="ch-join">Join</a>
 </nav>
+
+<!-- CTA DOCK (phones) — the hero's two actions must stay reachable instead of sliding under
+     the next section. Appears once they scroll away, hides inside the designer and over the
+     waitlist form (where the real form already owns the screen). -->
+<div class="cta-dock" id="ctaDock" aria-hidden="true">
+  <a href="/customize" data-open-box class="btn btn-gold">Customize bracelet</a>
+  <a href="#join" class="btn btn-line">Join the waitlist</a>
+</div>
 
 <main id="top">
 
@@ -693,9 +701,9 @@
      reads when submitting the waitlist form. Classic scripts, not modules, because
      main.js is a classic IIFE and cannot import. -->
 <script src="js/design.js"></script>
-<script src="js/main.js?v=7"></script>
+<script src="js/main.js?v=8"></script>
 <script src="js/configurator.js?v=2"></script>
-<script type="module" src="js/hero3d.js?v=7"></script>
+<script type="module" src="js/hero3d.js?v=8"></script>
 <!-- Neither js/positioning.js (its "Where we live" section is cut) nor js/coach.js is loaded:
      the bracelet no longer explains itself. Touching a bead summons the other person
      unannounced, and being surprised by it IS the moment. Every window.__coach call in
