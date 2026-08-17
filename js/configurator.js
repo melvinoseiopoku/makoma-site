@@ -579,7 +579,9 @@
       join(em, { name: who, source: "designer" }).then(function (r) {
         saveBtn.disabled = false;
         if (r && r.ok) {
-          saveStatus.textContent = "Saved — your six are on the waitlist with you. Watch your inbox.";
+          // the browser is navigating to Buttondown to confirm (see MAKOMA_JOIN): promise the
+          // step, not the outcome — this copy is only ever seen for the moment before it leaves
+          saveStatus.textContent = "Saved — taking you to confirm your spot…";
         } else {
           saveStatus.classList.add("is-error");
           saveStatus.textContent = r && r.reason === "email" ? "A real email, please." : "Hmm — that didn’t go through. Try again in a moment?";

@@ -440,12 +440,17 @@
        opt-in) — that's why the success copy says "watch your inbox".
          const JOIN_ENDPOINT = "https://buttondown.com/api/emails/embed-subscribe/makoma";
 
-     Buttondown's embed endpoint is a cross-origin form target, not a CORS/JSON
-     API — a normal fetch() can't read its reply — so Buttondown URLs are
-     auto-detected and POSTed in no-cors mode (a completed request counts as
-     success). Any other provider whose endpoint accepts a POST with an `email`
-     field still works (Formspree: https://formspree.io/f/ID, ConvertKit, …);
-     those are posted as FormData and their HTTP status is checked.
+     TRANSPORT — read this before "improving" it back to fetch (2026-08-17):
+     Buttondown's embed endpoint accepts ONLY standard HTML form submissions. The
+     form therefore carries its own action/method and the browser submits it and
+     follows the 302; nothing here intercepts it. A fetch (even no-cors) cannot
+     hand a subscriber the CAPTCHA or validation page the endpoint may answer with,
+     so those people silently failed to subscribe while our opaque response made
+     the page tell them "You're in" — Buttondown emailed to flag exactly this.
+     Metadata rides along as hidden inputs (tag, metadata__*), so the design signal
+     is unchanged. The visitor lands on Buttondown's confirmation page; setting a
+     "redirect after subscribe" URL in Buttondown's embedding settings brings them
+     back to makoma.io.
 
      Until JOIN_ENDPOINT is set, submissions are saved in the visitor's browser
      (localStorage key "makoma_waitlist") so nothing is lost while testing.
@@ -472,14 +477,18 @@
     } catch (_) {}
     if (!JOIN_ENDPOINT) return { ok: true };
     try {
-      const params = new URLSearchParams();
-      params.append("email", v);
-      params.append("embed", "1");
-      params.append("tag", "designer");
-      if (extra) Object.keys(extra).forEach((k2) => { if (extra[k2]) params.append("metadata__" + k2, String(extra[k2]).slice(0, 120)); });
-      if (design) Object.keys(design).forEach((k2) => params.append("metadata__" + k2, design[k2]));
-      await fetch(JOIN_ENDPOINT, { method: "POST", mode: "no-cors", body: params });
-      return { ok: true };
+      // A STANDARD form submission, for the same reason as the waitlist form: fetch cannot
+      // carry a CAPTCHA or a validation error, so those subscribers were lost silently.
+      // The design is already saved above, so leaving the page costs nothing.
+      const f = document.createElement("form");
+      f.method = "post"; f.action = JOIN_ENDPOINT; f.style.display = "none";
+      const add = (n, val) => { const i = document.createElement("input"); i.type = "hidden"; i.name = n; i.value = val; f.appendChild(i); };
+      add("email", v); add("embed", "1"); add("tag", "designer");
+      if (extra) Object.keys(extra).forEach((k2) => { if (extra[k2]) add("metadata__" + k2, String(extra[k2]).slice(0, 120)); });
+      if (design) Object.keys(design).forEach((k2) => add("metadata__" + k2, design[k2]));
+      document.body.appendChild(f);
+      f.submit();
+      return { ok: true, navigating: true };
     } catch (err) { return { ok: false, reason: "network" }; }
   };
 
@@ -496,27 +505,15 @@
       status.classList.toggle("is-error", !!isError);
     };
 
-    form.addEventListener("submit", async (e) => {
-      e.preventDefault();
+    form.addEventListener("submit", (e) => {
       const v = (email.value || "").trim();
       if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v)) {
+        e.preventDefault();
         say("A real email, please — your circle is waiting.", true);
         email.focus();
         return;
       }
-      const giving = false;
       const sug = ((sugg && sugg.value) || "").trim();
-
-      // The bracelet they designed in the box. toMetadata() is the ONLY path from the
-      // design store to the network and it deliberately never reads the five names —
-      // those are personal data about third parties who never visited this site.
-      // What ships is the manufacturing signal: shell colourway, symbols, lights, and
-      // cfg=custom|default so colour votes can be counted over real choices only.
-      // store any traced artwork FIRST, so toMetadata() reports its key instead of
-      // "unsent". Never rejects, so a storage outage cannot cost someone their signup.
-      if (window.MAKOMA_DESIGN && window.MAKOMA_DESIGN.flushUploads) {
-        try { await window.MAKOMA_DESIGN.flushUploads(); } catch (_) {}
-      }
       const design = (window.MAKOMA_DESIGN && window.MAKOMA_DESIGN.toMetadata()) || null;
 
       // always keep a local copy so a submission is never silently lost
@@ -527,53 +524,25 @@
         localStorage.setItem(k, JSON.stringify(list));
       } catch (_) {}
 
-      const done = () => {
-        say(sug
-          ? "You’re in — and thank you, I’ve read your note. Founding pricing and ship dates go to the circle first."
-          : giving
-          ? "Beautiful — you’re in. We’ll be in touch about making it a gift; founding pricing and dates go to the circle first."
-          : "You’re in. Founding pricing and ship dates go to the circle first — watch your inbox.");
-        email.value = ""; if (sugg) sugg.value = "";
-      };
-
-      if (!JOIN_ENDPOINT) { done(); return; } // placeholder mode — no backend wired yet
-
-      const isButtondown = /buttondown\.(com|email)/i.test(JOIN_ENDPOINT);
-      const label = submit.textContent;
-      submit.disabled = true; submit.textContent = "Reserving…";
-      say("Reserving your spot…");
-      try {
-        if (isButtondown) {
-          // cross-origin form target → no-cors POST; the reply is opaque, so a
-          // completed request is treated as success (localStorage above is the backup)
-          const params = new URLSearchParams();
-          params.append("email", v);
-          params.append("embed", "1");
-          params.append("tag", giving ? "gift" : "self");   // segment the list in Buttondown
-          params.append("metadata__intent", intent());
-          if (sug) params.append("metadata__suggestion", sug);   // design feedback → subscriber metadata in Buttondown
-          if (design) {                                          // the bracelet they built (never their names)
-            Object.keys(design).forEach((k) => params.append("metadata__" + k, design[k]));
+      // the bracelet they built rides along as subscriber metadata (never the six names)
+      if (design) {
+        Object.keys(design).forEach((k) => {
+          let h = form.querySelector('input[data-mk-design="' + k + '"]');
+          if (!h) {
+            h = document.createElement("input");
+            h.type = "hidden"; h.name = "metadata__" + k; h.setAttribute("data-mk-design", k);
+            form.appendChild(h);
           }
-          await fetch(JOIN_ENDPOINT, { method: "POST", mode: "no-cors", body: params });
-          done();
-        } else {
-          const body = new FormData();
-          body.append("email", v);
-          body.append("intent", intent());
-          if (sug) body.append("suggestion", sug);
-          // mirror the design here too, so swapping email providers never silently
-          // drops the manufacturing signal
-          if (design) Object.keys(design).forEach((k) => body.append(k, design[k]));
-          const res = await fetch(JOIN_ENDPOINT, { method: "POST", body, headers: { Accept: "application/json" } });
-          if (!res.ok) throw new Error("HTTP " + res.status);
-          done();
-        }
-      } catch (err) {
-        say("Hmm — that didn’t go through. Mind trying again in a moment?", true);
-      } finally {
-        submit.disabled = false; submit.textContent = label;
+          h.value = design[k];
+        });
       }
+
+      // NOT prevented: from here the BROWSER submits the form to Buttondown and follows the
+      // reply. That is the only transport that can show a CAPTCHA or a validation error —
+      // the old no-cors fetch got an opaque response, so the page said "You're in" to people
+      // who had not actually subscribed. The page no longer claims success it cannot see.
+      say("Taking you to Buttondown to confirm…");
+      setTimeout(() => { submit.disabled = true; submit.textContent = "Reserving…"; }, 0);
     });
   }
 
