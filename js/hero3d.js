@@ -1179,7 +1179,7 @@ async function init() {
     ready = true;
     // pay the designer's build + shader compile while nobody is waiting (see prewarmDesigner)
     const _idle = window.requestIdleCallback || ((fn) => setTimeout(fn, 1));
-    setTimeout(() => _idle(() => prewarmDesigner(), { timeout: 4000 }), 2500);
+    if (!new URLSearchParams(location.search).has("noprewarm")) setTimeout(() => _idle(() => prewarmDesigner(), { timeout: 4000 }), 2500);   // ?noprewarm=1 isolates the prewarm when diagnosing framing
     if (loaderEl) loaderEl.classList.add("hide");
     poster.classList.add("hide");
     section.classList.add("live3d");   // light-mode overlays that rely on the canvas occluding them key off this
@@ -1554,6 +1554,14 @@ async function init() {
     suppressOutro(v) { this._suppressOutro = v; },   // the touch-demo owns the outro fade once it's in view
     setFilmLock(v) { filmLock = !!v; },              // film capture: see filmLock above
     get prewarmed() { return prewarmed; },           // diagnosis: did the designer's idle prewarm run?
+    get boxMetrics() {
+      const bb = new THREE.Box3().setFromObject(orient);
+      const sz = bb.getSize(new THREE.Vector3());
+      return { boxSide: +boxSide.toFixed(3), modelR: +modelR.toFixed(3), fov: +camera.fov.toFixed(1),
+               camDist: +camera.position.length().toFixed(2), spread: +boxSpread.toFixed(3), spin: +boxIdleSpin.toFixed(3), aspect: +camera.aspect.toFixed(3),
+               pieceX: +sz.x.toFixed(3), pieceY: +sz.y.toFixed(3), pieceZ: +sz.z.toFixed(3),
+               ratio: boxSide ? +(Math.max(sz.x, sz.z) / boxSide).toFixed(3) : null };
+    },
     get progress() { return progress; },
     get ready() { return ready; },
   };
@@ -2563,7 +2571,7 @@ async function init() {
   let boxRevFrom = null;             // pose captured at close so the reverse fold starts from WHERE THINGS ARE (closing mid-entry must not teleport walls)
   let boxCamBlend = 0;               // the entry camera blend actually reached — the reverse unwinds from here, not from 1
   let boxFolds = [], boxSpread = 1;                          // 1 = net fully open (the camera gives it room)
-  let boxSide = 0, boxWallH = 0, boxBaseTh = 0, boxFloorY = 0, boxCY = 0;
+  let boxSide = 0, boxWallH = 0, boxBaseTh = 0, boxFloorY = 0, boxCY = 0, boxPieceR = 0;   // boxPieceR: the piece's radius about the spin axis — what the camera frames
   let boxSpin = 0, boxSpinTgt = null, boxSounded = false, boxSnapped = false, boxCamFrom = null, boxFlare = null;
   // idle turntable: once the glass closes, the WHOLE case (vitrine + piece, locked together)
   // revolves slowly — a display on a turntable — until the visitor first touches the
@@ -2645,9 +2653,42 @@ async function init() {
   }
   function buildVitrine() {
     if (boxGroup) return;
+    // MEASURE THE PIECE WHOLE AND CLOSED. Both reveal rigs (hub and bead) park their parts far
+    // out while the scroll phase has them open — an audit found hidden hub parts sitting at
+    // r≈8 against a real piece radius of ~5.5. enterBox zeroes the reveals before it builds,
+    // but the idle prewarm does not, so the case came out ~45% too big and the camera pulled
+    // back with it. Zero, measure, restore: no frame renders in between, so it is invisible.
+    const savedE = reveals.map((rv) => rv._e || 0);
+    const anyOpen = savedE.some((e) => e > 0.001);
+    if (anyOpen) reveals.forEach((rv) => updateExplode(rv, 0));
     orient.updateMatrixWorld(true);
-    const bb = new THREE.Box3().setFromObject(orient);
-    boxSide = Math.max(bb.max.x - bb.min.x, bb.max.z - bb.min.z) * 1.08;   // snug: the piece owns the case
+    const bb = new THREE.Box3().setFromObject(orient);   // Y only — see below
+    // SIZE THE CASE FROM A RADIUS, NOT A BOX. The piece is a RING and it sits on a turntable,
+    // so an axis-aligned box around it swings as it spins: measured 10.54 at one angle and
+    // 12.18 at another, a 16% difference. boxSide fed the camera fit, so the SAME build framed
+    // the bracelet big or small purely by what angle it happened to be at when the vitrine got
+    // built — which is what Melvin caught between two devices on 2026-08-17. Distance from the
+    // spin axis is invariant under that rotation, so the case is now deterministic AND correct
+    // for a piece that turns inside it.
+    // Bounding SPHERES overshoot badly here (the cord is one long mesh whose sphere swallows the
+    // whole ring — it measured 40% too big), so take the real vertices.
+    let r2 = 0;
+    const _rv = new THREE.Vector3();
+    orient.traverse((o) => {
+      if (!o.isMesh || !o.geometry || !o.geometry.attributes || !o.geometry.attributes.position) return;
+      if (!o.visible) return;                            // swapped-out caps and hidden internals do not size the case
+      const pos = o.geometry.attributes.position;
+      const step = pos.count > 60000 ? 3 : 1;          // dense CAD parts: every third vertex is plenty for a radius
+      for (let i = 0; i < pos.count; i += step) {
+        _rv.fromBufferAttribute(pos, i).applyMatrix4(o.matrixWorld);
+        const d2 = _rv.x * _rv.x + _rv.z * _rv.z;
+        if (d2 > r2) r2 = d2;
+      }
+    });
+    boxPieceR = Math.sqrt(r2);
+    if (anyOpen) reveals.forEach((rv, i) => { updateExplode(rv, savedE[i]); });   // put the reveal back, same frame
+    if (!(boxPieceR > 0)) boxPieceR = Math.max(bb.max.x - bb.min.x, bb.max.z - bb.min.z) * 0.5;   // fallback
+    boxSide = boxPieceR * 2 * 1.08;   // snug: the piece owns the case, at every angle it can turn to
     boxWallH = boxSide * 0.56;
     boxBaseTh = boxSide * 0.15;
     // the piece FLOATS, riding LOW in the glass — just clear of the plate, most of the air above
@@ -3086,7 +3127,11 @@ async function init() {
     // portrait: the piece is the subject — fit tight and let the OPEN NET clip at the sides
     // during the fold (it is packaging); desktop keeps room for the whole net
     const hHalf = (boxWallH + boxBaseTh) * (portrait ? 0.48 : 0.64);
-    const wHalf = boxSide * (portrait ? 0.58 : 0.82) * (1 + (portrait ? 0.15 : 0.7) * boxSpread);
+    // Portrait frames the PIECE (its spin-axis radius), not the case — the glass is allowed to
+    // run off the sides. Fitting the case meant the bracelet's apparent size rode on how big the
+    // case came out, which is exactly how it ended up looking tiny on one device.
+    const wHalf = (portrait && boxPieceR ? boxPieceR * 1.02 : boxSide * 0.82)
+                  * (1 + (portrait ? 0.15 : 0.7) * boxSpread);
     const wFill = portrait ? 1.0 : 0.6, hFill = portrait ? 0.60 : 0.72;
     const d = Math.max(wHalf / (vHalf * aspect * wFill), hHalf / (vHalf * hFill));
     const ce = Math.cos(el);
