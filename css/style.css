@@ -2370,14 +2370,19 @@ section{ position:relative; z-index:2; }
   padding:8px 14px; cursor:pointer; backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px);
   transition:background .3s, color .3s; }
 .bip-sound[aria-pressed="true"]{ background:rgba(217,178,95,.92); color:#141005; }
-/* the slim road that survives from the old ring: 3 of 4 lit, Ship still open */
+/* the slim road that survives from the old ring: idea + two prototypes lit, the flex-spine build
+   (five units) in progress, crowdfunding still open (2026-09-06) */
 .bip-road{ max-width:560px; margin:34px auto 0; padding:0 24px; }
 .bip-track{ position:relative; height:2px; background:var(--line-soft); border-radius:2px; }
-.bip-fill{ position:absolute; top:0; bottom:0; left:0; right:22%; display:block; border-radius:2px;
+.bip-fill{ position:absolute; top:0; bottom:0; left:0; right:48%; display:block; border-radius:2px;
   background:linear-gradient(90deg, var(--gold), var(--gold-bright)); }
-.bip-ticks{ display:flex; justify-content:space-between; margin-top:10px; font-family:var(--mono);
+.bip-ticks{ display:flex; justify-content:space-between; gap:12px; margin-top:10px; font-family:var(--mono);
   font-size:.6rem; letter-spacing:.12em; text-transform:uppercase; color:var(--ink-mute); }
+/* four labels on a 375px phone must wrap inside their own column, never into a neighbour */
+.bip-ticks span{ flex:1 1 0; text-align:center; line-height:1.5; }
+.bip-ticks span:first-child{ text-align:left; } .bip-ticks span:last-child{ text-align:right; }
 .bip-ticks .is-done{ color:var(--gold-bright); }
+.bip-ticks .is-now{ color:var(--gold); }
 .bip-follow{ display:flex; gap:14px; justify-content:center; margin-top:30px; flex-wrap:wrap; padding:0 24px; }
 
 /* ============================================================

@@ -556,42 +556,40 @@
   <div class="wrap" style="text-align:center;">
     <p class="eyebrow reveal" style="display:block; margin-bottom:18px;">Building in public</p>
     <h2 class="tech-title reveal">Not a render.<br/><span class="gold-ink">Watch it become real.</span></h2>
-    <p class="tech-lede reveal" style="margin:0 auto 30px;">The first bracelets are on the bench right now. These are the receipts.</p>
+    <p class="tech-lede reveal" style="margin:0 auto 30px;">Two prototypes are alive on the old hand-wired boards. The flex spine that replaces them is on the bench now, and the first five bracelets are being built on it. These are the receipts.</p>
   </div>
 
   <!-- the evidence strip: swipeable, dated receipts. Cards are height-uniform; the factory
        panel rides wider (a receipt-shaped card among portraits, on purpose). -->
   <div class="bip-strip reveal" id="bipStrip" aria-label="Evidence of the build. Swipe through">
-    <figure class="bip-card">
-      <img src="assets/img/bip/on-wrist.webp" alt="The first M'AKOMA prototype worn on the wrist: three beads with laser-marked Adinkra symbols" loading="lazy" decoding="async" width="880" height="1100" />
-      <figcaption><span class="bip-when">August</span>On the wrist.</figcaption>
+    <figure class="bip-card bip-card--video">
+      <video playsinline muted loop preload="none" poster="assets/img/bip/use-wrist-poster.webp"
+             aria-label="Worn on the wrist: the beads light up one after another as the circle reaches in">
+        <source src="assets/video/use-wrist.mp4" type="video/mp4" />
+      </video>
+      <figcaption><span class="bip-when">September</span>In use. The circle lights up.</figcaption>
     </figure>
     <figure class="bip-card bip-card--video">
-      <video id="bipVideo" playsinline muted loop preload="none" poster="assets/img/bip/asmr-poster.webp"
-             aria-label="From the build film: first light on the soldered bead boards, then the app driving them">
-        <source src="assets/video/build-asmr-15s.mp4" type="video/mp4" />
+      <video playsinline muted loop preload="none" poster="assets/img/bip/use-echo-poster.webp"
+             aria-label="Wrist held to the ear, one bead glowing: listening to an Echo">
+        <source src="assets/video/use-echo.mp4" type="video/mp4" />
       </video>
-      <button class="bip-sound" id="bipSound" type="button" aria-pressed="false" aria-label="Turn sound on">Sound on</button>
-      <figcaption><span class="bip-when">July</span>First light, from the bench.</figcaption>
+      <figcaption><span class="bip-when">September</span>Hearing an Echo.</figcaption>
     </figure>
     <figure class="bip-card">
-      <img src="assets/img/bip/bench-solder.webp" alt="A soldering iron on a M'AKOMA bead circuit, smaller than a fingertip" loading="lazy" decoding="async" width="880" height="1100" />
-      <figcaption><span class="bip-when">July</span>Every bead, soldered by hand.</figcaption>
+      <img src="assets/img/bip/two-prototypes.webp" alt="Both hand-wired prototypes worn together outdoors: the black first bracelet and the pale-blue second one" loading="lazy" decoding="async" width="880" height="1100" />
+      <figcaption><span class="bip-when">August</span>Two prototypes. Both alive.</figcaption>
     </figure>
-    <figure class="bip-card bip-card--wide">
-      <img src="assets/img/bip/factory-panel.webp" alt="The flex-spine circuit panel (core hub and six bead boards) at the assembly house" loading="lazy" decoding="async" width="1100" height="584" />
-      <figcaption><span class="bip-when">August</span>The spine, on the line.</figcaption>
-    </figure>
-    <figure class="bip-card bip-card--photo">
-      <img src="assets/img/bip/prototype.webp" alt="The assembled prototype bracelet: matte black beads and core hub on a knotted cord" loading="lazy" decoding="async" width="1100" height="733" />
-      <figcaption><span class="bip-when">August</span>Assembled. Waiting for its circle.</figcaption>
+    <figure class="bip-card">
+      <img src="assets/img/bip/flex-on-wrist.webp" alt="The bare flex spine bent around a wrist for the first time, bead boards still exposed" loading="lazy" decoding="async" width="880" height="1100" />
+      <figcaption><span class="bip-when">September</span>The flex spine. Five to build.</figcaption>
     </figure>
   </div>
 
-  <div class="bip-road reveal" role="img" aria-label="Progress: idea, hardware proven and bracelet in hand are done; shipping is next">
+  <div class="bip-road reveal" role="img" aria-label="Progress: the idea and two prototypes are done; the flex-spine build of five bracelets is under way; crowdfunding is next">
     <div class="bip-track"><i class="bip-fill"></i></div>
     <div class="bip-ticks">
-      <span class="is-done">Idea</span><span class="is-done">Hardware proven</span><span class="is-done">In hand</span><span>Ship</span>
+      <span class="is-done">Idea</span><span class="is-done">2 prototypes</span><span class="is-now">Flex spine &times;5</span><span>Crowdfunding</span>
     </div>
   </div>
 
@@ -650,7 +648,7 @@
     <div class="faq-list">
       <details class="faq-item">
         <summary>When can I get one?</summary>
-        <p>We&rsquo;re hand-building the first units now. Join the waitlist and you&rsquo;ll be first to hear ship dates, before any public announcement.</p>
+        <p>Two prototypes already work. The first five bracelets on the new flex spine are being built and tested now, and the crowdfunding campaign follows. Join the waitlist and you&rsquo;ll be first to hear ship dates, before any public announcement.</p>
       </details>
       <details class="faq-item">
         <summary>How much will it cost?</summary>
@@ -687,7 +685,7 @@
      reads when submitting the waitlist form. Classic scripts, not modules, because
      main.js is a classic IIFE and cannot import. -->
 <script src="js/design.js"></script>
-<script src="js/main.js?v=9"></script>
+<script src="js/main.js?v=10"></script>
 <script src="js/configurator.js?v=3"></script>
 <script type="module" src="js/hero3d.js?v=11"></script>
 <!-- Neither js/positioning.js (its "Where we live" section is cut) nor js/coach.js is loaded:
