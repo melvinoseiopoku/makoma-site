@@ -3,8 +3,9 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "M'AKOMA marketing site. The site itself is dependency-free static HTML/CSS/JS \u2014 this file exists ONLY so Vercel installs the one package api/design-upload.js needs. Speed Insights and Web Analytics are script tags in index.html, not npm packages, because there is no bundler here. Deliberately has NO build script: adding one would make Vercel try to build the static site instead of serving it as-is.",
+  "description": "M'AKOMA marketing site. The site itself is dependency-free static HTML/CSS/JS \u2014 this file exists ONLY so Vercel installs the two packages the API functions need (Vercel Blob for api/design-upload.js, Stripe for api/checkout.js). Speed Insights and Web Analytics are script tags in index.html, not npm packages, because there is no bundler here. Deliberately has NO build script: adding one would make Vercel try to build the static site instead of serving it as-is.",
   "dependencies": {
-    "@vercel/blob": "2.6.1"
+    "@vercel/blob": "2.6.1",
+    "stripe": "18.5.0"
   }
 }

@@ -137,7 +137,7 @@ const conn = navigator.connection || navigator.webkitConnection || {};
 const slowNet = conn.saveData === true || /(^|-)2g$/.test(conn.effectiveType || "");
 
 // /customize is the designer as a real, linkable page. Vercel rewrites it onto this same
-// index.html (vercel.json), so "being on /customize" and "the designer is open" are one state —
+// the-piece.html (vercel.json), so "being on /customize" and "the designer is open" are one state —
 // one implementation, two entry points. ?customize=1 is the local-dev fallback (python's
 // http.server has no rewrites).
 const wantsCustomize = /\/customize\/?$/.test(location.pathname)
@@ -215,7 +215,7 @@ function setBoxURL(open) {
       // NOT push (direct load, pasted link) has real history behind it that isn't ours to pop,
       // so rewrite it in place instead.
       if (history.state && history.state.mkBox === 1) history.back();
-      else history.replaceState({ mkBox: 0 }, "", CUSTOMIZE_PATH_OK ? "/" : location.pathname.replace(/\/customize\/?$/, "/"));
+      else history.replaceState({ mkBox: 0 }, "", CUSTOMIZE_PATH_OK ? "/the-piece" : location.pathname.replace(/\/customize\/?$/, "/"));
     }
   } catch (e) { /* history unavailable (sandboxed frame): the designer still works, the URL just doesn't follow */ }
 }

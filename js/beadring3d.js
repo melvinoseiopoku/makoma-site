@@ -28,13 +28,16 @@ const BEAD_POS = [
   [ 1.4553, -1.4553, 0.132],
 ];
 const SLOT_COUNT = 8, BEAD_SCALE = 0.9, CAM_DIST = 5.4;   // the app frames portrait; our wide strap needs a tighter fit
-const MODELS = ["sankofa", "aya", "nsoroma", "gye_nyame", "nkyinkyim"];
+const DEFAULT_MODELS = ["sankofa", "aya", "nsoroma", "gye_nyame", "nkyinkyim"];
 // The back of the ring is never empty on a real bracelet: the remaining three CAD beads fill
 // stations 5-7 as jewellery only — no job, no badge, no press target, never the front bead.
-const FILLERS = ["akoma", "akoma_ntoaso", "nkonsonkonson"];
+const DEFAULT_FILLERS = ["akoma", "akoma_ntoaso", "nkonsonkonson"];
 
 export async function initBeadRing3D(ctx) {
   const { strap, slots, ring, onFront, focus, wasDrag } = ctx;
+  // Optional (the Founder Pilot page): its own bead list, fillers, and a per-slot "faded"
+  // predicate. Absent on the home page, so nothing there changes.
+  const MODELS = ctx.models || DEFAULT_MODELS, FILLERS = ctx.fillers || DEFAULT_FILLERS, isOff = ctx.isOff || null;
   // the app's cord: 8 wrap stations 45 deg apart; the station facing the camera after the
   // -90 deg X tilt is index 6 (scene angle 270 deg). Publishing these through the shared ring
   // state makes main.js's drag/settle/focus math station-true without forking any of it.
@@ -90,13 +93,14 @@ export async function initBeadRing3D(ctx) {
   for (let slot = 0; slot < MODELS.length; slot++) {
     const g = await load(`assets/models/carousel/${MODELS[slot]}.glb`);
     const bead = g.scene;
-    const golds = [];
+    const golds = [], mats = [];
     bead.traverse((o) => {
       if (!o.isMesh) return;
       const m = o.material, name = ((m && m.name) || "").toLowerCase();
       const isGold = name.includes("gold") || name.includes("brass") || (m && m.metalness > 0.5);
-      o.material = isGold ? matGold.clone() : matBlack;
+      o.material = isGold ? matGold.clone() : (isOff ? matBlack.clone() : matBlack);
       if (isGold) golds.push(o.material);
+      if (isOff) mats.push(o.material);
     });
     const [px, py, pz] = BEAD_POS[slot];
     const phi = Math.atan2(py, px), c = Math.cos(phi), s = Math.sin(phi);
@@ -110,7 +114,7 @@ export async function initBeadRing3D(ctx) {
     bead.position.set(px, py, pz);
     bead.scale.setScalar(BEAD_SCALE);
     ringNode.add(bead);
-    beads.push({ slot, node: bead, golds });
+    beads.push({ slot, node: bead, golds, mats });
   }
   for (let f = 0; f < FILLERS.length; f++) {
     const slot = MODELS.length + f;                    // stations 5, 6, 7
@@ -183,6 +187,7 @@ export async function initBeadRing3D(ctx) {
     for (const b of beads) {
       const on = b.slot === front;
       for (const m of b.golds) { m.emissive.copy(on ? GOLD_ON : GOLD_DIM); m.emissiveIntensity = on ? 1.0 : 0.55; }
+      if (isOff) { const off = isOff(b.slot); for (const m of b.mats) { m.transparent = true; m.opacity = off ? 0.12 : 1; m.depthWrite = !off; } }
     }
     if (window.__hero || true) window.__beadScreens = beads.map((b) => {
       b.node.getWorldPosition(_v); const wz = _v.z; _v.project(camera);

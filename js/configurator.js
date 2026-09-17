@@ -31,14 +31,14 @@
      lives inside a closed IIFE and is in a NON-alphabetical order, so it is
      not safe to index by position. Always look up by key. */
   var SYM = {
-    akoma:         { name: "Akoma",         lit: "The heart",             light: "#e8c57a", note: 392.00 },
-    akoma_ntoaso:  { name: "Akoma Ntoaso",  lit: "Linked hearts",         light: "#ecb07a", note: 440.00 },
-    aya:           { name: "Aya",           lit: "The fern",              light: "#6fcf97", note: 783.99 },
-    gye_nyame:     { name: "Gye Nyame",     lit: "Except God",            light: "#f1e9d2", note: 880.00 },
-    nkonsonkonson: { name: "Nkonsonkonson", lit: "Linked together",       light: "#5fd3e0", note: 659.25 },
-    nkyinkyim:     { name: "Nkyinkyim",     lit: "The winding path",      light: "#6aa6ff", note: 1046.50 },
-    nsoroma:       { name: "Nsoroma",       lit: "Child of the heavens",  light: "#f4d58d", note: 587.33 },
-    sankofa:       { name: "Sankofa",       lit: "Return & retrieve",     light: "#a78bfa", note: 523.25 }
+    akoma:         { name: "Akoma",         lit: "The heart", meaning: "Patience, love and the readiness to forgive: the seat of feeling.",             light: "#e8c57a", note: 392.00 },
+    akoma_ntoaso:  { name: "Akoma Ntoaso",  lit: "Linked hearts", meaning: "Two hearts joined: agreement, partnership, an enduring bond.",         light: "#ecb07a", note: 440.00 },
+    aya:           { name: "Aya",           lit: "The fern", meaning: "Endurance and resourcefulness: I have grown through hard ground.",              light: "#6fcf97", note: 783.99 },
+    gye_nyame:     { name: "Gye Nyame",     lit: "Except God", meaning: "Awe at what is greater than us: the supremacy of the divine.",            light: "#f1e9d2", note: 880.00 },
+    nkonsonkonson: { name: "Nkonsonkonson", lit: "Linked together", meaning: "Unity and human bonds: we are chained together in life and in death.",       light: "#5fd3e0", note: 659.25 },
+    nkyinkyim:     { name: "Nkyinkyim",     lit: "The winding path", meaning: "Life twists and turns: adaptability, devotion, resilience.",      light: "#6aa6ff", note: 1046.50 },
+    nsoroma:       { name: "Nsoroma",       lit: "Child of the heavens", meaning: "A star: hope, and a light to steer by in the dark.",  light: "#f4d58d", note: 587.33 },
+    sankofa:       { name: "Sankofa",       lit: "Return & retrieve", meaning: "It is not wrong to go back for what you have forgotten.",     light: "#a78bfa", note: 523.25 }
   };
 
   /* lights left the designer — presence colours are set in the app, not at purchase */
@@ -62,6 +62,7 @@
   var nameIn  = $("#cfgName");
   var symRail = $(".cfg-symrail", root);
   var symMeta = $(".cfg-symmeta", root);
+  var symMetaChosen = "";   // what the meta block shows when nothing is hovered
   var shellRow= $(".cfg-shells", root);
   var shellLbl= $(".cfg-shellname", root);
   var cordRow = $(".cfg-cordsw", root);
@@ -143,6 +144,10 @@
   }
 
   /* ---------- editor ---------- */
+  function symMetaFor(key) {
+    var m = SYM[key];
+    return "<b>" + m.name + "</b><span>" + m.lit + "</span><em>" + m.meaning + "</em>";
+  }
   function buildSymRail() {
     symRail.innerHTML = "";
     D.SYMBOLS.forEach(function (key) {
@@ -154,6 +159,11 @@
       b.setAttribute("aria-label", SYM[key].name + " · " + SYM[key].lit.toLowerCase());
       b.innerHTML = '<span class="cfg-symface">' + glyphSVG(key, "cfg-glyph") + "</span>";
       b.addEventListener("click", function () { chooseSymbol(key); });
+      // hover or focus previews the meaning; leaving restores whatever is chosen
+      b.addEventListener("mouseenter", function () { if (symMeta) symMeta.innerHTML = symMetaFor(key); });
+      b.addEventListener("focus", function () { if (symMeta) symMeta.innerHTML = symMetaFor(key); });
+      b.addEventListener("mouseleave", function () { if (symMeta) symMeta.innerHTML = symMetaChosen; });
+      b.addEventListener("blur", function () { if (symMeta) symMeta.innerHTML = symMetaChosen; });
       symRail.appendChild(b);
     });
   }
@@ -229,11 +239,12 @@
     });
     showTab(tabOverride || (!cut ? "adinkra" : cut.type === "initials" ? "initials" : cut.type === "upload" ? "upload" : "adinkra"), false);
     paintInitials(p, cut);
-    if (symMeta) {   // the meta block left the dock (founder's call) — kept null-safe if it returns
-      symMeta.innerHTML = !cut ? "<b>Blank</b>"
-        : cut.type === "adinkra" ? "<b>" + SYM[cut.sym].name + "</b><span>" + SYM[cut.sym].lit + "</span>"
+    if (symMeta) {   // back in the dock 2026-09-17: visitors asked what each symbol means
+      symMetaChosen = !cut ? "<b>Pick a symbol</b><span>Each one has a meaning. Tap to read it.</span>"
+        : cut.type === "adinkra" ? symMetaFor(cut.sym)
         : cut.type === "initials" ? "<b>" + cut.text + "</b>"
         : "<b>Your artwork</b>";
+      symMeta.innerHTML = symMetaChosen;
     }
     paintCutFile(p, cut);
 

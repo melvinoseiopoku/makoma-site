@@ -180,6 +180,7 @@
     observeReveals(grid);
   }
 
+
   /* ------------------------------------------------------------------
      How-it-works micro demos
   ------------------------------------------------------------------ */
@@ -591,6 +592,7 @@
     // v2: the bead ring, how-it-works demos, symbol gallery and positioning map
     // were merged into the carousel (carousel.js) and the 2D→3D viz (positioning.js).
     staggerRefusals();
+    buildSymbols();   // the gallery returned 2026-09-17: visitors asked what each symbol means
     observeReveals();
     setupPressFeel();
     setupCtaDock();
@@ -739,42 +741,14 @@
   // bring SLOT i to the front. The ring wraps, so step counts drift away from 0..n-1 as you
   // turn — target the nearest position congruent to i, or the bracelet spins the long way
   // round every time the demo advances.
-  /* BEAD TAP FEEDBACK — sound + haptic, the way the product itself answers a touch.
-     Each bead carries its own note (a pentatonic run) so pressing along the strap plays as a
-     phrase rather than one repeated beep; the front bead (which actually fires its job) gets
-     the fuller bell and a firmer double-tap haptic. Self-contained on purpose: this demo is
-     its own closure, so the page-level charm()/buzz() are NOT in scope here (they were tried
-     and threw "charm is not defined"). Gesture-triggered, so the same tap unlocks audio;
-     silent where the platform has no vibration or WebAudio. */
-  var BEAD_NOTES = [523.25, 587.33, 659.25, 783.99, 880.0, 987.77, 1046.5, 1174.66];
-  var bxAc = null;
-  function bxAudio() {
-    if (!bxAc) { try { bxAc = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { bxAc = null; } }
-    if (bxAc && bxAc.state === "suspended") bxAc.resume();
-    return bxAc;
-  }
-  function bxBell(freq, dur, vol) {
-    var c = bxAudio(); if (!c) return;
-    try {
-      var t = c.currentTime, g = c.createGain();
-      g.connect(c.destination);
-      g.gain.setValueAtTime(0.0001, t);
-      g.gain.exponentialRampToValueAtTime(vol, t + 0.012);
-      g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-      [[1, 0.55], [2.01, 0.2], [2.99, 0.1]].forEach(function (pair) {   // two partials over the fundamental = a warm bell, not a beep
-        var o = c.createOscillator(), og = c.createGain();
-        o.type = "sine"; o.frequency.value = freq * pair[0];
-        og.gain.value = pair[1];
-        o.connect(og); og.connect(g);
-        o.start(t); o.stop(t + dur + 0.05);
-      });
-    } catch (e) {}
-  }
+  /* BEAD TAP FEEDBACK — haptic only. The bells were removed on request: a page
+     that makes noise when you touch it is a liability on a phone in public, and
+     the ring plus the vibration already answer the touch. The whole WebAudio
+     block (bxAudio/bxBell and the pentatonic BEAD_NOTES run) went with them, so
+     this demo no longer constructs an AudioContext at all. */
   function bxBuzz(v) { try { if (navigator.vibrate) navigator.vibrate(v); } catch (e) {} }
   function beadTapFeedback(i, isFire) {
-    if (reduce) { bxBuzz(isFire ? 16 : 8); return; }         // reduced motion keeps the touch, drops the ring
-    var note = BEAD_NOTES[((i % BEAD_NOTES.length) + BEAD_NOTES.length) % BEAD_NOTES.length];
-    bxBell(note, isFire ? 1.1 : 0.42, isFire ? 0.22 : 0.13);
+    if (reduce) { bxBuzz(isFire ? 16 : 8); return; }
     bxBuzz(isFire ? [0, 20, 45, 14] : 11);
   }
 
@@ -953,7 +927,7 @@
     up.disconnect();
     if (!webgl) return;
     (window.requestIdleCallback || function (fn) { setTimeout(fn, 350); })(function () {
-      import("./beadring3d.js")
+      import("./beadring3d.js?v=2")
         .then(function (mod) {
           return mod.initBeadRing3D({ strap: strap, slots: slots, ring: ring, getStep: function () { return STEP; }, focus: ringFocus, wasDrag: function () { return ring.moved > 6; } });
         })

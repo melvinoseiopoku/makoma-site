@@ -1,8 +1,11 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "cleanUrls": true,
+  "redirects": [
+    { "source": "/founder-pilot", "destination": "/", "permanent": false }
+  ],
   "rewrites": [
-    { "source": "/customize", "destination": "/" }
+    { "source": "/customize", "destination": "/the-piece" }
   ],
   "trailingSlash": false,
   "headers": [
