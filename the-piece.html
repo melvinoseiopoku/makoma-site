@@ -34,12 +34,9 @@
 <link rel="icon" type="image/svg+xml" href="assets/logo/favicon.svg" />
 <link rel="icon" type="image/png" sizes="32x32" href="assets/logo/favicon-32.png" />
 <link rel="apple-touch-icon" href="assets/logo/favicon-180.png" />
-<!-- Webfonts are self-hosted (@font-face block at the top of css/style.css), so there is no
-     third-party origin left to warm up. Preload only the hero headline face — Cormorant 500 sets
-     "The people you carry.", the largest text above the fold. The rest arrive via font-display:swap.
-     Fonts need crossorigin on preload even same-origin, or the fetch is made twice. -->
-<link rel="preload" as="font" type="font/woff2"
-      href="assets/fonts/cormorant-garamond-500-latin.woff2" crossorigin />
+<!-- Type is Apple's system stack (San Francisco on iPhone and Mac), set in css/style.css, so
+     nothing above the fold waits on a font download. Inter and JetBrains Mono stay self-hosted
+     as the fallback on Android and Windows and arrive via font-display:swap. -->
 <!-- The hero still is the largest thing above the fold; start it before the parser reaches the <picture>. -->
 <link rel="preload" as="image" type="image/webp"
       href="assets/img/makoma-hero.webp"
@@ -57,7 +54,7 @@
     document.documentElement.setAttribute('data-theme', t);
   }catch(e){ document.documentElement.setAttribute('data-theme','dark'); } })();
 </script>
-<link rel="stylesheet" href="css/style.css?v=31" />
+<link rel="stylesheet" href="css/style.css?v=33" />
 <script type="importmap">
 {
   "imports": {
@@ -699,7 +696,7 @@
 <script src="js/design.js"></script>
 <script src="js/main.js?v=14"></script>
 <script src="js/configurator.js?v=4"></script>
-<script type="module" src="js/hero3d.js?v=11"></script>
+<script type="module" src="js/hero3d.js?v=12"></script>
 <!-- Neither js/positioning.js (its "Where we live" section is cut) nor js/coach.js is loaded:
      the bracelet no longer explains itself. Touching a bead summons the other person
      unannounced, and being surprised by it IS the moment. Every window.__coach call in

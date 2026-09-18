@@ -58,6 +58,15 @@ No attribution is required; it is recorded here for completeness.
 
 
 -------------------------------------------------------------------------------
+Inter  —  assets/fonts/inter-*.woff2, assets/vendor/text/Inter-Medium-latin.ttf
+-------------------------------------------------------------------------------
+Copyright 2016 The Inter Project Authors (https://github.com/rsms/inter)
+Licensed under the SIL Open Font License, Version 1.1.
+Full licence text: assets/vendor/text/OFL-Inter.txt
+The .ttf is the Medium weight unwrapped from the bundled .woff2 with fontTools, so
+the 3D text in the hero can read its outlines. No glyphs were altered.
+
+-------------------------------------------------------------------------------
 Allerta Stencil  —  assets/vendor/text/AllertaStencil-Regular.ttf
 -------------------------------------------------------------------------------
 Copyright (c) Matt McInerney

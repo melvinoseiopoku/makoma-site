@@ -574,7 +574,9 @@ async function init() {
     const s = base.geometry.boundingBox.getSize(new THREE.Vector3());   // 3.245 (x) × 2.888 (y) × 1.525 (z thickness)
     const W = 1024, H = 288, maxW = W * 0.86, cv = document.createElement("canvas"); cv.width = W; cv.height = H;
     const ctx = cv.getContext("2d");
-    const text = (name || "").toUpperCase(), FONT = (px) => `600 ${px}px Georgia, "Times New Roman", serif`;
+    // The engraving is drawn onto a canvas, so it never sees the CSS variables: it carries the
+    // same Apple system stack by hand (San Francisco on iPhone and Mac, Inter elsewhere).
+    const text = (name || "").toUpperCase(), FONT = (px) => `600 ${px}px -apple-system, BlinkMacSystemFont, system-ui, "Inter", "Segoe UI", Roboto, sans-serif`;
     const tw = (t, tr) => { let w = 0; for (const ch of t) w += ctx.measureText(ch).width; return w + tr * Math.max(0, t.length - 1); };
     let fs = 156; ctx.font = FONT(fs);
     while (tw(text, fs * 0.12) > maxW && fs > 28) { fs -= 6; ctx.font = FONT(fs); }
@@ -2213,7 +2215,10 @@ async function init() {
       return { anchor: a, basis: new THREE.Matrix4().makeBasis(t, u2, n), up: u.clone(), radial: n };
     });
     Promise.all([
-      fetch("assets/vendor/text/CormorantGaramond-Italic-latin.ttf").then((r) => r.arrayBuffer()),
+      // Extruded glyphs need real outlines, which a system font stack cannot hand over and
+      // Apple does not license SF for shipping, so the 3D line is cut from Inter Medium, the
+      // same face the site falls back to off Apple devices (built from assets/fonts by fontTools).
+      fetch("assets/vendor/text/Inter-Medium-latin.ttf").then((r) => r.arrayBuffer()),
       import("opentype.js"),
       import("three/addons/loaders/SVGLoader.js"),
     ]).then(([buf, ot, svgm]) => {
@@ -2234,7 +2239,7 @@ async function init() {
         return g;
       };
       const buildLine = (text, capH) => {
-        const scale = capH / (upm * 0.7);
+        const scale = capH / (upm * 0.728)   /* Inter's cap height, so capH is a true cap height */;
         const group = new THREE.Group();
         const total = font.getAdvanceWidth(text, upm) * scale;
         let cursor = -total / 2;
@@ -2264,7 +2269,7 @@ async function init() {
       const RING_R = (() => { let r = 0; for (const bc of BEAD_CENTERS) r += Math.hypot(bc[0], bc[2]); return r / BEAD_CENTERS.length; })();
       seqRingR = RING_R;
       const buildArc = (text, capH) => {
-        const scale = capH / (upm * 0.7);
+        const scale = capH / (upm * 0.728)   /* Inter's cap height, so capH is a true cap height */;
         const group = new THREE.Group();
         const letters = [];
         const totalW = font.getAdvanceWidth(text, upm) * scale;
