@@ -35,7 +35,7 @@
 <script type="importmap">
 { "imports": { "three": "./assets/vendor/three/three.module.js", "three/addons/": "./assets/vendor/three/addons/" } }
 </script>
-<link rel="stylesheet" href="css/style.css?v=40" />
+<link rel="stylesheet" href="css/style.css?v=41" />
 <script>
   /* Founder Pilot settings. mode "apply" = free application (this phase). mode "checkout" =
      the Preorder button and embedded Stripe Checkout (payment-invitation week; needs the
@@ -166,19 +166,15 @@
         </div>
         <p class="sr-only" id="cdSr"></p>
 
-        <!-- In countdown mode the door reloads the page (the mode only flips when the
-             site is redeployed). In checkout mode, before opensAt, the script points it
-             at #apply and reveals the questionnaire in place: no reload at noon. -->
         <div class="pre-open" id="cdOpen" hidden>
           <p class="pre-openword"><span class="gold-ink">Open.</span></p>
-          <a class="btn btn-gold pre-cta" href="/">Take me there</a>
         </div>
       </div>
 
       <i class="pre-gap pre-gap--b" aria-hidden="true"></i>
 
       <div class="pre-bottom">
-        <div class="pre-acts">
+        <div class="pre-acts" id="cdBeforeOpen">
           <a class="btn btn-gold pre-cta" href="pilot-details.html">
             Get the details
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
@@ -188,6 +184,9 @@
                rest of the site rather than being a cul-de-sac -->
           <a class="btn pre-alt" href="the-piece.html">See the piece</a>
         </div>
+        <!-- At zero this replaces both countdown links with one bottom CTA. In checkout
+             mode it reveals the questionnaire in place; countdown-only mode reloads. -->
+        <a class="btn btn-gold pre-cta" id="cdPreorder" href="/" hidden>Preorder</a>
       </div>
     </div>
   </section>
@@ -667,16 +666,17 @@
        The Founder Pilot was cancelled on 2026-09-11. */
     /* Launch day: the page ships in checkout mode BEFORE the opening so the deploy
        is not racing the clock. Until opensAt it shows the same countdown as before;
-       at zero the door leads into the questionnaire on this very page, no reload,
-       no second deploy. A visitor coming back from Stripe (session_id) never sees
+       at zero one bottom button leads into the questionnaire on this very page, no
+       reload, no second deploy. Fresh arrivals after opening see the same landing
+       screen. A visitor coming back from Stripe (session_id) never sees
        the clock, whatever their device clock says. The server refuses to sell
        before PILOT_OPENS_AT regardless, so a fast device clock only earns the
        "Preorders open ... at 12:00 PM ET" line at the last step. */
     var opensAtMs = Date.parse(P.opensAt || "");
     var returningFromStripe = /[?&]session_id=/.test(window.location.search);
-    var waitingToOpen = CHECKOUT && !returningFromStripe && opensAtMs > 0 && Date.now() < opensAtMs;
+    var showPreorderLanding = CHECKOUT && !returningFromStripe && opensAtMs > 0;
     if (P.mode === "countdown") setupCountdown(false);
-    else if (P.mode === "checkout" && waitingToOpen) setupCountdown(true);
+    else if (P.mode === "checkout" && showPreorderLanding) setupCountdown(true);
     else if (P.mode === "checkout") setupCheckoutChrome();
     else if (P.mode === "apply") show("way");
     else setupClosed();
@@ -736,11 +736,10 @@
       }
     }
 
-    /* ---- countdown mode ----------------------------------------------------
-       The page holds attention until preorders open. It hides the application
-       entirely: during the countdown there is nothing to fill in, which is the
-       point. Flip P.mode to "checkout" (or "apply") on the day and this block
-       stops running. */
+    /* ---- countdown / open landing screen -----------------------------------
+       Keep the questionnaire hidden until the single Preorder button is pressed.
+       In checkout mode this works both across zero and for fresh post-open visits;
+       countdown-only mode still needs a deploy to enable the buying flow. */
     function setupCountdown(handover) {
       var sec = $("#preorder"), main = document.querySelector("main.ap"), nav = document.querySelector("header.nav");
       var target = Date.parse(P.opensAt);
@@ -776,11 +775,11 @@
         if (/^apply$/i.test(a.textContent.trim())) a.textContent = "Preorder";
       });
 
-      /* handover: checkout mode before the opening. "Take me there" reveals the
+      /* handover: checkout mode. The single "Preorder" button reveals the
          questionnaire in place instead of reloading a page that would only show
          the clock again. Set AFTER the loop above, which repoints every #apply
          link at #preorder (it repointed the door too, the first time). */
-      var door = document.querySelector("#cdOpen .pre-cta");
+      var door = $("#cdPreorder");
       if (handover && door) {
         door.setAttribute("href", "#apply");
         door.addEventListener("click", function (e) {
@@ -808,6 +807,8 @@
           $("#cdWhen").hidden = true;
           $("#cdSr").textContent = "Preorders are open.";
           openBlk.hidden = false;
+          $("#cdBeforeOpen").hidden = true;
+          door.hidden = false;
           return;
         }
         var t = Math.floor(left / 1000);
