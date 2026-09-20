@@ -2471,6 +2471,30 @@ select.q-input{ appearance:none; -webkit-appearance:none; padding-right:36px;
 .q-choice > span b{ display:block; font-family:var(--serif); font-weight:500; font-size:1.3rem; color:var(--ink); }
 .q-choice > span small{ display:block; margin-top:4px; font-size:.86rem; color:var(--ink-soft); line-height:1.4; }
 .q-choice--num > span{ text-align:center; padding:18px 8px; }
+/* wrist size: one three-way switch per bracelet, the cm guide under the switches */
+.q-sizes{ display:grid; gap:20px; }
+.q-sizewho{ font-family:var(--mono); font-size:.66rem; letter-spacing:.15em; text-transform:uppercase; color:var(--gold); margin:0 0 8px; }
+/* A tier below the gold buttons: the switch is glass, not metal. The track is a frosted
+   strip and the chosen size is a lighter pane of the same glass with a top-edge highlight,
+   so nothing here competes with Preorder or Continue. */
+.q-seg{ display:grid; grid-template-columns:repeat(3,1fr); border-radius:100px; padding:4px;
+  background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.09);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.06), 0 10px 30px -22px rgba(0,0,0,.9);
+  -webkit-backdrop-filter:blur(14px) saturate(130%); backdrop-filter:blur(14px) saturate(130%); }
+.q-seg-opt{ position:relative; cursor:pointer; }
+.q-seg-opt input{ position:absolute; opacity:0; width:0; height:0; }
+.q-seg-opt span{ display:block; text-align:center; padding:.78em 0; border-radius:100px; font-weight:500; font-size:.92rem; color:var(--ink-mute);
+  border:1px solid transparent; transition:background .25s, color .25s, border-color .25s, box-shadow .25s; }
+.q-seg-opt:hover span{ color:var(--ink-soft); }
+.q-seg-opt.is-on span{ color:var(--ink);
+  background:linear-gradient(180deg, rgba(255,255,255,.16), rgba(255,255,255,.07));
+  border-color:rgba(255,255,255,.22);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.35), inset 0 -1px 0 rgba(0,0,0,.25), 0 6px 18px -10px rgba(0,0,0,.8); }
+.q-seg-opt input:focus-visible + span{ box-shadow:0 0 0 2px var(--gold); }
+:root[data-theme="light"] .q-seg{ background:rgba(0,0,0,.04); border-color:rgba(0,0,0,.08); }
+:root[data-theme="light"] .q-seg-opt.is-on span{ background:linear-gradient(180deg, rgba(255,255,255,.9), rgba(255,255,255,.6)); border-color:rgba(0,0,0,.08); box-shadow:inset 0 1px 0 #fff, 0 6px 18px -10px rgba(0,0,0,.35); }
+.q-sizeguide{ display:flex; flex-wrap:wrap; gap:6px 18px; margin:2px 0 0; font-size:.82rem; color:var(--ink-mute); }
+.q-sizeguide b{ font-weight:500; color:var(--ink-soft); }
 .q-choice.is-on > span{ border-color:var(--gold); background:rgba(201,160,78,.06); }
 .q-choice input:focus-visible + span{ outline:2px solid var(--gold-bright); outline-offset:2px; }
 .pilot-bx{ max-width:560px; margin:0 auto 14px; }
@@ -2484,6 +2508,10 @@ select.q-input{ appearance:none; -webkit-appearance:none; padding-right:36px;
 .pilot-bx .bx-slot[data-front="0"]:not(.is-set) .bx-tagbtn{ visibility:hidden; }   /* only the front bead invites a flag */
 .q-next:disabled{ opacity:.35; filter:grayscale(1); box-shadow:none; cursor:default; transform:none; }
 .ap-lede--2{ margin-top:-18px; }
+/* the render in the pilot hero: cropped from the tall poster to the bracelet itself */
+.ap-render{ max-width:560px; margin:6px auto 30px; }
+.ap-render img{ display:block; width:100%; height:auto; aspect-ratio:4/5; object-fit:cover; object-position:center 47%; border-radius:24px; background:var(--black); }   /* height:auto beats the img's height attribute, or the poster's 2390px wins */
+.ap-render figcaption{ margin-top:12px; font-family:var(--mono); font-size:.66rem; letter-spacing:.15em; text-transform:uppercase; color:var(--ink-mute); }
 .q-agree{ display:grid; gap:14px; margin:6px 0 8px; }
 .q-check{ display:flex; gap:14px; align-items:flex-start; cursor:pointer; color:var(--ink); font-size:1.05rem; line-height:1.45; padding:14px 16px; border:1px solid var(--line-soft); border-radius:14px; transition:border-color .2s; }
 .q-check:has(input:checked){ border-color:var(--gold); }
@@ -2579,7 +2607,6 @@ select.q-input{ appearance:none; -webkit-appearance:none; padding-right:36px;
 .pre-when{ margin:0 0 clamp(14px,2.4vh,20px); text-shadow:0 1px 14px rgba(6,6,7,.6); font-family:var(--mono); font-size:.66rem;
            letter-spacing:.2em; text-transform:uppercase; color:rgba(236,230,216,.8); }
 .pre-when[hidden]{ display:none !important; }
-
 .pre-clock{ display:flex; align-items:flex-start; justify-content:center; gap:clamp(6px,2.2vw,14px); margin:0; }
 .pre-clock[hidden]{ display:none !important; }
 .pu{ display:flex; flex-direction:column; align-items:center; min-width:clamp(52px,17vw,74px); }

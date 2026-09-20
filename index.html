@@ -8,15 +8,15 @@
      and they cache it, so it has to match the page's CURRENT mode. It said "Apply for one"
      through the countdown. When MAKOMA_PILOT.mode flips to checkout, change these three
      lines in the same edit: the card should then say preorders are open, not a future date. -->
-<meta name="description" content="Sixty hand-built M'AKOMA bracelets. Six beads, six people. Preorders open 20 September at 12 noon ET." />
+<meta name="description" content="Sixty hand-built M'AKOMA bracelets. Six beads, six people. Preorders are open: sixty, hand-built, shipping by 25 October." />
 <link rel="canonical" href="https://makoma.io/" />
 <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1" />
 <meta name="theme-color" content="#060607" />
 <meta name="author" content="Melvin Osei Opoku" />
 <meta property="og:type" content="website" />
 <meta property="og:site_name" content="M'AKOMA" />
-<meta property="og:title" content="60 bracelets. Preorders open 20 September. · M'AKOMA" />
-<meta property="og:description" content="Sixty hand-built bracelets. Six beads, six people. Preorders open Sunday 20 September, 12 noon ET." />
+<meta property="og:title" content="60 bracelets. Preorder yours. · M'AKOMA" />
+<meta property="og:description" content="Sixty hand-built bracelets. Six beads, six people. Preorders are open. Ships by 25 October 2026." />
 <meta property="og:url" content="https://makoma.io/" />
 <meta property="og:image" content="https://makoma.io/assets/img/og-pilot.jpg" />
 <meta property="og:image:width" content="1200" />
@@ -35,18 +35,18 @@
 <script type="importmap">
 { "imports": { "three": "./assets/vendor/three/three.module.js", "three/addons/": "./assets/vendor/three/addons/" } }
 </script>
-<link rel="stylesheet" href="css/style.css?v=33" />
+<link rel="stylesheet" href="css/style.css?v=40" />
 <script>
   /* Founder Pilot settings. mode "apply" = free application (this phase). mode "checkout" =
      the Preorder button and embedded Stripe Checkout (payment-invitation week; needs the
      publishable key here and the secret key in Vercel, see api/README.md). */
   window.MAKOMA_PILOT = {
-    mode: "countdown",                        // countdown only (set 2026-09-17); flip to apply/checkout before it hits zero
+    mode: "checkout",                         // LIVE 2026-09-20: the server still refuses before PILOT_OPENS_AT and without the store
     seats: 60,
     closes: null,                             // no application window in this plan: preorders open at opensAt.
                                               // Set a date here ONLY with mode "apply"; the line hides while it is null.
     circleMin: 2,                             // smallest circle; every member wears a bracelet
-    circleMax: 6,
+    circleMax: 7,                             // six beads plus the wearer
     /* NO PRICE HERE. website/ is rsynced into a PUBLIC GitHub mirror, so anything
        in this file is readable before preorders open, whether or not it renders.
        Stripe holds the price (STRIPE_PRICE_ID) and /api/checkout reports it back
@@ -54,7 +54,7 @@
        only when the server has supplied one. */
     price: null,
     tiers: null,
-    stripePublishableKey: "",
+    stripePublishableKey: "pk_live_51TpDJ4Bg8RRuRrC1UYPp8JCHz09PfP3dlC6RAmSSQCD5jEL0utg7gAD2cd0RzF336sZTmR3gf1Qp5cNvvdFEuWPC002pWC9u8L",
     /* The ship commitment shown at checkout. This exact wording must also go in
        Vercel as PILOT_SHIP_WINDOW, and must match the shipping policy page.
        Under the FTC rule this is a promise, not an estimate: miss it and the
@@ -106,27 +106,24 @@
   <section class="ap-hero">
     <p class="ap-eyebrow">Founder Pilot</p>
     <h1 class="ap-h1">60 bracelets.<br/>Apply for one.</h1>
-    <p class="ap-lede">Send a pulse. Share a color. Exchange voice messages.</p>
-    <p class="ap-lede ap-lede--2">Customize phone shortcuts. Save personal voice notes. Alert your circle.</p>
+    <p class="ap-lede">Exchange voice messages. Alert your circle.</p>
+    <p class="ap-lede ap-lede--2">Send a pulse. Share a color.</p>
+    <p class="ap-lede ap-lede--2">Customize phone shortcuts. Save personal voice notes.</p>
+    <!-- What is being bought, as it is: the same render the product page opens on, cropped
+         to the piece (that file is a tall poster). Black on black, so it sits in the page. -->
+    <figure class="ap-render" aria-label="The bracelet you are ordering">
+      <picture>
+        <source type="image/webp" srcset="assets/img/makoma-hero-760.webp 760w, assets/img/makoma-hero.webp 1100w" sizes="(max-width: 640px) 100vw, 560px" />
+        <img src="assets/img/makoma-hero.jpg" width="1100" height="2390" decoding="async" fetchpriority="high"
+             alt="The M'AKOMA bracelet rendered in 3D: six black beads and the core hub on a braided cord." />
+      </picture>
+      <figcaption>The Founder Pilot bracelet. Black, six beads, one hub.</figcaption>
+    </figure>
     <a href="#apply" class="btn btn-gold ap-cta">Apply</a>
   </section>
 
-  <!-- ============ THE OBJECT ============ -->
-  <section class="ap-media">
-    <video class="ap-video" muted loop playsinline preload="metadata" poster="assets/img/pilot/flex-colors-poster.webp?v=2"
-           aria-label="The M'AKOMA bracelet on a wrist, its beads lighting up in different colors">
-      <source src="assets/video/flex-colors.mp4?v=2" type="video/mp4" />
-    </video>
-  </section>
 
 
-  <!-- ============ CHECKOUT (mode: checkout) ============ -->
-  <section class="ap-checkout" id="checkout-section" hidden>
-    <p class="ap-eyebrow">Checkout</p>
-    <p class="ap-body" id="ppCheckoutLine">One Founder Pilot bracelet. Price, tax and shipping are shown below before you pay. Secure payment by Stripe.</p>
-    <div id="checkout" class="ap-stripe"></div>
-    <p class="ap-fine" id="ppStatus" role="status"></p>
-  </section>
   <section class="ap-done" id="done" hidden>
     <p class="ap-eyebrow">Confirmed</p>
     <h2 class="ap-h2">Your seat is held.</h2>
@@ -140,8 +137,8 @@
        themes, so this section opts out of the light palette on purpose. -->
   <section class="pre" id="preorder" hidden>
     <video class="pre-bg" autoplay muted loop playsinline preload="metadata"
-           poster="assets/img/pilot/flex-colors-poster.webp?v=2" aria-hidden="true" tabindex="-1">
-      <source src="assets/video/flex-colors.mp4?v=2" type="video/mp4" />
+           poster="assets/img/pilot/black-wrist-poster.webp?v=1" aria-hidden="true" tabindex="-1">
+      <source src="assets/video/black-wrist.mp4?v=1" type="video/mp4" />
     </video>
     <div class="pre-scrim" aria-hidden="true"></div>
 
@@ -169,9 +166,9 @@
         </div>
         <p class="sr-only" id="cdSr"></p>
 
-        <!-- The mode only flips when the site is redeployed, so anyone already on
-             this page at noon needs a way to fetch the new one. Reload; do not claim
-             a checkout this build cannot show. -->
+        <!-- In countdown mode the door reloads the page (the mode only flips when the
+             site is redeployed). In checkout mode, before opensAt, the script points it
+             at #apply and reveals the questionnaire in place: no reload at noon. -->
         <div class="pre-open" id="cdOpen" hidden>
           <p class="pre-openword"><span class="gold-ink">Open.</span></p>
           <a class="btn btn-gold pre-cta" href="/">Take me there</a>
@@ -278,6 +275,22 @@
         </select>
       </fieldset>
 
+      <fieldset class="q" data-q="stopcountry">
+        <legend class="q-title">This batch ships to US addresses only.</legend>
+        <p class="q-hint">The first sixty go out to one country so every one of them can be hand-checked. Join the waitlist and you will hear the moment that changes.</p>
+        <div class="q-actions">
+          <button type="button" class="btn btn-line" id="qStopCountryBack">Change my answer</button>
+          <a href="the-piece.html#join" class="btn btn-gold">Join the waitlist</a>
+        </div>
+      </fieldset>
+
+      <fieldset class="q" data-q="size">
+        <legend class="q-title" id="qSizeTitle">Wrist size.</legend>
+        <p class="q-hint">Measure around the wrist bone. A tape measure works, or a piece of string held against a ruler. The cord adjusts within each range.</p>
+        <div class="q-sizes" id="qSizes"></div>
+        <input type="hidden" name="metadata__sizes" id="mSizes" value="" />
+      </fieldset>
+
       <fieldset class="q" data-q="agree">
         <legend class="q-title">Before the price.</legend>
         <div class="q-agree">
@@ -311,6 +324,14 @@
     </form>
   </section>
 
+  <!-- ============ CHECKOUT (mode: checkout) ============ -->
+  <section class="ap-checkout" id="checkout-section" hidden>
+    <p class="ap-eyebrow">Checkout</p>
+    <p class="ap-body" id="ppCheckoutLine">One Founder Pilot bracelet. Price, tax and shipping are shown below before you pay. Secure payment by Stripe.</p>
+    <div id="checkout" class="ap-stripe" hidden></div>
+    <p class="ap-fine" id="ppStatus" role="status"></p>
+  </section>
+
   <!-- ============ QUESTIONS ============ -->
   <section class="ap-qa">
     <p class="ap-eyebrow">Questions</p>
@@ -339,9 +360,13 @@
 <script src="js/glyphs.js"></script>
 <script src="js/main.js?v=13"></script>
 <script src="js/pilotring.js?v=4"></script>
+<script src="js/pilot-analytics.js?v=1"></script>
 <script>
   (function () {
     var P = window.MAKOMA_PILOT || {};
+    function pilotEvent(type, value) {
+      try { if (window.MakomaPilotAnalytics) window.MakomaPilotAnalytics.emit(type, value); } catch (e) {} // never block checkout
+    }
     var $ = function (s) { return document.querySelector(s); };
     var set = function (id, v) { var e = $(id); if (e && v) e.textContent = v; };
     /* The deadline line stays hidden unless a date is supplied, so the page can never
@@ -356,7 +381,44 @@
     var minC = Math.max(2, P.circleMin || 2), maxC = Math.max(minC, P.circleMax || 6);
     var A = { way: "", count: 1, iphone: "" };
     var history = [];
-
+    /* CHECKOUT: the same questions lead to payment instead of an application. Stripe then
+       asks only for card, address and phone; everything answered here rides along as
+       order metadata. Without a publishable key the mode cannot sell, so the flow stays
+       the application (the page shows the switching-on notice instead). */
+    var CHECKOUT = P.mode === "checkout" && !!P.stripePublishableKey;
+    /* Wrist sizes. The bracelet ships in black only, so size is the one physical choice.
+       RANGES ARE A FIRST GUESS (standard adult wrist circumferences) and belong to the
+       founder: change them here and in api/checkout.js SIZES together. */
+    var SIZES = [
+      { id: "small",  name: "Small",  range: "up to 15 cm" },
+      { id: "medium", name: "Medium", range: "15 to 17.5 cm" },
+      { id: "large",  name: "Large",  range: "over 17.5 cm" } ];
+    function buildSizes() {
+      var box = $("#qSizes"), n = A.way === "circle" ? A.count : 1, keep = sizes();
+      box.innerHTML = "";
+      $("#qSizeTitle").textContent = n > 1 ? "Wrist sizes." : "Wrist size.";
+      for (var i = 0; i < n; i++) {
+        var grp = document.createElement("div"); grp.className = "q-sizegroup"; grp.setAttribute("role", "radiogroup");
+        var who = n > 1 ? (i === 0 ? "You" : "Person " + (i + 1)) : "";
+        grp.setAttribute("aria-label", "Wrist size" + (who ? " for " + who.toLowerCase() : ""));
+        grp.innerHTML = (who ? '<p class="q-sizewho">' + who + "</p>" : "") + '<div class="q-seg">' +
+          SIZES.map(function (z) { return '<label class="q-seg-opt"><input type="radio" name="size' + i + '" value="' + z.id + '"' + (keep[i] === z.id ? " checked" : "") + "><span>" + z.name + "</span></label>"; }).join("") + "</div>";
+        box.appendChild(grp);
+      }
+      // the guide sits under the switches, not inside them
+      var guide = document.createElement("p"); guide.className = "q-sizeguide";
+      guide.innerHTML = SIZES.map(function (z) { return "<span><b>" + z.name + "</b> " + z.range + "</span>"; }).join("");
+      box.appendChild(guide);
+      function paintSeg() { box.querySelectorAll(".q-seg-opt").forEach(function (l) { l.classList.toggle("is-on", !!l.querySelector("input:checked")); }); }
+      box.querySelectorAll("input").forEach(function (r) { r.addEventListener("change", function () { paintSeg(); refreshNext(); }); });
+      paintSeg();
+    }
+    function sizes() {
+      var out = [], n = document.querySelectorAll("#qSizes .q-sizegroup").length;
+      for (var i = 0; i < n; i++) { var c = document.querySelector('input[name="size' + i + '"]:checked'); out.push(c ? c.value : ""); }
+      return out;
+    }
+    function sizeName(id) { for (var i = 0; i < SIZES.length; i++) if (SIZES[i].id === id) return SIZES[i].name; return ""; }
     var cc = $("#qCountChoices");
     for (var n = minC; n <= maxC; n++) {
       var l = document.createElement("label"); l.className = "q-choice q-choice--num";
@@ -370,7 +432,12 @@
       if (!P.price) return null;
       var each = P.price; (P.tiers || []).forEach(function (t) { if (n >= t.min) each = t.each; }); return each;
     }
-    function order() { return A.way === "circle" ? ["way", "email", "count", "iphone", "where", "agree", "price"] : ["way", "email", "iphone", "country", "agree", "price"]; }
+    // Commitment questions first, contact details last: by the time the email is asked the
+    // visitor has already chosen sizes and is invested.
+    // One order ships to one address and the app works wherever the circle lives, so a
+    // circle answers ship-to once, like a single. (The per-person bead map stays in the
+    // markup for the application flow's history but is never shown here.)
+    function order() { return A.way === "circle" ? ["way", "count", "iphone", "country", "size", "email", "agree", "price"] : ["way", "iphone", "country", "size", "email", "agree", "price"]; }
     function agreed() { return ["agree_proto", "agree_water", "agree_feedback"].every(function (n) { var b = document.querySelector('input[name="' + n + '"]'); return b && b.checked; }); }
 
     // ---- the circle as the real bead carousel (js/pilotring.js) ----
@@ -413,6 +480,7 @@
       if (id === "country") return !!$("#qCountry").value;
       if (id === "where") return where.length > 0 && where.indexOf("") < 0;
       if (id === "agree") return agreed();
+      if (id === "size") return sizes().length > 0 && sizes().indexOf("") < 0;
       return true;
     }
     function refreshNext() { next.disabled = !complete(current); }
@@ -420,22 +488,35 @@
 
     function paintChoices() { document.querySelectorAll(".q-choice").forEach(function (l) { l.classList.toggle("is-on", !!l.querySelector("input:checked")); }); }
     function show(id) {
+      if (CHECKOUT && !new URLSearchParams(location.search).has("session_id")) pilotEvent("step", id);
+      if (id !== "price" && mounted) abandonMounted();   // the old form must not stay payable while answers change
       Object.keys(panels).forEach(function (k) { panels[k].hidden = k !== id; });
       paintChoices();
       var seq = order(), i = seq.indexOf(id);
       progress.textContent = i >= 0 ? (i + 1) + " of " + seq.length : "";
       back.hidden = history.length === 0;
-      nav.hidden = id === "stop";
+      nav.hidden = id === "stop" || id === "stopcountry";
       next.hidden = id === "price";
       status.textContent = ""; status.classList.remove("is-error");
       if (id === "iphone") $("#qIphoneTitle").textContent = A.way === "circle" ? "Does everyone in your circle have an iPhone?" : "Do you have an iPhone?";
       if (id === "where") { if (where.length !== A.count) buildBeads(A.count); setTimeout(function () { window.dispatchEvent(new Event("resize")); }, 50); }
+      if (id === "size") buildSizes();
       refreshNext();
       if (id === "stop") $("#qStopText").textContent = A.way === "circle"
         ? "Every wrist in a circle needs an iPhone for the pilot app. Change the number to the people who have one, or apply as a single."
         : "Android is not part of this first sixty. Join the waitlist and you will hear the moment that changes.";
       if (id === "price") {
-        var c = A.count, each = priceEach(c);
+        var c = A.way === "circle" ? A.count : 1, each = priceEach(c);
+        if (each === null && CHECKOUT && !priceAsked) {   // Stripe holds the amount: ask the server once
+          priceAsked = true;
+          $("#qPriceTotal").textContent = ""; $("#qPriceLine").textContent = "Fetching the price…";
+          $("#qPriceSave").hidden = true; $("#qPriceNote").textContent = ""; $("#joinSubmit").disabled = true;
+          fetch("/api/checkout?price=1").then(function (r) { return r.ok ? r.json() : Promise.reject(); })
+            .then(function (j) { if (!(j.unitAmount > 0)) throw new Error("no_price"); P.price = j.unitAmount / 100; if (current === "price") show("price"); })
+            .catch(function () { priceAsked = false; $("#qPriceLine").textContent = "The price could not be loaded. Press Back, then Continue to try again."; });
+          return;
+        }
+        $("#joinSubmit").disabled = false;
         if (each === null) {                      // no server price yet: say so, show nothing
           $("#qPriceTotal").textContent = "";
           $("#qPriceLine").textContent = "The price is shown when preorders open.";
@@ -455,6 +536,7 @@
       var focus = panels[id].querySelector("input:not([type=radio]), select"); if (focus) setTimeout(function () { focus.focus(); }, 60);
       panels[id].scrollIntoView({ behavior: "smooth", block: "center" });
     }
+    var priceAsked = false;
     function fail(msg, el) { status.textContent = msg; status.classList.add("is-error"); if (el) el.focus(); return false; }
     function validate(id) {
       if (id === "way") { var w = document.querySelector('input[name="way"]:checked'); if (!w) return fail("Pick one to continue."); A.way = w.value; $("#mGroup").value = w.value; if (w.value === "single") { A.count = 1; $("#mCount").value = "1"; } return true; }
@@ -463,6 +545,12 @@
       if (id === "iphone") { var ip = document.querySelector('input[name="iphone"]:checked'); if (!ip) return fail("Yes or no?"); A.iphone = ip.value; $("#mIphone").value = ip.value; return true; }
       if (id === "country") { if (!$("#qCountry").value) return fail("Which country?", $("#qCountry")); return true; }
       if (id === "agree") { if (!agreed()) return fail("", null); $("#mAgree").value = "proto,water,weekly-feedback"; return true; }
+      if (id === "size") {
+        var sz = sizes(), bad = sz.indexOf("");
+        if (bad >= 0) return fail("A size for " + (sz.length > 1 ? (bad === 0 ? "you" : "person " + (bad + 1)) : "your wrist") + ", please.");
+        $("#mSizes").value = sz.map(function (v, i) { return (sz.length > 1 ? (i === 0 ? "You" : "P" + (i + 1)) + ": " : "") + sizeName(v); }).join("; ");
+        return true;
+      }
       if (id === "where") {
         var open = where.indexOf("");
         if (open >= 0) { focusBead(open); return fail("", whereSel); }
@@ -476,6 +564,9 @@
     next.addEventListener("click", function () {
       if (!validate(current)) return;
       if (current === "iphone" && A.iphone === "no") return go("stop");
+      // Checkout ships to one country in this batch. Interest from elsewhere is still
+      // welcome in the application flow, so the gate only exists when money is involved.
+      if (CHECKOUT && current === "country" && $("#qCountry").value !== "United States") return go("stopcountry");
       var seq = order(), i = seq.indexOf(current);
       go(seq[Math.min(i + 1, seq.length - 1)]);
     });
@@ -484,6 +575,11 @@
       var target = A.way === "circle" ? "count" : "iphone";
       while (history.length && current !== target) current = history.pop();
       document.querySelectorAll('input[name="iphone"]').forEach(function (r) { r.checked = false; }); A.iphone = "";
+      show(current);
+    });
+    $("#qStopCountryBack").addEventListener("click", function () {
+      while (history.length && current !== "country") current = history.pop();
+      $("#qCountry").value = "";
       show(current);
     });
     form.addEventListener("keydown", function (e) {
@@ -500,7 +596,7 @@
     document.addEventListener("submit", function (e) {
       if (e.target !== form) return;
       e.preventDefault(); e.stopPropagation();
-      if (current === "price") sendApplication();
+      if (current === "price") { if (CHECKOUT) startCheckout(); else sendApplication(); }
     }, true);
 
     var sending = false;
@@ -569,7 +665,18 @@
        than "countdown" or "checkout" fell through to show("way"), so switching
        mode off "countdown" ACTIVATED the application instead of disabling it.
        The Founder Pilot was cancelled on 2026-09-11. */
-    if (P.mode === "countdown") setupCountdown();
+    /* Launch day: the page ships in checkout mode BEFORE the opening so the deploy
+       is not racing the clock. Until opensAt it shows the same countdown as before;
+       at zero the door leads into the questionnaire on this very page, no reload,
+       no second deploy. A visitor coming back from Stripe (session_id) never sees
+       the clock, whatever their device clock says. The server refuses to sell
+       before PILOT_OPENS_AT regardless, so a fast device clock only earns the
+       "Preorders open ... at 12:00 PM ET" line at the last step. */
+    var opensAtMs = Date.parse(P.opensAt || "");
+    var returningFromStripe = /[?&]session_id=/.test(window.location.search);
+    var waitingToOpen = CHECKOUT && !returningFromStripe && opensAtMs > 0 && Date.now() < opensAtMs;
+    if (P.mode === "countdown") setupCountdown(false);
+    else if (P.mode === "checkout" && waitingToOpen) setupCountdown(true);
     else if (P.mode === "checkout") setupCheckoutChrome();
     else if (P.mode === "apply") show("way");
     else setupClosed();
@@ -597,13 +704,36 @@
        hidden #apply. */
     function setupCheckoutChrome() {
       var h1 = document.querySelector(".ap-h1"), c = document.querySelector(".ap-cta");
-      var applySec = $("#apply"); if (applySec) applySec.hidden = true;
+      var applySec = $("#apply");
       if (h1) h1.innerHTML = "60 bracelets.<br/>Yours is one.";
-      if (c) { c.textContent = "Preorder"; c.setAttribute("href", "#checkout-section"); }
+      /* Preorder leads into the questions, not straight to a card form: circle or single,
+         how many, iPhone, ship-to, wrist sizes, colours, email, the acknowledgements, the
+         price. Only the last step opens Stripe, which then asks for card, address and phone. */
+      var target = CHECKOUT ? "#apply" : "#checkout-section";
+      if (c) { c.textContent = "Preorder"; c.setAttribute("href", target); }
       document.querySelectorAll('.nav-cta, .nav-link-cta, a[href="#apply"]').forEach(function (a) {
-        a.setAttribute("href", "#checkout-section");
+        a.setAttribute("href", target);
         if (/^apply$/i.test(a.textContent.trim())) a.textContent = "Preorder";
       });
+      if (CHECKOUT) {
+        if (applySec) applySec.hidden = false;
+        $("#joinSubmit").textContent = "Checkout";
+        $(".q-price-terms").textContent = "Card, address and phone on the next step. Full refund before it ships.";
+        show("way");
+      } else if (applySec) applySec.hidden = true;
+      /* Checkout mode with no publishable key used to be a dead end: the application was
+         hidden and the Preorder button pointed at a section that never appeared (the
+         console even claimed "staying in apply mode"). Say what is happening instead, and
+         keep the button from pretending it can sell. */
+      if (!P.stripePublishableKey) {
+        var sec = $("#checkout-section"), st = $("#ppStatus");
+        if (sec) sec.hidden = false;
+        if (st) st.textContent = "Checkout is being switched on. Refresh this page in a minute.";
+        if (c) {
+          c.textContent = "Opening shortly"; c.setAttribute("aria-disabled", "true");
+          c.addEventListener("click", function (e) { e.preventDefault(); if (sec) sec.scrollIntoView({ behavior: "smooth", block: "start" }); });
+        }
+      }
     }
 
     /* ---- countdown mode ----------------------------------------------------
@@ -611,10 +741,11 @@
        entirely: during the countdown there is nothing to fill in, which is the
        point. Flip P.mode to "checkout" (or "apply") on the day and this block
        stops running. */
-    function setupCountdown() {
+    function setupCountdown(handover) {
       var sec = $("#preorder"), main = document.querySelector("main.ap"), nav = document.querySelector("header.nav");
       var target = Date.parse(P.opensAt);
       if (!target || isNaN(target)) { console.warn("[pilot] opensAt is not a valid date; staying in apply mode"); return; }
+
 
       /* One idea on the screen. A CLASS on <main>, not :has(), because :has() is
          missing from the older Safari the Instagram in-app browser inherits, and a
@@ -644,6 +775,26 @@
         a.setAttribute("href", "#preorder");
         if (/^apply$/i.test(a.textContent.trim())) a.textContent = "Preorder";
       });
+
+      /* handover: checkout mode before the opening. "Take me there" reveals the
+         questionnaire in place instead of reloading a page that would only show
+         the clock again. Set AFTER the loop above, which repoints every #apply
+         link at #preorder (it repointed the door too, the first time). */
+      var door = document.querySelector("#cdOpen .pre-cta");
+      if (handover && door) {
+        door.setAttribute("href", "#apply");
+        door.addEventListener("click", function (e) {
+          e.preventDefault();
+          main.classList.remove("ap--pre");
+          if (nav) nav.classList.remove("nav--pre");
+          ["ap-hero", "ap-apply", "ap-qa"].forEach(function (c) {
+            var el = document.querySelector("." + c); if (el) el.hidden = false;
+          });
+          sec.hidden = true;
+          window.scrollTo(0, 0);
+          setupCheckoutChrome();                 // headline, Preorder links, first question
+        });
+      }
 
       var clock = $("#cdClock"), openBlk = $("#cdOpen"), timer = null;
       var cd = { target: target };
@@ -678,55 +829,165 @@
     // ---- checkout mode (payment-invitation week) ----
     // Only real when a publishable key is present; otherwise the application stays live.
     if (P.mode !== "checkout") return;
-    if (!P.stripePublishableKey) { console.warn("[pilot] mode is checkout but stripePublishableKey is empty; staying in apply mode"); return; }
+    if (!P.stripePublishableKey) { console.error("[pilot] mode is checkout but stripePublishableKey is empty: nothing can be sold; the page shows the switching-on notice"); return; }
     var apply = $("#apply"), cta = $(".ap-cta"), section = $("#checkout-section"), pstatus = $("#ppStatus"), done = $("#done");
-    apply.hidden = true; cta.textContent = "Preorder"; cta.href = "#checkout-section";
     if (P.shipWindow) set("#ppCheckoutLine", "One Founder Pilot bracelet, plus tax and shipping, shipping " + P.shipWindow + ". The price is shown below before you pay. Secure payment by Stripe.");
     var sid = new URLSearchParams(location.search).get("session_id");
     if (sid) {
-      // Never confirm on the URL alone: ask the server what Stripe says about this session.
-      try { history.replaceState(null, "", location.pathname); } catch (e) {}
-      $(".ap-hero").hidden = true; done.hidden = false;
-      var doneText = $("#ppDoneText"), doneTitle = done.querySelector(".ap-h2");
-      doneTitle.textContent = "Checking your payment…"; doneText.textContent = "";
-      var ok = /^cs_[A-Za-z0-9_]+$/.test(sid);
-      (ok ? fetch("/api/checkout?session_id=" + encodeURIComponent(sid)) : Promise.reject(new Error("bad_session")))
-        .then(function (r) { if (!r.ok) throw new Error("unavailable"); return r.json(); })
-        .then(function (j) {
-          if (j.paymentStatus === "paid" || j.paymentStatus === "no_payment_required") {
-            doneTitle.textContent = "Your seat is held."; doneText.textContent = "A receipt is on its way. When your bracelet enters its build wave you will get your number and your ship window.";
-          } else {
-            doneTitle.textContent = "Payment not completed."; doneText.textContent = "Nothing was charged. Press Preorder to try again.";
-            $(".ap-hero").hidden = false;
-          }
-        })
-        .catch(function () {
-          doneTitle.textContent = "We could not confirm your payment yet."; doneText.textContent = "If Stripe emailed you a receipt, your seat is held. Otherwise press Preorder to try again.";
-          $(".ap-hero").hidden = false;
-        });
+      /* Never confirm on the URL alone: ask the server what Stripe says about this session.
+         Four outcomes, and only one of them may invite another order:
+           paid            -> confirmed
+           complete/unpaid -> a card payment still settling: DO NOT pay again
+           open/expired    -> nothing was charged: Preorder is offered again
+           anything else   -> unknown: keep the reference in the URL, offer "Check again"
+                              and a human, never a second payment */
+      $(".ap-hero").hidden = true; apply.hidden = true; done.hidden = false;
+      var doneText = $("#ppDoneText"), doneTitle = done.querySelector(".ap-h2"), doneEyebrow = done.querySelector(".ap-eyebrow");
+      var again = document.createElement("button"); again.type = "button"; again.className = "btn btn-line"; again.textContent = "Check again"; again.hidden = true; again.style.marginTop = "18px";
+      doneText.insertAdjacentElement("afterend", again);
+      function paint(eyebrow, title, text, opts) {
+        opts = opts || {};
+        doneEyebrow.textContent = eyebrow; doneTitle.textContent = title; doneText.textContent = text;
+        var result = { Confirmed: "confirmed", Processing: "processing", "Not completed": "not_completed", Unmatched: "unmatched", Unconfirmed: "unconfirmed" }[eyebrow];
+        if (result) pilotEvent("payment", result);
+        $(".ap-hero").hidden = !opts.offerAgain; apply.hidden = !opts.offerAgain;
+        again.hidden = !opts.recheck;
+        if (opts.forget) { try { window.history.replaceState(null, "", location.pathname); } catch (e) {} }   // the reference is no longer needed
+      }
+      var reference = sid.slice(0, 14) + "\u2026" + sid.slice(-6);
+      function check() {
+        paint("One moment", "Checking your payment\u2026", "", {});
+        var ok = /^cs_[A-Za-z0-9_]+$/.test(sid);
+        (ok ? fetch("/api/checkout?session_id=" + encodeURIComponent(sid), { cache: "no-store" }) : Promise.reject(new Error("bad_session")))
+          .then(function (r) { if (r.status === 404) throw new Error("not_ours"); if (!r.ok) throw new Error("unavailable"); return r.json(); })
+          .then(function (j) {
+            var n = Number(j.bracelets) || 1, what = n > 1 ? n + " bracelets" : "one bracelet";
+            if (j.paymentStatus === "paid" || j.paymentStatus === "no_payment_required") {
+              paint("Confirmed", "Your seat is held.", "Your order for " + what + " is in. A receipt is on its way from Stripe, and you will hear from Melvin by email within a day. When your bracelet enters its build wave you will get your number and your ship window.", { forget: true });
+            } else if (j.status === "complete") {
+              paint("Processing", "Your payment is still settling.", "Do not pay again. Your " + what + " " + (n > 1 ? "are" : "is") + " held while the bank finishes; you will get a receipt the moment it clears. If nothing arrives within a day, email oseimelvin@gmail.com with reference " + reference + ".", { recheck: true });
+            } else {
+              paint("Not completed", "Payment not completed.", "Nothing was charged. Press Preorder to start again.", { offerAgain: true, forget: true });
+            }
+          })
+          .catch(function (err) {
+            var m = String((err && err.message) || "");
+            if (m === "not_ours" || m === "bad_session") {
+              paint("Unmatched", "This link does not match a pilot order.", "If you paid, email oseimelvin@gmail.com with reference " + reference + " and do not pay again. If you did not, press Preorder to start.", { offerAgain: true });
+            } else {
+              paint("Unconfirmed", "We could not check your payment just now.", "Do not pay again. Press Check again in a moment, or email oseimelvin@gmail.com with reference " + reference + " and it will be checked by hand.", { recheck: true });
+            }
+          });
+      }
+      again.addEventListener("click", check);
+      check();
       return;
     }
-    var mounted = false;
+    var mounted = false, mountedSig = "", mountedSession = "", instance = null, attempt = "", lastSig = "", pendingTries = 0, spentRetried = false;
+    function newAttempt() { attempt = "t" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 10); return attempt; }
+    function sessionOf(secret) { return String(secret || "").split("_secret")[0]; }
+    /* The buyer went Back and changed something after Stripe was open: the old session
+       must not stay payable next to the new one. Tear the frame down and ask the server
+       to release its seats now rather than after Stripe's thirty minutes. */
+    function abandonMounted() {
+      if (instance) { try { instance.destroy(); } catch (e) {} instance = null; }
+      if (mountedSession) { fetch("/api/checkout", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ expire: mountedSession }) }).catch(function () {}); }
+      mounted = false; mountedSig = ""; mountedSession = ""; lastSig = ""; attempt = "";   // that attempt is spent with its session; the next Checkout is a new one
+      $("#checkout").innerHTML = ""; $("#checkout").hidden = true;
+    }
     function loadStripe() { return new Promise(function (res, rej) { if (window.Stripe) return res(window.Stripe); var s = document.createElement("script"); s.src = "https://js.stripe.com/v3/"; s.async = true; s.onload = function () { res(window.Stripe); }; s.onerror = rej; document.head.appendChild(s); }); }
-    cta.addEventListener("click", function (e) {
-      e.preventDefault(); section.hidden = false; section.scrollIntoView({ behavior: "smooth", block: "start" });
-      if (mounted || !P.stripePublishableKey) return; mounted = true; pstatus.textContent = "Opening secure checkout…";
-      loadStripe().then(function (Stripe) {
-        return Stripe(P.stripePublishableKey).initEmbeddedCheckout({ fetchClientSecret: function () {
-          return fetch("/api/checkout", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" })
-            .then(function (r) { if (r.status === 409) throw new Error("sold_out"); if (!r.ok) throw new Error("unavailable"); return r.json(); })
-            .then(function (j) { return j.clientSecret; }); } });
-      }).then(function (c) { pstatus.textContent = ""; c.mount("#checkout"); })
+    function say(msg) { pstatus.textContent = msg; status.textContent = msg; status.classList.toggle("is-error", !!msg); }
+    /* Called from the price step. Ask our own server for the session FIRST and read its
+       answer ourselves: handing Stripe a fetchClientSecret callback swallowed every refusal
+       inside Stripe's frame as "Something went wrong". Each answer has its own words, and
+       Stripe only ever receives a secret that already exists. The answers travel in the
+       request and come back as order metadata in the Stripe dashboard. */
+    function startCheckout() {
+      var answers = {
+        way: A.way, count: A.way === "circle" ? A.count : 1, iphone: A.iphone,
+        country: $("#qCountry").value,
+        sizes: sizes(),
+        email: ($("#joinEmail").value || "").trim(), agree: agreed(),
+        source: new URLSearchParams(location.search).get("utm_source") || ""
+      };
+      var sig = JSON.stringify(answers);
+      if (mounted && sig === mountedSig) { section.hidden = false; section.scrollIntoView({ behavior: "smooth", block: "start" }); return; }
+      var replacing = mounted ? mountedSession : "";
+      if (mounted) abandonMounted();
+      if (sig !== lastSig || !attempt) newAttempt();   // new answers are a new attempt; a retry of the same answers keeps it, so a lost reply recovers the same session
+      lastSig = sig;
+      answers.attempt = attempt;
+      if (replacing) answers.replaces = replacing;
+      mounted = true; mountedSig = sig;
+      var btn = $("#joinSubmit"); btn.disabled = true; btn.textContent = "Opening checkout\u2026";
+      say("");
+      pilotEvent("checkout", "start");
+      return fetch("/api/checkout", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(answers) })
+        .then(function (r) { return r.json().catch(function () { return {}; }).then(function (j) { return { status: r.status, body: j || {} }; }); })
+        .then(function (a) {
+          var err = a.body.error;
+          if (a.status === 200 && a.body.clientSecret) return a.body.clientSecret;
+          if (err === "sold_out") throw new Error("sold_out:" + (a.body.left || 0));
+          if (err === "not_open") throw new Error("not_open:" + (a.body.opensAt || ""));
+          if (err === "bad_request") throw new Error("bad_request:" + (a.body.detail || ""));
+          if (err === "attempt_pending") throw new Error("attempt_pending");
+          if (err === "attempt_spent") throw new Error("attempt_spent");
+          if (err === "too_many_holds") throw new Error("too_many_holds");
+          if (a.status === 429) throw new Error("slow_down");
+          if (a.status === 503) throw new Error("closed");
+          throw new Error("unavailable");
+        })
+        .then(function (secret) {
+          mountedSession = sessionOf(secret);
+          return loadStripe().then(function (Stripe) { return Stripe(P.stripePublishableKey).initEmbeddedCheckout({ clientSecret: secret }); });
+        })
+        .then(function (c) {
+          instance = c;
+          $("#checkout").hidden = false; section.hidden = false; c.mount("#checkout");
+          pilotEvent("checkout", "ready");
+          btn.textContent = "Checkout is open below"; say("");
+          section.scrollIntoView({ behavior: "smooth", block: "start" });
+        })
         .catch(function (err) {
-          mounted = false;
-          var m = String(err && err.message);
-          if (m === "sold_out") { pstatus.textContent = "All sixty seats are taken."; cta.setAttribute("aria-disabled", "true"); return; }
-          // the API is missing or down: fall back to the application so nobody dead-ends
-          section.hidden = true; apply.hidden = false;
-          status.textContent = "Checkout is not open yet. Apply below and we will email you a payment link."; status.classList.remove("is-error");
-          apply.scrollIntoView({ behavior: "smooth", block: "start" });
+          var m = String((err && err.message) || "");
+          pilotEvent("error", m);
+          btn.disabled = false; btn.textContent = "Checkout"; mounted = false; mountedSig = ""; mountedSession = "";
+          /* A refusal retires the attempt. A network failure keeps it: the server may have
+             created the session, and the same attempt gets it back instead of a second one. */
+          var refused = /^(sold_out:|not_open:|bad_request:|too_many_holds$|closed$|slow_down$|attempt_spent$)/.test(m);
+          if (refused) newAttempt();
+          if (m === "attempt_spent" && !spentRetried) { spentRetried = true; lastSig = sig; startCheckout(); return; }   // its session was already closed: go again as a new attempt, once
+          spentRetried = false;
+          /* The server is still creating this very attempt (a slow reply or a duplicate in
+             flight). The attempt keeps its identity: ask again with the SAME id in a moment,
+             so the reservation it already holds is the one we get back. */
+          if (m === "attempt_pending") {
+            if (pendingTries < 6) { pendingTries++; btn.disabled = true; btn.textContent = "Still opening checkout\u2026"; setTimeout(startCheckout, 2000); return; }
+            say("Checkout is taking longer than usual. Wait a moment and press Checkout again; your place is held."); return;
+          }
+          pendingTries = 0;
+          if (m === "too_many_holds") { say("This connection already has three checkouts open. Finish or wait a few minutes for them to expire, then press Checkout again."); return; }
+          if (m.indexOf("sold_out:") === 0) {
+            var left = parseInt(m.slice(9), 10) || 0, want = A.way === "circle" ? A.count : 1;
+            if (left > 0 && want > left) { say("Only " + left + (left === 1 ? " seat is" : " seats are") + " left. Press Back and choose a circle of " + left + " or fewer."); return; }
+            say("All sixty seats are taken."); btn.disabled = true; btn.textContent = "Sold out";
+            if (!document.getElementById("soldOutWaitlist")) {
+              var wl = document.createElement("a"); wl.id = "soldOutWaitlist"; wl.href = "the-piece.html#join"; wl.className = "btn btn-line"; wl.textContent = "Join the waitlist for the next batch"; wl.style.marginTop = "14px";
+              status.insertAdjacentElement("afterend", wl);   // under the questionnaire's status line, which is what the buyer is looking at
+            }
+            return;
+          }
+          if (m.indexOf("not_open:") === 0) {
+            var when = "";
+            try { var t = m.slice(9); if (t) when = new Date(t).toLocaleString("en-US", { timeZone: "America/New_York", weekday: "long", month: "long", day: "numeric", hour: "numeric", minute: "2-digit" }) + " ET"; } catch (e2) {}
+            say("Preorders open " + (when || "shortly") + ". Press Checkout again once they do."); return;
+          }
+          if (m.indexOf("bad_request:") === 0) { say("Something in the answers did not pass: " + (m.slice(12) || "please go back and check them") + "."); return; }
+          if (m === "closed") { say("Checkout is not switched on yet. Try again in a minute."); return; }
+          if (m === "slow_down") { say("Too many attempts from this connection. Wait a few minutes and press Checkout again."); return; }
+          say("Checkout could not start. Check your connection and press Checkout again.");
         });
-    });
+    }
   })();
 </script>
 <script>
