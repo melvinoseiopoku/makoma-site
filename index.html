@@ -184,9 +184,14 @@
                rest of the site rather than being a cul-de-sac -->
           <a class="btn pre-alt" href="the-piece.html">See the piece</a>
         </div>
-        <!-- At zero this replaces both countdown links with one bottom CTA. In checkout
-             mode it reveals the questionnaire in place; countdown-only mode reloads. -->
-        <a class="btn btn-gold pre-cta" id="cdPreorder" href="/" hidden>Preorder</a>
+        <!-- At zero this replaces both countdown links with the bottom CTAs. Preorder
+             reveals the questionnaire in place in checkout mode (countdown-only mode
+             reloads); the waitlist is for people who are not ready to buy yet, so the
+             landing is never a dead end for them (added 2026-09-21). -->
+        <div class="pre-acts" id="cdAfterOpen" hidden>
+          <a class="btn btn-gold pre-cta" id="cdPreorder" href="/">Preorder</a>
+          <a class="btn pre-alt" id="cdWaitlist" href="the-piece.html#join">Join the waitlist</a>
+        </div>
       </div>
     </div>
   </section>
@@ -808,6 +813,7 @@
           $("#cdSr").textContent = "Preorders are open.";
           openBlk.hidden = false;
           $("#cdBeforeOpen").hidden = true;
+          $("#cdAfterOpen").hidden = false;     // Preorder + Join the waitlist
           door.hidden = false;
           return;
         }
