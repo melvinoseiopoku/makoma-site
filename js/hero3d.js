@@ -135,6 +135,14 @@ function webglOK() {
 const coarse = window.matchMedia("(pointer: coarse)").matches;   // phone / touch — kept to TRIM cost on mobile, NOT to disable
 const conn = navigator.connection || navigator.webkitConnection || {};
 const slowNet = conn.saveData === true || /(^|-)2g$/.test(conn.effectiveType || "");
+// On / the hero sits BEHIND a full-screen landing (video + Preorder/Support). The visitor spends
+// seconds there, so the scene is built then — after the page's own load, when the main thread is
+// idle — instead of on the first scroll, and no still is shown in the meantime (2026-09-23).
+const behindLanding = !!(section && section.classList.contains("hero3d--behind-landing"));
+function afterPageSettles(fn) {
+  const go = () => (window.requestIdleCallback || ((f) => setTimeout(f, 300)))(fn, { timeout: 1500 });
+  if (document.readyState === "complete") go(); else window.addEventListener("load", go, { once: true });
+}
 
 // /customize is the designer as a real, linkable page. Vercel rewrites it onto this same
 // the-piece.html (vercel.json), so "being on /customize" and "the designer is open" are one state —
@@ -187,8 +195,22 @@ if (reduce || slowNet || !webglOK()) {
   // interactivity earns the GPU: a [data-open-box] tap boots the full scene on demand while
   // the film keeps playing, and the vitrine takes over only when it is actually ready.
   armDeferredHero();
+} else if (behindLanding && !wantsCustomize) {
+  window.__hero = { deferred: true };   // the page's 6 s "3D never ran" safety net reads this
+  afterPageSettles(() => init().catch(heroFailed));
 } else {
-  init();
+  init().catch(heroFailed);
+}
+
+// A 3D chain that fails to load (a dynamic import or the model dropping on a flaky connection)
+// must not leave a black hero with a spinner that never stops. Fall back to the still: .no3d
+// brings it back even behind the landing, where it is otherwise display:none (review, 2026-09-23).
+function heroFailed(e) {
+  console.warn("[hero3d] 3D did not load; showing the still instead:", e);
+  section.classList.add("no3d");
+  if (loaderEl) loaderEl.style.display = "none";
+  if (poster) poster.classList.remove("hide");
+  if (window.__hero) window.__hero.fallback = true;
 }
 
 // While the designer is open the page behind must not scroll away from under the sticky canvas —
@@ -292,7 +314,9 @@ function armFilmHero() {
 }
 
 function armDeferredHero() {
-  if (loaderEl) loaderEl.style.display = "none";
+  // behind the landing the loader stays: whoever scrolls down before the scene is up sees
+  // "Rendering the bracelet…", never the still
+  if (loaderEl && !behindLanding) loaderEl.style.display = "none";
   window.__hero = { deferred: true };
   let started = false;
 
@@ -301,7 +325,7 @@ function armDeferredHero() {
     started = true;
     detach();
     const t0 = performance.now();
-    init().then(() => {
+    init().catch(heroFailed).then(() => {
       if (window.__hero) window.__hero.bootMs = Math.round(performance.now() - t0);
       // the tap that woke the hero should still land on the designer
       if (thenOpenBox && window.__hero && window.__hero.box) window.__hero.box.open();
@@ -332,6 +356,7 @@ function armDeferredHero() {
   window.addEventListener("scroll", onScroll, passive);
   section.addEventListener("touchstart", onTouch, passive);
   document.addEventListener("click", onClick, true);
+  if (behindLanding) afterPageSettles(() => boot(false));   // whichever comes first: this, a scroll, a touch, a tap
 }
 
 async function init() {
@@ -3001,8 +3026,10 @@ async function init() {
       return;
     }
     if (boxMode || pendingBox) return;
-    // the canvas is sticky only inside the hero — make sure the visitor is looking at it
-    if (window.scrollY > 4) window.scrollTo({ top: 0, behavior: "auto" });
+    // the canvas is sticky only inside the hero — make sure the visitor is looking at it. The hero is
+    // no longer always at y=0: on / the two-button landing screen sits above it (2026-09-23).
+    const heroTop = Math.round(section.getBoundingClientRect().top + window.scrollY);
+    if (Math.abs(window.scrollY - heroTop) > 4) window.scrollTo({ top: heroTop, behavior: "auto" });
     target = progress = 0;
     setBoxURL(true);
     if (ready) { enterBox(); lockScroll(); }
@@ -3345,7 +3372,7 @@ async function init() {
   // the model is still loading, they've moved on — expire it rather than yanking them into the
   // designer minutes later when the hero next crosses the viewport.
   window.addEventListener("scroll", () => {
-    if (pendingBox && !boxMode && window.scrollY > window.innerHeight * 0.5) {
+    if (pendingBox && !boxMode && Math.abs(section.getBoundingClientRect().top) > window.innerHeight * 0.5) {
       pendingBox = false;
       setBoxURL(false);
     }

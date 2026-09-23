@@ -2,37 +2,67 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "cleanUrls": true,
   "redirects": [
-    { "source": "/founder-pilot", "destination": "/", "permanent": false }
+    {
+      "source": "/founder-pilot",
+      "destination": "/preorder",
+      "permanent": false
+    },
+    {
+      "source": "/support",
+      "destination": "https://buy.stripe.com/00w28q75a1n6fU31Sm83C00",
+      "permanent": false
+    }
   ],
   "rewrites": [
-    { "source": "/customize", "destination": "/the-piece" }
+    {
+      "source": "/customize",
+      "destination": "/the-piece"
+    }
   ],
   "trailingSlash": false,
   "headers": [
     {
       "source": "/(.*)\\.(jpg|jpeg|png|gif|svg|webp|ico|glb|woff|woff2|ttf)",
       "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=604800, stale-while-revalidate=86400" }
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=604800, stale-while-revalidate=86400"
+        }
       ]
     },
     {
       "source": "/(.*)\\.(css|js)",
       "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=3600, must-revalidate" }
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=3600, must-revalidate"
+        }
       ]
     },
     {
       "source": "/",
       "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=0, must-revalidate"
+        }
       ]
     },
     {
       "source": "/(.*)",
       "headers": [
-        { "key": "X-Content-Type-Options", "value": "nosniff" },
-        { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
-        { "key": "X-Frame-Options", "value": "SAMEORIGIN" }
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "strict-origin-when-cross-origin"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "SAMEORIGIN"
+        }
       ]
     }
   ]

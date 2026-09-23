@@ -331,13 +331,13 @@
   // designer (box-lock) and over the waitlist form itself.
   function setupCtaDock() {
     const dock = $("#ctaDock"); if (!dock) return;
-    const heroCta = $("#heroCta"), join = $("#join");
-    let heroAway = false, joinHere = false;
+    const heroCta = $("#heroCta"), join = $("#join"), landing = $("#landing");
+    let heroAway = false, joinHere = false, landingHere = !!landing;   // the landing screen owns its two buttons
     const apply = () => {
       // in-box: the hero CTAs are hidden, so the observer sees them as "away" and would switch
       // the dock on right over the designer's own controls. The designer owns the screen.
       const inBox = document.documentElement.classList.contains("box-lock");
-      const on = heroAway && !joinHere && !inBox;
+      const on = heroAway && !joinHere && !inBox && !landingHere;
       dock.classList.toggle("on", on);
       dock.setAttribute("aria-hidden", on ? "false" : "true");
     };
@@ -346,6 +346,7 @@
     if ("IntersectionObserver" in window) {
       if (heroCta) new IntersectionObserver(([e]) => { heroAway = !e.isIntersecting; apply(); }, { threshold: 0 }).observe(heroCta);
       if (join) new IntersectionObserver(([e]) => { joinHere = e.isIntersecting; apply(); }, { rootMargin: "0px 0px -25% 0px" }).observe(join);
+      if (landing) new IntersectionObserver(([e]) => { landingHere = e.isIntersecting; apply(); }, { threshold: 0 }).observe(landing);
     } else {
       window.addEventListener("scroll", () => { heroAway = window.scrollY > window.innerHeight * 0.8; apply(); }, { passive: true });
     }

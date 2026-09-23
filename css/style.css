@@ -226,6 +226,9 @@ html.box-lock, html.box-lock body{ overflow:hidden; }
 .intro-type.on{ opacity:1; }
               /* 3D is live -> cross-fade the still out */
 .hero3d.no3d .hero3d-poster{ opacity:1; }      /* no-WebGL fallback keeps it up permanently */
+/* behind the landing on / the still never shows (the 3D loads while the landing is up); display:none
+   also keeps the lazy <img> from downloading. The no3d fallback above still brings it back. */
+.hero3d--behind-landing:not(.no3d) .hero3d-poster{ display:none; }
 .hero3d-veil{
   position:absolute; inset:0; z-index:2; pointer-events:none;
   background:
@@ -2567,6 +2570,18 @@ select.q-input{ appearance:none; -webkit-appearance:none; padding-right:36px;
                   font-size:.66rem; letter-spacing:.2em; text-transform:uppercase; color:rgba(236,230,216,.72); }
 
 .pre{ position:relative; min-height:100svh; min-height:100dvh; display:flex; overflow:hidden; background:#060607; }
+/* the landing on / (2026-09-23): same screen as the countdown, on a page whose sections are
+   full-bleed already; the cue says "there is more below" without being a third button */
+.pre--landing{ width:100%; }
+/* the landing film, framed by the script after #landing: explicit size and position replace cover */
+.pre-bg.pre-bg--framed{ inset:auto; object-fit:fill; max-width:none; }
+/* behind the landing the loader can be on screen (a fast scroller on a slow phone): centre it where
+   the bracelet will appear, not at the bottom where it would sit on the Customize button */
+.hero3d--behind-landing .hero-loader{ bottom:auto; top:50%; transform:translate(-50%,-50%); }
+.pre-cue{ display:block; width:1px; height:34px; margin:clamp(18px,3vh,26px) auto 0;
+          background:linear-gradient(rgba(236,230,216,0), rgba(236,230,216,.55)); animation:preCue 2.4s var(--ease) infinite; }
+@keyframes preCue{ 0%{ transform:scaleY(.2); transform-origin:top; opacity:0; } 40%{ opacity:1; } 100%{ transform:scaleY(1); transform-origin:top; opacity:0; } }
+@media (prefers-reduced-motion: reduce){ .pre-cue{ animation:none; } }
 .pre[hidden]{ display:none !important; }
 .pre-bg{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; object-position:center 45%;
          pointer-events:none; }
@@ -2639,6 +2654,12 @@ select.q-input{ appearance:none; -webkit-appearance:none; padding-right:36px;
           text-shadow:0 1px 12px rgba(6,6,7,.6); }
 .pre-alt:hover{ border-color:rgba(236,230,216,.8); background:rgba(236,230,216,.07); color:#fff; }
 @media (min-width:560px){ .pre-cta, .pre-alt{ min-width:0; flex:0 1 240px; } }
+/* the third, quiet path: a text link under the two buttons, never a third button */
+.pre-more{ flex-basis:100%; margin-top:2px; text-align:center; font-family:var(--mono); font-size:.62rem;
+           letter-spacing:.14em; text-transform:uppercase; color:rgba(236,230,216,.62);
+           text-shadow:0 1px 12px rgba(6,6,7,.6); text-decoration:none; padding:.6em 1em; }
+.pre-more:hover{ color:#fff; }
+@media (min-width:560px){ .pre-acts{ flex-wrap:wrap; } }
 .pre-cta svg{ width:17px; height:17px; flex:0 0 auto; transition:transform .3s var(--ease); }
 .pre-cta:hover svg{ transform:translate(2px,-2px); }
 

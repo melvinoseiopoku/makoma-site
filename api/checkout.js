@@ -279,7 +279,7 @@ export default async function handler(req, res) {
       /* Card only (Apple Pay and Google Pay ride on card): every other method settles
          asynchronously, and a seat cannot wait days to learn whether it was paid. */
       payment_method_types: ["card"],
-      return_url: origin + "/?session_id={CHECKOUT_SESSION_ID}",
+      return_url: origin + "/preorder?session_id={CHECKOUT_SESSION_ID}",   // the flow moved to /preorder on 2026-09-23; / forwards old returns
       metadata: meta,
       payment_intent_data: { metadata: meta },
       phone_number_collection: { enabled: true },

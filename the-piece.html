@@ -54,7 +54,7 @@
     document.documentElement.setAttribute('data-theme', t);
   }catch(e){ document.documentElement.setAttribute('data-theme','dark'); } })();
 </script>
-<link rel="stylesheet" href="css/style.css?v=40" />
+<link rel="stylesheet" href="css/style.css?v=46" />
 <script type="importmap">
 {
   "imports": {
@@ -128,7 +128,7 @@
     <a href="#symbols">The symbols</a>
     <a href="how-it-begins.html">How it begins</a>
     <a href="#launch">Building in public</a>
-    <a href="/">Preorder</a>
+    <a href="/preorder">Preorder</a>
     <a href="#join" class="nav-link-cta">Waitlist</a>
   </nav>
   <div class="nav-right">
@@ -149,7 +149,7 @@
      the next section. Appears once they scroll away, hides inside the designer and over the
      waitlist form (where the real form already owns the screen). -->
 <div class="cta-dock" id="ctaDock" aria-hidden="true">
-  <a href="/" class="btn btn-gold">Get yours</a>
+  <a href="/preorder" class="btn btn-gold">Get yours</a>
   <a href="/customize" data-open-box class="btn btn-line">Customize bracelet</a>
 </div>
 
@@ -194,7 +194,7 @@
            .hero3d-overlay a{pointer-events:auto} makes them tappable through the overlay. -->
       <div class="hero-cta" id="heroCta">
         <div class="hero-actions">
-          <a href="/" class="btn btn-gold">Get yours</a>
+          <a href="/preorder" class="btn btn-gold">Get yours</a>
           <a href="/customize" data-open-box class="btn btn-line">Customize bracelet</a>
         </div>
       </div>
@@ -604,7 +604,7 @@
 
   <div class="bip-follow reveal">
     <a class="btn btn-line" href="https://www.instagram.com/makoma.io/" target="_blank" rel="me noopener">Follow the build</a>
-    <a class="btn btn-gold" href="/">Get yours</a>
+    <a class="btn btn-gold" href="/preorder">Get yours</a>
   </div>
 </section>
 
@@ -694,9 +694,9 @@
      reads when submitting the waitlist form. Classic scripts, not modules, because
      main.js is a classic IIFE and cannot import. -->
 <script src="js/design.js"></script>
-<script src="js/main.js?v=14"></script>
+<script src="js/main.js?v=15"></script>
 <script src="js/configurator.js?v=4"></script>
-<script type="module" src="js/hero3d.js?v=12"></script>
+<script type="module" src="js/hero3d.js?v=15"></script>
 <!-- Neither js/positioning.js (its "Where we live" section is cut) nor js/coach.js is loaded:
      the bracelet no longer explains itself. Touching a bead summons the other person
      unannounced, and being surprised by it IS the moment. Every window.__coach call in
