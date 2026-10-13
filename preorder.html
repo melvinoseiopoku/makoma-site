@@ -3,20 +3,20 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>M'AKOMA · Preorder the first 60</title>
+<title>M'AKOMA · Batch 2 preorders open</title>
 <!-- THE SHARE CARD. This is what Instagram, WhatsApp and iMessage render for the link,
      and they cache it, so it has to match the page's CURRENT mode. It said "Apply for one"
      through the countdown. When MAKOMA_PILOT.mode flips to checkout, change these three
      lines in the same edit: the card should then say preorders are open, not a future date. -->
-<meta name="description" content="Sixty hand-built M'AKOMA bracelets. Six beads, six people. Preorders are open: sixty, hand-built, shipping by 25 October." />
+<meta name="description" content="Batch 1 is fully reserved. Batch 2 of the hand-built M'AKOMA bracelet is open now, shipping by 8 November. Six beads, six people." />
 <link rel="canonical" href="https://makoma.io/preorder" />
 <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1" />
 <meta name="theme-color" content="#060607" />
 <meta name="author" content="Melvin Osei Opoku" />
 <meta property="og:type" content="website" />
 <meta property="og:site_name" content="M'AKOMA" />
-<meta property="og:title" content="60 bracelets. Preorder yours. · M'AKOMA" />
-<meta property="og:description" content="Sixty hand-built bracelets. Six beads, six people. Preorders are open. Ships by 25 October 2026." />
+<meta property="og:title" content="Batch 2 is open. Preorder yours. · M'AKOMA" />
+<meta property="og:description" content="Batch 1 is fully reserved. Batch 2 is open now and ships by 8 November 2026. Six beads, six people." />
 <meta property="og:url" content="https://makoma.io/preorder" />
 <meta property="og:image" content="https://makoma.io/assets/img/og-pilot.jpg" />
 <meta property="og:image:width" content="1200" />
@@ -35,7 +35,7 @@
 <script type="importmap">
 { "imports": { "three": "./assets/vendor/three/three.module.js", "three/addons/": "./assets/vendor/three/addons/" } }
 </script>
-<link rel="stylesheet" href="css/style.css?v=46" />
+<link rel="stylesheet" href="css/style.css?v=47" />
 <script>
   /* Founder Pilot settings. mode "apply" = free application (this phase). mode "checkout" =
      the Preorder button and embedded Stripe Checkout (payment-invitation week; needs the
@@ -43,6 +43,7 @@
   window.MAKOMA_PILOT = {
     mode: "checkout",                         // LIVE 2026-09-20: the server still refuses before PILOT_OPENS_AT and without the store
     seats: 60,
+    batch1Seats: 28,          // batch 1 ($119) closed at 28 seats on 2026-10-12; batch 2 = the rest
     closes: null,                             // no application window in this plan: preorders open at opensAt.
                                               // Set a date here ONLY with mode "apply"; the line hides while it is null.
     circleMin: 2,                             // smallest circle; every member wears a bracelet
@@ -59,7 +60,7 @@
        Vercel as PILOT_SHIP_WINDOW, and must match the shipping policy page.
        Under the FTC rule this is a promise, not an estimate: miss it and the
        delay notice has to reach every buyer ON OR BEFORE this date. */
-    shipWindow: "by 25 October 2026",
+    shipWindow: "by 8 November 2026",
 
     /* When preorders open. WRITE THE OFFSET, never a bare local time: on 20
        September New York is on DAYLIGHT time (UTC-4), so noon in New York is
@@ -103,23 +104,48 @@
 <main id="top" class="ap">
 
   <!-- ============ HEADLINE ============ -->
-  <section class="ap-hero">
-    <p class="ap-eyebrow">Founder Pilot</p>
-    <h1 class="ap-h1">60 bracelets.<br/>Apply for one.</h1>
-    <p class="ap-lede">Exchange voice messages. Alert your circle.</p>
-    <p class="ap-lede ap-lede--2">Send a pulse. Share a color.</p>
-    <p class="ap-lede ap-lede--2">Customize phone shortcuts. Save personal voice notes.</p>
-    <!-- What is being bought, as it is: the same render the product page opens on, cropped
-         to the piece (that file is a tall poster). Black on black, so it sits in the page. -->
-    <figure class="ap-render" aria-label="The bracelet you are ordering">
-      <picture>
-        <source type="image/webp" srcset="assets/img/makoma-hero-760.webp 760w, assets/img/makoma-hero.webp 1100w" sizes="(max-width: 640px) 100vw, 560px" />
-        <img src="assets/img/makoma-hero.jpg" width="1100" height="2390" decoding="async" fetchpriority="high"
-             alt="The M'AKOMA bracelet rendered in 3D: six black beads and the core hub on a braided cord." />
-      </picture>
-      <figcaption>The Founder Pilot bracelet. Black, six beads, one hub.</figcaption>
+  <section class="ap-hero ap-hero--product">
+    <!-- Product first (2026-10-12, Melvin): the piece, then what it is, then what it does,
+         then availability, then the questions. No price until the last step. -->
+    <!-- The real bracelet on a wrist, its beads lighting up (moved here from the home landing,
+         2026-10-12): the film that headed / since 23 Sep. 4:5 window onto the 9:16 film, centred on
+         the bracelet (51.4% across, 58.8% down the frame) and zoomed 1.3x so the beads read. -->
+    <figure class="ap-render ap-film" aria-label="The M'AKOMA bracelet on a wrist, its beads lighting up">
+      <video autoplay muted loop playsinline preload="auto" disablepictureinpicture disableremoteplayback
+             poster="assets/img/pilot/black-wrist-poster.webp?v=2" aria-hidden="true" tabindex="-1">
+        <source src="assets/video/black-wrist.mp4?v=2" type="video/mp4" />
+      </video>
     </figure>
-    <a href="#apply" class="btn btn-gold ap-cta">Apply</a>
+    <script>
+      (function () {   /* reduced motion: the poster stays, the film does not run */
+        var v = document.querySelector(".ap-film video");
+        if (v && window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) { v.removeAttribute("autoplay"); v.pause(); }
+      })();
+    </script>
+    <p class="ap-eyebrow">Preorder</p>
+    <h1 class="ap-h1">Six beads.<br/>Six people.</h1>
+    <ul class="ap-chips">
+      <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3s5.5 5.9 5.5 9.9a5.5 5.5 0 0 1-11 0C6.5 8.9 12 3 12 3z"/><path d="M9.6 13.6a2.6 2.6 0 0 0 2.4 2.1"/></svg>Splash- &amp; dust-resistant</li>
+      <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 6.5h11v9h-11zM13.5 9.5h4l3 3v3h-7"/><circle cx="6.5" cy="17" r="1.7"/><circle cx="17" cy="17" r="1.7"/></svg>Ships in the US</li>
+    </ul>
+
+    <div class="fx-row" role="group" aria-label="What it does">
+      <button type="button" class="fx is-on" data-cap="Hold a bead, speak, then tap to send your voice." aria-pressed="true"><span class="fx-ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3z"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/></svg></span><span class="fx-l">Voice</span></button>
+      <button type="button" class="fx" data-cap="Touch a bead. Their bracelet lights up." aria-pressed="false"><span class="fx-ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l2.2-5.5 4.4 11 2.2-5.5H21"/></svg></span><span class="fx-l">Pulse</span></button>
+      <button type="button" class="fx" data-cap="Double-tap the hub to alert your trusted circle." aria-pressed="false"><span class="fx-ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 16v-5a6 6 0 1 1 12 0v5l1.6 2H4.4z"/><path d="M10 20.5a2 2 0 0 0 4 0"/></svg></span><span class="fx-l">Alert</span></button>
+      <button type="button" class="fx" data-cap="Your color, glowing on their wrist." aria-pressed="false"><span class="fx-ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3s6.2 6.6 6.2 11.1a6.2 6.2 0 0 1-12.4 0C5.8 9.6 12 3 12 3z"/></svg></span><span class="fx-l">Color</span></button>
+      <button type="button" class="fx" data-cap="Set up phone shortcuts in the M&rsquo;AKOMA app." aria-pressed="false"><span class="fx-ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="2.5" width="10" height="19" rx="2.6"/><path d="M11 18.6h2"/></svg></span><span class="fx-l">Shortcuts</span></button>
+      <button type="button" class="fx" data-cap="Save personal voice notes." aria-pressed="false"><span class="fx-ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.5h16v10.5H9.5L4 20z"/><path d="M8.5 9.5h7M8.5 12.5h4.5"/></svg></span><span class="fx-l">Notes</span></button>
+    </div>
+    <p class="fx-cap" aria-live="polite">Hold a bead, speak, then tap to send your voice.</p>
+
+    <div class="bx" aria-label="Availability">
+      <div class="bx-c bx-c--done"><span class="bx-t">Batch 1</span><span class="bx-stamp">Fully reserved</span></div>
+      <div class="bx-c bx-c--open"><span class="bx-t">Batch 2</span><span class="bx-live"><i aria-hidden="true"></i>Open now</span></div>
+      <p class="bx-note js-pb-left">Ships by 8 November. Get yours before it runs out.</p>
+    </div>
+    <p class="ap-lede" hidden></p>
+    <a href="/" class="btn btn-gold ap-cta" hidden>Back to M&rsquo;AKOMA</a>
   </section>
 
 
@@ -144,7 +170,7 @@
 
     <div class="pre-inner">
       <div class="pre-top">
-        <p class="pre-eyebrow">The first 60</p>
+        <p class="pre-eyebrow">Batch 2 · open now</p>
         <h1 class="pre-h1">Carry them<br/><em>first.</em></h1>
       </div>
 
@@ -189,7 +215,15 @@
              reloads); the waitlist is for people who are not ready to buy yet, so the
              landing is never a dead end for them (added 2026-09-21). -->
         <div class="pre-acts" id="cdAfterOpen" hidden>
-          <a class="btn btn-gold pre-cta" id="cdPreorder" href="/">Preorder</a>
+          <!-- Batches (2026-10-12): batch 1 at $119 is closed with the seats it sold; batch 2 is the
+               rest of the run. The batch 2 price is read from Stripe (/api/checkout?price=1) so the
+               page can never show a different number from the one charged. -->
+          <div class="pre-batches" id="preBatches">
+            <div class="pb pb--done"><span class="pb-n">Batch 1</span><span class="pb-s">Fully reserved</span></div>
+            <div class="pb pb--open"><span class="pb-n">Batch 2</span><span class="pb-s">Now available &middot; ships by 8&nbsp;Nov</span></div>
+            <p class="pb-note"><b class="js-pb-left">Get yours before Batch 2 runs out.</b></p>
+          </div>
+          <a class="btn btn-gold pre-cta" id="cdPreorder" href="/">Preorder Batch 2</a>
           <a class="btn pre-alt" id="cdWaitlist" href="the-piece.html#join">Join the waitlist</a>
           <a class="pre-more" href="https://buy.stripe.com/00w28q75a1n6fU31Sm83C00" rel="noopener">Not buying yet? Support the build</a>
         </div>
@@ -282,7 +316,7 @@
 
       <fieldset class="q" data-q="stopcountry">
         <legend class="q-title">This batch ships to US addresses only.</legend>
-        <p class="q-hint">The first sixty go out to one country so every one of them can be hand-checked. Join the waitlist and you will hear the moment that changes.</p>
+        <p class="q-hint">These hand-built batches ship within the US so every one of them can be hand-checked. Join the waitlist and you will hear the moment that changes.</p>
         <div class="q-actions">
           <button type="button" class="btn btn-line" id="qStopCountryBack">Change my answer</button>
           <a href="the-piece.html#join" class="btn btn-gold">Join the waitlist</a>
@@ -296,25 +330,19 @@
         <input type="hidden" name="metadata__sizes" id="mSizes" value="" />
       </fieldset>
 
-      <fieldset class="q" data-q="agree">
-        <legend class="q-title">Before the price.</legend>
-        <div class="q-agree">
-          <label class="q-check"><input type="checkbox" name="agree_proto" /><span>This is not a finished product.</span></label>
-          <label class="q-check"><input type="checkbox" name="agree_water" /><span>It is not waterproof. If that matters, <a href="the-piece.html#join">wait for the finished product</a>.</span></label>
-          <label class="q-check"><input type="checkbox" name="agree_feedback" /><span>I'm okay sharing weekly feedback.</span></label>
-        </div>
-        <input type="hidden" name="metadata__disclaimers" id="mAgree" value="" />
-      </fieldset>
+      <input type="hidden" name="metadata__disclaimers" id="mAgree" value="" />
 
       <fieldset class="q" data-q="price">
-        <legend class="q-title">Your price.</legend>
+        <legend class="q-title">Your Batch 2 price.</legend>
         <div class="q-price">
+          <p class="q-price-batch1">Batch 1 &middot; $119 &middot; fully reserved</p>
           <p class="q-price-figure" id="qPriceTotal"></p>
           <p class="q-price-detail" id="qPriceLine"></p>
           <p class="q-price-save" id="qPriceSave" hidden></p>
-          <p class="q-price-note" id="qPriceNote">Plus tax and shipping.</p>
+          <p class="q-price-note" id="qPriceNote">US shipping included.</p>
         </div>
-        <p class="q-hint q-price-terms">Nothing is charged now. Full refund before it ships.</p>
+        <p class="q-hint q-price-terms">Batch 2 ships by 8 November. Splash- and dust-resistant. Full refund any time before it ships.</p>
+        <p class="q-price-agree">By paying you agree to the <a href="terms.html" target="_blank" rel="noopener">Terms</a>, <a href="refunds.html" target="_blank" rel="noopener">Refunds</a> and <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> pages.</p>
         <button type="submit" class="btn btn-gold q-submit" id="joinSubmit">Yes, apply</button>
       </fieldset>
 
@@ -332,7 +360,7 @@
   <!-- ============ CHECKOUT (mode: checkout) ============ -->
   <section class="ap-checkout" id="checkout-section" hidden>
     <p class="ap-eyebrow">Checkout</p>
-    <p class="ap-body" id="ppCheckoutLine">One Founder Pilot bracelet. Price, tax and shipping are shown below before you pay. Secure payment by Stripe.</p>
+    <p class="ap-body" id="ppCheckoutLine">Your M&rsquo;AKOMA preorder. The price is shown below before you pay, US shipping included. Secure payment by Stripe.</p>
     <div id="checkout" class="ap-stripe" hidden></div>
     <p class="ap-fine" id="ppStatus" role="status"></p>
   </section>
@@ -342,9 +370,9 @@
     <p class="ap-eyebrow">Questions</p>
     <dl>
       <div><dt>What do I get?</dt><dd>One hand-built bracelet with six person beads, the iPhone app, setup help, and a direct line to the founder.</dd></div>
-      <div><dt>When does it ship?</dt><dd>By 25 October 2026, about five weeks after preorders open. Hand-built, so they leave in waves. If I am going to miss that date you hear from me on or before it, and you can cancel for a full refund. See <a href="shipping.html">shipping</a>.</dd></div>
-      <div><dt>Is this the finished product?</dt><dd>No. A prototype edition: cosmetics vary, firmware changes, not water resistant.</dd></div>
-      <div><dt>Does the other person need one?</dt><dd>Not for a single. They still get your messages, and reach you, from their phone. In a circle, everyone wears one.</dd></div>
+      <div><dt>When does it ship?</dt><dd>Batch 2 ships by 8 November 2026. Batch 1 is fully reserved and ships by 25 October. Hand-built, so they leave in waves. If I am going to miss that date you hear from me on or before it, and you can cancel for a full refund. See <a href="shipping.html">shipping</a>.</dd></div>
+      <div><dt>Is it waterproof?</dt><dd>It is splash- and dust-resistant: rain, spills and everyday dust are fine. It is not waterproof, so take it off to shower, swim or wash dishes.</dd></div>
+      <div><dt>Does the other person need one?</dt><dd>Not for a single. They can reach you from the M&rsquo;AKOMA app on their phone. In a circle, everyone wears one.</dd></div>
     </dl>
   </section>
 
@@ -358,7 +386,7 @@
         <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" width="17" height="17"><path d="M7.0301.084c-1.2768.0602-2.1487.264-2.911.5634-.7888.3075-1.4575.72-2.1228 1.3877-.6652.6677-1.075 1.3368-1.3802 2.127-.2954.7638-.4956 1.6365-.552 2.914-.0564 1.2775-.0689 1.6882-.0626 4.947.0062 3.2586.0206 3.6671.0825 4.9473.061 1.2765.264 2.1482.5635 2.9107.308.7889.72 1.4573 1.388 2.1228.6679.6655 1.3365 1.0743 2.1285 1.38.7632.295 1.6361.4961 2.9134.552 1.2773.056 1.6884.069 4.9462.0627 3.2578-.0062 3.668-.0207 4.9478-.0814 1.28-.0607 2.147-.2652 2.9098-.5633.7889-.3086 1.4578-.72 2.1228-1.3881.665-.6682 1.0745-1.3378 1.3795-2.1284.2957-.7632.4966-1.636.552-2.9124.056-1.2809.0692-1.6898.063-4.948-.0063-3.2583-.021-3.6668-.0817-4.9465-.0607-1.2797-.264-2.1487-.5633-2.9117-.3084-.7889-.72-1.4568-1.3876-2.1228C21.2982 1.33 20.628.9208 19.8378.6165 19.074.321 18.2017.1197 16.9244.0645 15.6471.0093 15.236-.005 11.977.0014 8.718.0076 8.31.0215 7.0301.0839m.1402 21.6932c-1.17-.0509-1.8053-.2453-2.2287-.408-.5606-.216-.96-.4771-1.3819-.895-.422-.4178-.6811-.8186-.9-1.378-.1644-.4234-.3624-1.058-.4171-2.228-.0595-1.2645-.072-1.6442-.079-4.848-.007-3.2037.0053-3.583.0607-4.848.05-1.169.2456-1.805.408-2.2282.216-.5613.4762-.96.895-1.3816.4188-.4217.8184-.6814 1.3783-.9003.423-.1651 1.0575-.3614 2.227-.4171 1.2655-.06 1.6447-.072 4.848-.079 3.2033-.007 3.5835.005 4.8495.0608 1.169.0508 1.8053.2445 2.228.408.5608.216.96.4754 1.3816.895.4217.4194.6816.8176.9005 1.3787.1653.4217.3617 1.056.4169 2.2263.0602 1.2655.0739 1.645.0796 4.848.0058 3.203-.0055 3.5834-.061 4.848-.051 1.17-.245 1.8055-.408 2.2294-.216.5604-.4763.96-.8954 1.3814-.419.4215-.8181.6811-1.3783.9-.4224.1649-1.0577.3617-2.2262.4174-1.2656.0595-1.6448.072-4.8493.079-3.2045.007-3.5825-.006-4.848-.0608M16.953 5.5864A1.44 1.44 0 1 0 18.39 4.144a1.44 1.44 0 0 0-1.437 1.4424M5.8385 12.012c.0067 3.4032 2.7706 6.1557 6.173 6.1493 3.4026-.0065 6.157-2.7701 6.1506-6.1733-.0065-3.4032-2.771-6.1565-6.174-6.1498-3.403.0067-6.156 2.771-6.1496 6.1738M8 12.0077a4 4 0 1 1 4.008 3.9921A3.9996 3.9996 0 0 1 8 12.0077"/></svg>
         <span>@makoma.io</span>
       </a>
-      <span class="footer-meta">An early-stage beaded-technology company · first product in prototype · built by Melvin Osei Opoku · <a href="refunds.html">Refunds</a> · <a href="shipping.html">Shipping</a> · <a href="terms.html">Terms</a> · <a href="NOTICES.txt">Notices</a></span>
+      <span class="footer-meta">An early-stage beaded-technology company · hand-built in small batches · built by Melvin Osei Opoku · <a href="refunds.html">Refunds</a> · <a href="shipping.html">Shipping</a> · <a href="terms.html">Terms</a> · <a href="privacy.html">Privacy</a> · <a href="NOTICES.txt">Notices</a></span>
     </div>
   </footer>
 
@@ -373,6 +401,31 @@
       try { if (window.MakomaPilotAnalytics) window.MakomaPilotAnalytics.emit(type, value); } catch (e) {} // never block checkout
     }
     var $ = function (s) { return document.querySelector(s); };
+    /* Batch cards (2026-10-12): the batch-2 price is read from Stripe so it always matches the
+       amount charged; the seats line comes from the live counter. Both fail quietly. */
+    /* Feature row: one short caption, changed by tapping an icon. It cycles slowly on its own
+       until someone taps, so the row reads as alive without a wall of text. */
+    (function featureRow() {
+      var btns = Array.prototype.slice.call(document.querySelectorAll(".fx")), cap = document.querySelector(".fx-cap");
+      if (!btns.length || !cap) return;
+      var i = 0, timer = null;
+      var pick = function (n) {
+        i = n; btns.forEach(function (b, k) { b.classList.toggle("is-on", k === n); b.setAttribute("aria-pressed", k === n ? "true" : "false"); });
+        cap.classList.remove("is-in"); void cap.offsetWidth; cap.innerHTML = btns[n].getAttribute("data-cap"); cap.classList.add("is-in");
+      };
+      btns.forEach(function (b, k) { b.addEventListener("click", function () { if (timer) { clearInterval(timer); timer = null; } pick(k); }); });
+      var still = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      if (!still) timer = setInterval(function () { pick((i + 1) % btns.length); }, 2600);
+    })();
+    (function batchCards() {
+      var each = function (sel, fn) { Array.prototype.forEach.call(document.querySelectorAll(sel), fn); };
+      var getJ = function (u) { return fetch(u).then(function (r) { return r.ok ? r.json() : Promise.reject(); }); };
+      getJ("/api/checkout?seats=1").then(function (j) {
+        var t = j.left === 0 ? "Batch 2 is fully reserved."
+          : (j.left > 0 && j.left <= 40 ? "Only " + j.left + " left. Ships by 8 November." : "");
+        if (t) each(".js-pb-left", function (e) { e.textContent = t; });
+      }).catch(function () {});
+    })();
     var set = function (id, v) { var e = $(id); if (e && v) e.textContent = v; };
     /* The deadline line stays hidden unless a date is supplied, so the page can never
        publish a date that has already passed. */
@@ -442,8 +495,8 @@
     // One order ships to one address and the app works wherever the circle lives, so a
     // circle answers ship-to once, like a single. (The per-person bead map stays in the
     // markup for the application flow's history but is never shown here.)
-    function order() { return A.way === "circle" ? ["way", "count", "iphone", "country", "size", "email", "agree", "price"] : ["way", "iphone", "country", "size", "email", "agree", "price"]; }
-    function agreed() { return ["agree_proto", "agree_water", "agree_feedback"].every(function (n) { var b = document.querySelector('input[name="' + n + '"]'); return b && b.checked; }); }
+    function order() { return A.way === "circle" ? ["way", "count", "iphone", "country", "size", "email", "price"] : ["way", "iphone", "country", "size", "email", "price"]; }
+    function agreed() { return true; }   // the three acknowledgement checkboxes were removed 2026-10-12 (Melvin); batch terms are shown on the price step
 
     // ---- the circle as the real bead carousel (js/pilotring.js) ----
     var FLAG = { "United States": "🇺🇸", "Canada": "🇨🇦", "United Kingdom": "🇬🇧", "Ghana": "🇬🇭", "Nigeria": "🇳🇬", "Other": "🌍" };
@@ -492,7 +545,7 @@
     form.addEventListener("input", refreshNext); form.addEventListener("change", refreshNext);
 
     function paintChoices() { document.querySelectorAll(".q-choice").forEach(function (l) { l.classList.toggle("is-on", !!l.querySelector("input:checked")); }); }
-    function show(id) {
+    function show(id, quiet) {   // quiet: open a step without moving the page (page load)
       if (CHECKOUT && !new URLSearchParams(location.search).has("session_id")) pilotEvent("step", id);
       if (id !== "price" && mounted) abandonMounted();   // the old form must not stay payable while answers change
       Object.keys(panels).forEach(function (k) { panels[k].hidden = k !== id; });
@@ -509,7 +562,7 @@
       refreshNext();
       if (id === "stop") $("#qStopText").textContent = A.way === "circle"
         ? "Every wrist in a circle needs an iPhone for the pilot app. Change the number to the people who have one, or apply as a single."
-        : "Android is not part of this first sixty. Join the waitlist and you will hear the moment that changes.";
+        : "Android is not supported yet. Join the waitlist and you will hear the moment that changes.";
       if (id === "price") {
         var c = A.way === "circle" ? A.count : 1, each = priceEach(c);
         if (each === null && CHECKOUT && !priceAsked) {   // Stripe holds the amount: ask the server once
@@ -535,9 +588,10 @@
         var save = $("#qPriceSave");                       // the discount earns its own line, not a tail on the fine print
         if (total < full) { save.textContent = "You save $" + (full - total) + " at the pair rate"; save.hidden = false; }
         else { save.textContent = ""; save.hidden = true; }
-        $("#qPriceNote").textContent = "Plus tax and shipping.";
+        $("#qPriceNote").textContent = "US shipping included.";   // no shipping rate or Stripe Tax is set (2026-10-12): the price is the total
         $("#mEach").value = String(each); $("#mTotal").value = String(total);
       }
+      if (quiet) return;
       var focus = panels[id].querySelector("input:not([type=radio]), select"); if (focus) setTimeout(function () { focus.focus(); }, 60);
       panels[id].scrollIntoView({ behavior: "smooth", block: "center" });
     }
@@ -549,7 +603,7 @@
       if (id === "count") { var c = document.querySelector('input[name="count"]:checked'); if (!c) return fail("How many, including you?"); A.count = parseInt(c.value, 10); $("#mCount").value = c.value; return true; }
       if (id === "iphone") { var ip = document.querySelector('input[name="iphone"]:checked'); if (!ip) return fail("Yes or no?"); A.iphone = ip.value; $("#mIphone").value = ip.value; return true; }
       if (id === "country") { if (!$("#qCountry").value) return fail("Which country?", $("#qCountry")); return true; }
-      if (id === "agree") { if (!agreed()) return fail("", null); $("#mAgree").value = "proto,water,weekly-feedback"; return true; }
+      if (id === "agree") return true;
       if (id === "size") {
         var sz = sizes(), bad = sz.indexOf("");
         if (bad >= 0) return fail("A size for " + (sz.length > 1 ? (bad === 0 ? "you" : "person " + (bad + 1)) : "your wrist") + ", please.");
@@ -684,7 +738,7 @@
     if (P.mode === "countdown") setupCountdown(false);
     else if (P.mode === "checkout" && showPreorderLanding) setupCountdown(true);
     else if (P.mode === "checkout") setupCheckoutChrome();
-    else if (P.mode === "apply") show("way");
+    else if (P.mode === "apply") show("way", true);
     else setupClosed();
 
     function setupClosed() {
@@ -694,9 +748,10 @@
       var pre = $("#preorder"); if (pre) pre.hidden = true;
       var h1 = document.querySelector(".ap-h1"), cta = document.querySelector(".ap-cta");
       if (h1) h1.innerHTML = "The Founder Pilot<br/>is closed.";
-      if (cta) { cta.textContent = "Back to M\u2019AKOMA"; cta.setAttribute("href", "/"); }
+      if (cta) { cta.textContent = "Back to M\u2019AKOMA"; cta.setAttribute("href", "/"); cta.hidden = false; }
       var lede = document.querySelector(".ap-lede");
-      if (lede) lede.textContent = "No bracelets are being sold or shipped. Five are being built and tested privately.";
+      if (lede) { lede.textContent = "No bracelets are being sold or shipped. Five are being built and tested privately."; lede.hidden = false; }
+      var grid = document.querySelector(".fx-row"), batches = document.querySelector(".bx"), cap = document.querySelector(".fx-cap"), chips = document.querySelector(".ap-chips"); [grid, batches, cap, chips].forEach(function (e) { if (e) e.hidden = true; });
       var lede2 = document.querySelector(".ap-lede--2"); if (lede2) lede2.hidden = true;
       document.querySelectorAll('.nav-cta, .nav-link-cta, a[href="#apply"]').forEach(function (a) {
         a.setAttribute("href", "/");
@@ -711,21 +766,22 @@
     function setupCheckoutChrome() {
       var h1 = document.querySelector(".ap-h1"), c = document.querySelector(".ap-cta");
       var applySec = $("#apply");
-      if (h1) h1.innerHTML = "60 bracelets.<br/>Yours is one.";
       /* Preorder leads into the questions, not straight to a card form: circle or single,
          how many, iPhone, ship-to, wrist sizes, colours, email, the acknowledgements, the
          price. Only the last step opens Stripe, which then asks for card, address and phone. */
       var target = CHECKOUT ? "#apply" : "#checkout-section";
       if (c) { c.textContent = "Preorder"; c.setAttribute("href", target); }
       document.querySelectorAll('.nav-cta, .nav-link-cta, a[href="#apply"]').forEach(function (a) {
-        a.setAttribute("href", target);
         if (/^apply$/i.test(a.textContent.trim())) a.textContent = "Preorder";
+        if (!CHECKOUT) { a.setAttribute("href", target); return; }
+        a.setAttribute("href", "/preorder");
+        a.addEventListener("click", function (e) { e.preventDefault(); window.scrollTo({ top: 0, behavior: "smooth" }); });
       });
       if (CHECKOUT) {
         if (applySec) applySec.hidden = false;
         $("#joinSubmit").textContent = "Checkout";
-        $(".q-price-terms").textContent = "Card, address and phone on the next step. Full refund before it ships.";
-        show("way");
+        $(".q-price-terms").textContent = "Batch 2 ships by 8 November. Splash- and dust-resistant. Card, address and phone on the next step. Full refund any time before it ships.";
+        show("way", true);              // Melvin 2026-10-12: Preorder lands on the top of the page, never mid-steps
       } else if (applySec) applySec.hidden = true;
       /* Checkout mode with no publishable key used to be a dead end: the application was
          hidden and the Preorder button pointed at a section that never appeared (the
@@ -839,7 +895,7 @@
     if (P.mode !== "checkout") return;
     if (!P.stripePublishableKey) { console.error("[pilot] mode is checkout but stripePublishableKey is empty: nothing can be sold; the page shows the switching-on notice"); return; }
     var apply = $("#apply"), cta = $(".ap-cta"), section = $("#checkout-section"), pstatus = $("#ppStatus"), done = $("#done");
-    if (P.shipWindow) set("#ppCheckoutLine", "One Founder Pilot bracelet, plus tax and shipping, shipping " + P.shipWindow + ". The price is shown below before you pay. Secure payment by Stripe.");
+    if (P.shipWindow) set("#ppCheckoutLine", "Your M\u2019AKOMA preorder, US shipping included, ships " + P.shipWindow + ". The price is shown below before you pay. Secure payment by Stripe.");
     var sid = new URLSearchParams(location.search).get("session_id");
     if (sid) {
       /* Never confirm on the URL alone: ask the server what Stripe says about this session.
@@ -978,7 +1034,7 @@
           if (m.indexOf("sold_out:") === 0) {
             var left = parseInt(m.slice(9), 10) || 0, want = A.way === "circle" ? A.count : 1;
             if (left > 0 && want > left) { say("Only " + left + (left === 1 ? " seat is" : " seats are") + " left. Press Back and choose a circle of " + left + " or fewer."); return; }
-            say("All sixty seats are taken."); btn.disabled = true; btn.textContent = "Sold out";
+            say("Batch 2 is fully reserved."); btn.disabled = true; btn.textContent = "Sold out";
             if (!document.getElementById("soldOutWaitlist")) {
               var wl = document.createElement("a"); wl.id = "soldOutWaitlist"; wl.href = "the-piece.html#join"; wl.className = "btn btn-line"; wl.textContent = "Join the waitlist for the next batch"; wl.style.marginTop = "14px";
               status.insertAdjacentElement("afterend", wl);   // under the questionnaire's status line, which is what the buyer is looking at

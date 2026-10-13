@@ -2428,6 +2428,7 @@ html.box-lock .cta-dock{ transform:translateY(105%); opacity:0; pointer-events:n
 .ap-lede{ color:var(--ink-soft); font-size:clamp(1.05rem,2.2vw,1.3rem); line-height:1.5; margin:0 auto 30px; max-width:34ch; }
 .ap-nowrap{ white-space:nowrap; color:var(--ink); }
 .ap-cta{ min-width:200px; justify-content:center; }
+.ap-cta[hidden]{ display:none; }
 .ap-fine{ color:var(--ink-mute); font-size:.84rem; line-height:1.5; margin:16px 0 0; }
 .ap-media{ max-width:1100px; margin-top:64px !important; }
 .ap-video{ display:block; width:100%; aspect-ratio:4/5; max-height:80vh; object-fit:cover; border-radius:24px; background:var(--panel); }
@@ -2566,7 +2567,7 @@ select.q-input{ appearance:none; -webkit-appearance:none; padding-right:36px;
    which is unreadable over this film. Literal, like everything else here. */
 .nav--pre .brand-mark, .nav--pre .brand-mark .tm{ color:#ece6d8 !important; }
 .nav--pre .brand-ico{ filter:none; opacity:.9; }
-.nav--pre::after{ content:"Founder Pilot"; margin-left:auto; font-family:var(--mono);
+.nav--pre::after{ content:none; margin-left:auto; font-family:var(--mono);
                   font-size:.66rem; letter-spacing:.2em; text-transform:uppercase; color:rgba(236,230,216,.72); }
 
 .pre{ position:relative; min-height:100svh; min-height:100dvh; display:flex; overflow:hidden; background:#060607; }
@@ -2659,6 +2660,85 @@ select.q-input{ appearance:none; -webkit-appearance:none; padding-right:36px;
            letter-spacing:.14em; text-transform:uppercase; color:rgba(236,230,216,.62);
            text-shadow:0 1px 12px rgba(6,6,7,.6); text-decoration:none; padding:.6em 1em; }
 .pre-more:hover{ color:#fff; }
+/* Batch card above the Preorder button (2026-10-12) */
+.pre-batches{ flex-basis:100%; width:100%; max-width:440px; margin:0 auto 6px; display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+.pb{ display:flex; flex-direction:column; align-items:flex-start; gap:2px; padding:12px 14px; border-radius:14px;
+     border:1px solid rgba(255,255,255,.16); background:rgba(0,0,0,.38); -webkit-backdrop-filter:blur(6px); backdrop-filter:blur(6px); text-align:left; }
+.pb-n{ font-family:var(--mono); font-size:.62rem; letter-spacing:.14em; text-transform:uppercase; color:rgba(255,255,255,.62); }
+.pb-p{ font-size:1.5rem; font-weight:600; color:#fff; line-height:1.15; }
+.pb-s{ font-size:.78rem; line-height:1.3; color:rgba(255,255,255,.75); }
+.pb--done{ opacity:.6; }
+.pb--done .pb-s::before{ content:"\2713\00a0"; }
+.pb--open{ border-color:var(--gold); box-shadow:inset 0 0 0 1px rgba(201,160,78,.35); }
+.pb--open .pb-s{ color:var(--gold); }
+.pb-note{ grid-column:1/-1; margin:2px 0 0; font-size:.78rem; line-height:1.45; color:rgba(255,255,255,.78); text-align:center; }
+.pb-note b{ display:block; color:#fff; font-weight:600; font-size:.9rem; margin-bottom:2px; }
+.pre-batches .pb{ justify-content:center; min-height:64px; }
+.pre-batches .pb-s{ font-size:.9rem; }
+.pre-batches .pb--done .pb-s{ text-decoration:none; }
+.q-price-batch1{ margin:0 0 4px; font-family:var(--mono); font-size:.68rem; letter-spacing:.12em; text-transform:uppercase; color:var(--ink); opacity:.55; }
+/* Preorder hero (2026-10-12 v2): the piece first, then one line of what it is, a row of six
+   small icons sharing ONE caption, then a two-line availability strip. Nothing boxed. */
+.ap-hero--product{ padding-top:18px !important; }
+.ap-hero .ap-render{ margin:0 auto 26px; max-width:440px; }
+/* The wrist film is the page's backdrop, not a player (Melvin 2026-10-12): edge to edge on phones, no
+   frame or corners, every edge dissolving into the page colour, and the headline sitting on its fade. */
+.ap-hero--product{ padding-top:0 !important; }
+.ap-hero .ap-film{ position:relative; max-width:none; margin:-86px -24px 0; height:calc(min(124vw, 70svh) + 86px); overflow:hidden; border-radius:0; background:none;
+  --fy:74%;   /* starts behind the nav (.ap's 86px top padding), so the film runs from the very top of the screen */
+  -webkit-mask-image:linear-gradient(180deg, transparent 0, rgba(0,0,0,.35) 12%, #000 27%, #000 70%, transparent 100%);
+          mask-image:linear-gradient(180deg, transparent 0, rgba(0,0,0,.35) 12%, #000 27%, #000 70%, transparent 100%); }
+@media (min-width:600px){
+  .ap-hero .ap-film{ margin:-86px auto 0; width:100%; height:calc(min(76svh, 700px) + 86px); --fy:64%;
+    -webkit-mask-image:linear-gradient(180deg, transparent 0, rgba(0,0,0,.35) 12%, #000 27%, #000 70%, transparent 100%), linear-gradient(90deg, transparent 0, #000 20%, #000 80%, transparent 100%);
+    -webkit-mask-composite:source-in;
+            mask-image:linear-gradient(180deg, transparent 0, rgba(0,0,0,.35) 12%, #000 27%, #000 70%, transparent 100%), linear-gradient(90deg, transparent 0, #000 20%, #000 80%, transparent 100%);
+            mask-composite:intersect; }
+}
+/* 130% box offset so the bracelet (51.4% across; --fy puts it mid-box) lands dead centre, 1.3x zoom */
+.ap-film video{ position:absolute; left:-16.8%; top:-15%; width:130%; height:130%; object-fit:cover; object-position:51% var(--fy);
+  pointer-events:none; }
+.ap-hero--product .ap-film + script + .ap-eyebrow{ position:relative; margin-top:-56px; }
+@media (min-width:600px){ .ap-film video{ left:0; top:0; width:100%; height:100%; } }   /* wide band: no zoom, the whole bracelet shows */
+.ap-film video::-webkit-media-controls, .ap-film video::-webkit-media-controls-start-playback-button,
+.ap-film video::-webkit-media-controls-overlay-play-button{ display:none !important; -webkit-appearance:none; }
+.ap-hero .ap-h1{ margin-bottom:10px; }
+.fx-row{ display:flex; justify-content:center; gap:4px; margin:0 auto; max-width:440px; }
+.fx{ flex:1 1 0; min-width:0; display:flex; flex-direction:column; align-items:center; gap:6px; padding:4px 0; border:0; background:none;
+  color:var(--ink); font:inherit; cursor:pointer; -webkit-tap-highlight-color:transparent; }
+.fx-ic{ width:42px; height:42px; border-radius:50%; display:grid; place-items:center; color:var(--gold);
+  border:1px solid color-mix(in srgb, var(--gold) 40%, transparent);
+  transition:background .35s ease, color .35s ease, box-shadow .35s ease, transform .35s ease; }
+.fx-ic svg{ width:19px; height:19px; }
+.fx-l{ font-family:var(--mono); font-size:.56rem; letter-spacing:.1em; text-transform:uppercase; opacity:.6; transition:opacity .35s ease; white-space:nowrap; }
+.fx.is-on .fx-ic{ background:var(--gold); color:var(--black); box-shadow:0 0 0 6px color-mix(in srgb, var(--gold) 16%, transparent); transform:scale(1.06); }
+.fx.is-on .fx-l{ opacity:1; }
+.fx:focus-visible{ outline:none; } .fx:focus-visible .fx-ic{ box-shadow:0 0 0 2px var(--gold); }
+.fx-cap{ min-height:2.9em; margin:12px auto 0; max-width:36ch; text-wrap:balance; font-size:.98rem; line-height:1.45; color:var(--ink); }
+.fx-cap.is-in{ animation:fxCap .45s ease; }
+@keyframes fxCap{ from{ opacity:0; transform:translateY(4px); } to{ opacity:1; transform:none; } }
+.ap-chips{ list-style:none; display:flex; flex-wrap:wrap; justify-content:center; gap:8px; margin:6px -12px 26px; padding:0; }
+.ap-chips li{ display:inline-flex; align-items:center; gap:6px; padding:7px 12px 7px 9px; border-radius:999px; font-size:.8rem; font-weight:600; color:var(--ink); white-space:nowrap;
+  border:1px solid color-mix(in srgb, var(--gold) 55%, transparent); background:color-mix(in srgb, var(--gold) 10%, transparent); }
+.ap-chips svg{ width:16px; height:16px; color:var(--gold); flex:0 0 auto; }
+@media (max-width:370px){ .ap-chips{ gap:6px; } .ap-chips li{ font-size:.74rem; padding:7px 10px 7px 8px; } .fx-l{ letter-spacing:.03em; } .bx-stamp{ letter-spacing:.08em; font-size:.6rem; } }
+@media (min-width:560px){ .ap-chips{ margin-inline:auto; } .ap-chips li{ font-size:.88rem; padding:8px 15px 8px 11px; } }
+/* Batch tiles: closed one stamped and dimmed, open one in solid gold with a live dot */
+.bx{ max-width:420px; margin:30px auto 8px; display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+.bx-c{ position:relative; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; min-height:104px; padding:16px 10px; border-radius:18px; overflow:hidden; }
+.bx-t{ font-family:var(--serif); font-size:1.65rem; font-weight:500; line-height:1; }
+.bx-c--done{ color:var(--ink); border:1px dashed color-mix(in srgb, var(--ink) 30%, transparent);
+  background:repeating-linear-gradient(135deg, transparent 0 9px, color-mix(in srgb, var(--ink) 5%, transparent) 9px 10px); }
+.bx-c--done .bx-t{ opacity:.45; text-decoration:line-through; text-decoration-thickness:2px; }
+.bx-stamp{ white-space:nowrap; font-family:var(--mono); font-size:.66rem; font-weight:700; letter-spacing:.12em; text-transform:uppercase; padding:4px 8px; border:2px solid currentColor; border-radius:6px; transform:rotate(-6deg); opacity:.8; }
+.bx-c--open{ color:var(--black); background:linear-gradient(140deg, var(--gold-bright, #e2c27a), var(--gold) 70%);
+  box-shadow:0 12px 34px -10px color-mix(in srgb, var(--gold) 75%, transparent); animation:bxGlow 2.8s ease-in-out infinite; }
+.bx-live{ display:inline-flex; align-items:center; gap:7px; font-family:var(--mono); font-size:.7rem; font-weight:700; letter-spacing:.14em; text-transform:uppercase; }
+.bx-live i{ width:8px; height:8px; border-radius:50%; background:currentColor; animation:bxDot 1.6s ease-out infinite; }
+@keyframes bxDot{ 0%{ box-shadow:0 0 0 0 color-mix(in srgb, var(--black) 55%, transparent); } 100%{ box-shadow:0 0 0 9px transparent; } }
+@keyframes bxGlow{ 50%{ box-shadow:0 14px 44px -8px color-mix(in srgb, var(--gold) 95%, transparent); } }
+.bx-note{ grid-column:1/-1; margin:8px 0 0; text-wrap:balance; font-size:.95rem; font-weight:600; color:var(--ink); }
+@media (prefers-reduced-motion:reduce){ .fx-ic, .fx-l{ transition:none; } .fx-cap.is-in, .bx-c--open, .bx-live i{ animation:none; } }
 @media (min-width:560px){ .pre-acts{ flex-wrap:wrap; } }
 .pre-cta svg{ width:17px; height:17px; flex:0 0 auto; transition:transform .3s var(--ease); }
 .pre-cta:hover svg{ transform:translate(2px,-2px); }
@@ -2667,7 +2747,20 @@ select.q-input{ appearance:none; -webkit-appearance:none; padding-right:36px;
   .pre-cta, .pre-cta svg{ transition:none; }
   .pre-bg{ display:none; }
   .pre{ background:#060607 url("../assets/img/pilot/flex-colors-poster.webp?v=2") center 45%/cover no-repeat; }
+  /* the landing film's own still (the ring lit), in the cut that matches the screen */
+  .pre--landing{ background:#060607 url("../assets/img/pilot/film-tall-still.webp?v=1") center 50%/cover no-repeat; }
 }
+@media (prefers-reduced-motion: reduce) and (min-aspect-ratio: 1/1){
+  .pre--landing{ background-image:url("../assets/img/pilot/film-wide-still.webp?v=1"); }
+}
+/* A background film, never a player: iOS draws a start button over a muted autoplay video that Low
+   Power Mode refused to play. Hide it so the first frame just sits there like an image. */
+.pre-concept{ position:absolute; right:16px; bottom:12px; z-index:1; margin:0; pointer-events:none;
+  font-family:var(--mono); font-size:.56rem; letter-spacing:.16em; text-transform:uppercase; color:rgba(236,230,216,.45); }
+.q-price-agree{ margin:10px 0 0; font-size:.8rem; line-height:1.5; color:var(--ink); opacity:.7; }
+.q-price-agree a{ color:inherit; text-decoration:underline; text-underline-offset:2px; }
+.pre-bg::-webkit-media-controls, .pre-bg::-webkit-media-controls-start-playback-button,
+.pre-bg::-webkit-media-controls-overlay-play-button{ display:none !important; -webkit-appearance:none; }
 
 /* ---- policy pages (refunds, shipping, terms) --------------------------------
    Long-form reading, not marketing. One narrow column, generous leading, and the

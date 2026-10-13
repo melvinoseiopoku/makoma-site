@@ -140,8 +140,10 @@ const slowNet = conn.saveData === true || /(^|-)2g$/.test(conn.effectiveType || 
 // idle — instead of on the first scroll, and no still is shown in the meantime (2026-09-23).
 const behindLanding = !!(section && section.classList.contains("hero3d--behind-landing"));
 function afterPageSettles(fn) {
-  const go = () => (window.requestIdleCallback || ((f) => setTimeout(f, 300)))(fn, { timeout: 1500 });
-  if (document.readyState === "complete") go(); else window.addEventListener("load", go, { once: true });
+  let fired = false;
+  const go = () => { if (fired) return; fired = true; (window.requestIdleCallback || ((f) => setTimeout(f, 300)))(fn, { timeout: 1500 }); };
+  if (document.readyState === "complete") go();
+  else { window.addEventListener("load", go, { once: true }); setTimeout(go, 2500); }   // one stalled image must not hold the 3D back (review)
 }
 
 // /customize is the designer as a real, linkable page. Vercel rewrites it onto this same
@@ -196,8 +198,9 @@ if (reduce || slowNet || !webglOK()) {
   // the film keeps playing, and the vitrine takes over only when it is actually ready.
   armDeferredHero();
 } else if (behindLanding && !wantsCustomize) {
-  window.__hero = { deferred: true };   // the page's 6 s "3D never ran" safety net reads this
-  afterPageSettles(() => init().catch(heroFailed));
+  // desktop behind the landing: same deferred start as phones (first scroll, a Customize tap with
+  // feedback, or the page settling), rather than waiting on 'load' alone (review, 2026-09-23)
+  armDeferredHero();
 } else {
   init().catch(heroFailed);
 }
@@ -1226,7 +1229,7 @@ async function init() {
     ready = true;
     // pay the designer's build + shader compile while nobody is waiting (see prewarmDesigner)
     const _idle = window.requestIdleCallback || ((fn) => setTimeout(fn, 1));
-    if (!new URLSearchParams(location.search).has("noprewarm")) setTimeout(() => _idle(() => prewarmDesigner(), { timeout: 4000 }), 2500);   // ?noprewarm=1 isolates the prewarm when diagnosing framing
+    if (!new URLSearchParams(location.search).has("noprewarm")) whenHeroSeen(() => setTimeout(() => _idle(() => prewarmDesigner(), { timeout: 4000 }), 2500));   // ?noprewarm=1 isolates the prewarm when diagnosing framing
     if (loaderEl) loaderEl.classList.add("hide");
     poster.classList.add("hide");
     section.classList.add("live3d");   // light-mode overlays that rely on the canvas occluding them key off this
@@ -1270,6 +1273,11 @@ async function init() {
   }
 
   let ready = false, progress = 0, target = 0, idle = 0, inView = true;
+  // Behind the landing on /, the designer extras (board GLBs, vitrine, CSG) wait until the hero has
+  // actually been on screen, so a visitor who only taps Preorder never downloads them (review).
+  let heroSeen = !behindLanding;
+  const seenQueue = [];
+  const whenHeroSeen = (fn) => { if (heroSeen) fn(); else seenQueue.push(fn); };
   function onScroll() {
     // Plain mapping: the hero's travel is the timeline. [0..OBJECT_FRAC] the object phase,
     // beyond it the box segment — the render loop watches `progress` cross the boundary and
@@ -1627,7 +1635,12 @@ async function init() {
   window.addEventListener("scroll", onScroll, { passive: true });
   window.addEventListener("resize", resize);
   if (window.visualViewport) window.visualViewport.addEventListener("resize", resize);   // mobile URL-bar show/hide resizes the canvas box
-  new IntersectionObserver((es) => { inView = es[0].isIntersecting; }, { threshold: 0 }).observe(section);
+  // rootMargin -1px: a hero whose top merely touches the viewport's bottom edge (exactly where it sits under
+  // the landing) is NOT in view; one real pixel is. Without it the scene rendered every frame unseen.
+  new IntersectionObserver((es) => {
+    inView = es[0].isIntersecting;
+    if (inView && !heroSeen) { heroSeen = true; while (seenQueue.length) seenQueue.shift()(); }
+  }, { threshold: 0, rootMargin: "0px 0px -1px 0px" }).observe(section);
   resize();
 
   // ---- gather interaction: drag a bracelet to spin it; tap it to light up + buzz (only once gathered) ----
@@ -2204,9 +2217,9 @@ async function init() {
     for (const p of parts) p.dir = axis;
     // one defensible tag per component (GPS is flagged "soon" — it isn't shipped; battery is the documented standby figure)
     const labels = buildHubLabels([
-      [top.obj,  "Water-ready"],
+      [top.obj,  "Splash-resistant"],
       [board,    "Motion-aware · GPS soon"],
-      [battery,  "Weeks on standby"],
+      [battery,  "USB-C charging"],
       [speaker,  "Real sound + mic"],
       [base.obj, "Adjustable fit"],
     ]);
@@ -3029,7 +3042,9 @@ async function init() {
     // the canvas is sticky only inside the hero — make sure the visitor is looking at it. The hero is
     // no longer always at y=0: on / the two-button landing screen sits above it (2026-09-23).
     const heroTop = Math.round(section.getBoundingClientRect().top + window.scrollY);
-    if (Math.abs(window.scrollY - heroTop) > 4) window.scrollTo({ top: heroTop, behavior: "auto" });
+    // "instant", not "auto": auto follows html{scroll-behavior:smooth}, and the animation's own scroll events
+    // expired the pending open below, so a Customize tap before the model loaded never opened (review).
+    if (Math.abs(window.scrollY - heroTop) > 4) window.scrollTo({ top: heroTop, behavior: "instant" });
     target = progress = 0;
     setBoxURL(true);
     if (ready) { enterBox(); lockScroll(); }
@@ -3375,6 +3390,7 @@ async function init() {
     if (pendingBox && !boxMode && Math.abs(section.getBoundingClientRect().top) > window.innerHeight * 0.5) {
       pendingBox = false;
       setBoxURL(false);
+      document.querySelectorAll("[data-open-box]").forEach((o) => o.classList.remove("is-working"));   // an expired intent must not leave the buttons spinning
     }
   }, { passive: true });
   // The fixed nav floats above the open designer. A nav link tapped in there should WORK — close
@@ -3443,11 +3459,17 @@ async function init() {
     initHeroText();     // capture the sub-line the object phase cycles its copy through
     build();
     setupExplode();
-    onScroll(); render();   // FIRST paint — deliberately after setupExplode(), see the note at the end of build()
+    onScroll();
+    // FIRST paint — deliberately after setupExplode(), see the note at the end of build(). Behind the landing
+    // the hero is off screen, so compile the shaders in parallel first (KHR_parallel_shader_compile) instead
+    // of inside a presented frame, which stalled the landing video (review, 2026-09-23).
+    const firstPaint = () => render();
+    if (behindLanding && renderer.compileAsync) renderer.compileAsync(scene, camera).then(firstPaint, firstPaint);
+    else firstPaint();
     if (introEligible()) introStart();   // the one-time cinematic opening
     buildGather();      // clone the FINISHED hero bracelet (after setupExplode → glow + hub correct) for the circle
     // setupExplode queued the two board GLBs rather than fetching them. Pull them in once the main thread
     // goes quiet (the timeout is the backstop for browsers without requestIdleCallback, e.g. older Safari).
-    (window.requestIdleCallback || ((fn) => setTimeout(fn, 1500)))(requestBoards, { timeout: 4000 });
+    whenHeroSeen(() => (window.requestIdleCallback || ((fn) => setTimeout(fn, 1500)))(requestBoards, { timeout: 4000 }));
   }, undefined, fail);
 }

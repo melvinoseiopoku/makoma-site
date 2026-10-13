@@ -16,7 +16,7 @@
      STRIPE_SECRET_KEY     rk_live_... restricted: Checkout Sessions WRITE + Prices READ
      STRIPE_PRICE_ID       price_... one-time price; the amount lives only in Stripe
      PILOT_OPENS_AT        2026-09-20T12:00:00-04:00 (with the offset; fails closed if missing)
-     PILOT_SHIP_WINDOW     "by 25 October 2026" — shown on the pay button; must match the pages
+     PILOT_SHIP_WINDOW     "by 8 November 2026" — shown on the pay button (batch 2, set 2026-10-12); must match the pages
      PILOT_SEATS           whole number, default 60; anything else fails closed
      UPSTASH_REDIS_REST_URL / UPSTASH_REDIS_REST_TOKEN   the reservation store (Vercel → Storage →
                            Upstash Redis, connected to the project; KV_REST_API_* also accepted).
@@ -55,11 +55,11 @@ const ALLOWED_ORIGINS = [
   "http://127.0.0.1:8765",
 ];
 const OFFER = "founder-pilot";
-const TERMS_VERSION = "2026-09-19";          // the refunds, shipping and terms pages as published
+const TERMS_VERSION = "2026-10-12";          // the refunds, shipping and terms pages as published
 const HOLD_MINUTES = 30;                     // Stripe's minimum Checkout Session lifetime
 const HOLD_MARGIN_MS = 90 * 1000;            // the store hold outlives the Stripe session slightly
 const SIZES = { small: "Small", medium: "Medium", large: "Large" };
-const ACKNOWLEDGED = "proto,water,weekly-feedback";   // the three checkboxes on the page
+const ACKNOWLEDGED = "terms-linked-at-pay";   // no checkboxes since 2026-10-12: the price step says "By paying you agree to the Terms, Refunds and Privacy pages" with links
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 function corsHeaders(req) {
@@ -140,7 +140,6 @@ function readAnswers(body) {
   if (sizes.length !== count || sizes.some((v) => !SIZES[v])) return { ok: false, detail: "a wrist size for every bracelet" };
   const email = clip(b.email, 120).toLowerCase();
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return { ok: false, detail: "a real email" };
-  if (b.agree !== true) return { ok: false, detail: "the three acknowledgements" };
   const attempt = parseAttempt(b.attempt);
   if (!attempt) return { ok: false, detail: "attempt" };
   const replaces = /^cs_[A-Za-z0-9_]+$/.test(String(b.replaces || "")) ? String(b.replaces) : "";
@@ -186,7 +185,11 @@ export default async function handler(req, res) {
       if (!store) return send(res, 503, headers, { error: "not_configured", detail: "reservation store" });
       await store.markPaid(paidEntries(await snapshot(stripe, sinceSec)));
       const c = await store.counts(Date.now());
-      return send(res, 200, headers, { left: Math.max(0, total - c.holds - c.paid), total });
+      /* Public and the same for everyone: let Vercel's edge serve it for 30 s. Without this every
+         /preorder view ran the Stripe session scan above (~6 s) and a reel spike could hit Stripe's
+         rate limit, which checkout itself shares. The cap is enforced by reserve() on POST, so a
+         30-second-old count only ever affects the label. */
+      return send(res, 200, Object.assign({}, headers, { "Cache-Control": "public, s-maxage=30, stale-while-revalidate=60" }), { left: Math.max(0, total - c.holds - c.paid), total });
     }
 
     if (req.method !== "POST") return send(res, 405, headers, { error: "method" });
@@ -264,7 +267,7 @@ export default async function handler(req, res) {
     }
 
     const origin = ALLOWED_ORIGINS.includes(req.headers.origin || "") ? req.headers.origin : "https://makoma.io";
-    const submitMsg = (a.count > 1 ? a.count + " bracelets, one order, one address. " : "") + "Ships in waves " + window + ". Fully refundable until it ships. Hand-built pilot hardware, not the retail edition. iPhone required.";
+    const submitMsg = (a.count > 1 ? a.count + " bracelets, one order, one address. " : "") + "Batch 2 ships " + window + ". Hand-built. Splash- and dust-resistant, not waterproof. Fully refundable until it ships. iPhone required.";
     const meta = {
       offer: OFFER, attempt: a.attempt, ip, way: a.way, bracelets: String(a.count),
       sizes: clip(a.sizes.map((v, i) => (a.count > 1 ? (i === 0 ? "You" : "P" + (i + 1)) + ": " : "") + SIZES[v]).join("; "), 500),
