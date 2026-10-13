@@ -35,7 +35,7 @@
 <script type="importmap">
 { "imports": { "three": "./assets/vendor/three/three.module.js", "three/addons/": "./assets/vendor/three/addons/" } }
 </script>
-<link rel="stylesheet" href="css/style.css?v=49" />
+<link rel="stylesheet" href="css/style.css?v=52" />
 <script>
   /* Founder Pilot settings. mode "apply" = free application (this phase). mode "checkout" =
      the Preorder button and embedded Stripe Checkout (payment-invitation week; needs the
@@ -81,12 +81,11 @@
     <span class="brand-mark">M'AKOMA<span class="tm">™</span></span>
   </a>
   <nav class="nav-links" id="navLinks">
-    <a href="the-piece.html#hero">The piece</a>
-    <a href="the-piece.html?customize=1">Customize</a>
-    <a href="the-piece.html#more">What else</a>
-    <a href="the-piece.html#symbols">The symbols</a>
-    <a href="how-it-begins.html">How it begins</a>
-    <a href="the-piece.html#launch">Building in public</a>
+    <a href="/#what-it-does">What it does</a>
+    <a href="/#symbols">The symbols</a>
+    <a href="/customize">Customize</a>
+    <a href="/#launch">Building in public</a>
+    <a href="/#join">Waitlist</a>
     <a href="#apply" class="nav-link-cta">Apply</a>
   </nav>
   <div class="nav-right">
@@ -108,20 +107,21 @@
     <!-- Product first (2026-10-12, Melvin): the piece, then what it is, then what it does,
          then availability, then the questions. No price until the last step. -->
     <!-- Order (Melvin 2026-10-13): the headline first, the bracelet film in the middle, then the badges. -->
+    <div class="ap-stage">   <!-- desktop: the film fills this whole band behind the headline and badges -->
     <p class="ap-eyebrow">Preorder</p>
     <h1 class="ap-h1">Six beads.<br/>Six people.</h1>
     <!-- The real bracelet on a wrist, its beads lighting up (moved here from the home landing,
          2026-10-12): the film that headed / since 23 Sep. 4:5 window onto the 9:16 film, centred on
          the bracelet (51.4% across, 58.8% down the frame) and zoomed 1.3x so the beads read. -->
     <figure class="ap-render ap-film" aria-label="The M'AKOMA bracelet on a wrist, its beads lighting up">
-      <video autoplay muted loop playsinline preload="auto" disablepictureinpicture disableremoteplayback
-             poster="assets/img/pilot/black-wrist-poster.webp?v=2" aria-hidden="true" tabindex="-1">
-        <source src="assets/video/black-wrist.mp4?v=2" type="video/mp4" />
-      </video>
+      <video autoplay muted loop playsinline preload="auto" disablepictureinpicture disableremoteplayback aria-hidden="true" tabindex="-1"
+             data-tall-src="assets/video/black-wrist.mp4?v=2" data-tall-poster="assets/img/pilot/black-wrist-poster.webp?v=2"
+             data-wide-src="assets/video/wrist-wide.mp4?v=1" data-wide-poster="assets/img/pilot/wrist-wide-poster.webp?v=1"></video>
     </figure>
     <script>
-      (function () {   /* reduced motion: the poster stays, the film does not run */
+      (function () {   /* desktop gets the 16:9 cut (sharp at full width), phones the 9:16; reduced motion keeps the poster */
         var v = document.querySelector(".ap-film video");
+        if (v) { var k = window.matchMedia && window.matchMedia("(min-width: 900px)").matches ? "wide" : "tall"; v.poster = v.dataset[k + "Poster"]; v.src = v.dataset[k + "Src"]; }
         if (v && window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) { v.removeAttribute("autoplay"); v.pause(); }
       })();
     </script>
@@ -129,6 +129,7 @@
       <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3s5.5 5.9 5.5 9.9a5.5 5.5 0 0 1-11 0C6.5 8.9 12 3 12 3z"/><path d="M9.6 13.6a2.6 2.6 0 0 0 2.4 2.1"/></svg>Splash- &amp; dust-resistant</li>
       <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 6.5h11v9h-11zM13.5 9.5h4l3 3v3h-7"/><circle cx="6.5" cy="17" r="1.7"/><circle cx="17" cy="17" r="1.7"/></svg>Ships in the US</li>
     </ul>
+    </div>
 
     <!-- The feature flight (Melvin 2026-10-13): one icon racing through the air, no frame; drag bends it
          from voice to pulse to alert to color to shortcuts to notes. Tap it for the next, a dot to jump. -->
@@ -217,7 +218,7 @@
           </a>
           <!-- this screen is the landing page now, so it has to let people into the
                rest of the site rather than being a cul-de-sac -->
-          <a class="btn pre-alt" href="the-piece.html">See the piece</a>
+          <a class="btn pre-alt" href="/">See the piece</a>
         </div>
         <!-- At zero this replaces both countdown links with the bottom CTAs. Preorder
              reveals the questionnaire in place in checkout mode (countdown-only mode
@@ -233,7 +234,7 @@
             <p class="pb-note"><b class="js-pb-left">Get yours before Batch 2 runs out.</b></p>
           </div>
           <a class="btn btn-gold pre-cta" id="cdPreorder" href="/">Preorder Batch 2</a>
-          <a class="btn pre-alt" id="cdWaitlist" href="the-piece.html#join">Join the waitlist</a>
+          <a class="btn pre-alt" id="cdWaitlist" href="/#join">Join the waitlist</a>
           <a class="pre-more" href="https://buy.stripe.com/00w28q75a1n6fU31Sm83C00" rel="noopener">Not buying yet? Support the build</a>
         </div>
       </div>
@@ -287,7 +288,7 @@
         <p class="q-hint" id="qStopText"></p>
         <div class="q-actions">
           <button type="button" class="btn btn-line" id="qStopBack">Change my answer</button>
-          <a href="the-piece.html#join" class="btn btn-gold">Join the waitlist</a>
+          <a href="/#join" class="btn btn-gold">Join the waitlist</a>
         </div>
       </fieldset>
 
@@ -328,7 +329,7 @@
         <p class="q-hint">These hand-built batches ship within the US so every one of them can be hand-checked. Join the waitlist and you will hear the moment that changes.</p>
         <div class="q-actions">
           <button type="button" class="btn btn-line" id="qStopCountryBack">Change my answer</button>
-          <a href="the-piece.html#join" class="btn btn-gold">Join the waitlist</a>
+          <a href="/#join" class="btn btn-gold">Join the waitlist</a>
         </div>
       </fieldset>
 
@@ -1031,7 +1032,7 @@
             if (left > 0 && want > left) { say("Only " + left + (left === 1 ? " seat is" : " seats are") + " left. Press Back and choose a circle of " + left + " or fewer."); return; }
             say("Batch 2 is fully reserved."); btn.disabled = true; btn.textContent = "Sold out";
             if (!document.getElementById("soldOutWaitlist")) {
-              var wl = document.createElement("a"); wl.id = "soldOutWaitlist"; wl.href = "the-piece.html#join"; wl.className = "btn btn-line"; wl.textContent = "Join the waitlist for the next batch"; wl.style.marginTop = "14px";
+              var wl = document.createElement("a"); wl.id = "soldOutWaitlist"; wl.href = "/#join"; wl.className = "btn btn-line"; wl.textContent = "Join the waitlist for the next batch"; wl.style.marginTop = "14px";
               status.insertAdjacentElement("afterend", wl);   // under the questionnaire's status line, which is what the buyer is looking at
             }
             return;

@@ -11,6 +11,11 @@
       "source": "/support",
       "destination": "https://buy.stripe.com/00w28q75a1n6fU31Sm83C00",
       "permanent": false
+    },
+    {
+      "source": "/how-it-begins",
+      "destination": "/",
+      "permanent": false
     }
   ],
   "rewrites": [

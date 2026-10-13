@@ -57,7 +57,7 @@
     document.documentElement.setAttribute('data-theme', t);
   }catch(e){ document.documentElement.setAttribute('data-theme','dark'); } })();
 </script>
-<link rel="stylesheet" href="css/style.css?v=49" />
+<link rel="stylesheet" href="css/style.css?v=52" />
 <script type="importmap">
 {
   "imports": {
@@ -125,11 +125,9 @@
     <span class="brand-mark">M'AKOMA<span class="tm">™</span></span>
   </a>
   <nav class="nav-links" id="navLinks">
-    <a href="the-piece.html#hero">The piece</a>
-    <a href="/customize">Customize</a>
     <a href="#what-it-does">What it does</a>
     <a href="#symbols">The symbols</a>
-    <a href="how-it-begins.html">How it begins</a>
+    <a href="/customize">Customize</a>
     <a href="#launch">Building in public</a>
     <a href="/preorder">Preorder</a>
     <a href="#join" class="nav-link-cta">Waitlist</a>
@@ -340,7 +338,6 @@
       <circle class="lt-fill" cx="273.85" cy="106.27" r="10.15" fill="#C9A04E"/>
     </svg>
     <h2 class="vision-title">Carry them<br/><span class="gold-ink">with you.</span></h2>
-    <p class="vision-sub">The first beads are being strung.</p>
 
     <!-- A REAL form POST to Buttondown, not fetch: their embed endpoint only supports standard
          HTML form submissions, and a fetch cannot hand a subscriber a CAPTCHA or a validation
@@ -357,14 +354,8 @@
                autocomplete="email" inputmode="email" aria-label="Email address" />
         <button type="submit" class="btn btn-gold" id="joinSubmit">Join the waitlist</button>
       </div>
-      <div class="join-suggest">
-        <label for="joinSuggestion" class="join-suggest-label">Anything you&rsquo;d change? <span>Optional &middot; I read every one.</span></label>
-        <textarea id="joinSuggestion" name="metadata__suggestion" rows="2" maxlength="800"
-                  placeholder="A symbol, a bead shape, a colour&hellip;"></textarea>
-      </div>
     </form>
     <p class="join-status" id="joinStatus" role="status"></p>
-    <p class="join-follow">Follow the build on <a href="https://www.instagram.com/makoma.io/" target="_blank" rel="me noopener">Instagram&nbsp;→&nbsp;@makoma.io</a></p>
   </div>
 
   <div class="wrap faq-wrap reveal" id="faq">
