@@ -362,6 +362,7 @@
     const clear = () => { if (el) { el.classList.remove("is-pressed"); el = null; rect = null; } };
     document.addEventListener("pointerdown", (e) => {
       if (e.pointerType === "mouse" && e.button !== 0) return;
+      if (e.pointerType === "touch") return;   // a finger landing on a button to SCROLL must not shrink it (2026-10-13)
       const t = e.target.closest && e.target.closest(SEL);
       if (!t || t.disabled) return;
       el = t; rect = t.getBoundingClientRect();
@@ -403,12 +404,7 @@
 
     const onScroll = () => {
       if (nav) nav.classList.toggle("scrolled", window.scrollY > 40);
-      // hero parallax
-      const hero = $("#heroImg");
-      if (hero && !reduce) {
-        const y = window.scrollY;
-        if (y < window.innerHeight) hero.style.transform = `translateY(${y * 0.18}px) scale(1.05)`;
-      }
+      // (hero parallax removed 2026-10-13: nothing moves because you scrolled)
     };
     window.addEventListener("scroll", onScroll, { passive:true });
     onScroll();
@@ -558,7 +554,7 @@
       p.style.strokeDashoffset = L;
       return L;
     });
-    if (reduce) {
+    if (true) {   // drawn, not scroll-drawn (2026-10-13: solid scroll)
       draws.forEach(p => { p.style.strokeDashoffset = 0; });
       fills.forEach(f => { f.style.opacity = 1; });
       return;
@@ -928,7 +924,7 @@
     up.disconnect();
     if (!webgl) return;
     (window.requestIdleCallback || function (fn) { setTimeout(fn, 350); })(function () {
-      import("./beadring3d.js?v=2")
+      import("./beadring3d.js?v=3")
         .then(function (mod) {
           return mod.initBeadRing3D({ strap: strap, slots: slots, ring: ring, getStep: function () { return STEP; }, focus: ringFocus, wasDrag: function () { return ring.moved > 6; } });
         })

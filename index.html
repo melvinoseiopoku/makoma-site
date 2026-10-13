@@ -57,7 +57,7 @@
     document.documentElement.setAttribute('data-theme', t);
   }catch(e){ document.documentElement.setAttribute('data-theme','dark'); } })();
 </script>
-<link rel="stylesheet" href="css/style.css?v=52" />
+<link rel="stylesheet" href="css/style.css?v=53" />
 <script type="importmap">
 {
   "imports": {
@@ -229,9 +229,9 @@
       v.style.left = left.toFixed(1) + "px"; v.style.top = top.toFixed(1) + "px";
     }
     place();
-    var raf = 0; function soon() { cancelAnimationFrame(raf); raf = requestAnimationFrame(place); }
+    var raf = 0, lastW = land.clientWidth; function soon() { var w = land.clientWidth; if (w === lastW) return; lastW = w; cancelAnimationFrame(raf); raf = requestAnimationFrame(place); }   // height-only resizes (address bar) never move the film
     window.addEventListener("resize", soon); window.addEventListener("orientationchange", soon);
-    if (document.fonts && document.fonts.ready) document.fonts.ready.then(soon);
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { requestAnimationFrame(place); });
     window.__landingFrame = place;                                        // test hook
   })();
 </script>
@@ -413,9 +413,9 @@
 <!-- design.js must precede main.js: it owns the shared design state that main.js
      reads when submitting the waitlist form. Classic scripts, not modules, because
      main.js is a classic IIFE and cannot import. -->
-<script src="js/main.js?v=15"></script>
-<script src="js/feature-flight.js?v=1" defer></script>
-<script src="js/pilotring.js?v=5"></script>
+<script src="js/main.js?v=16"></script>
+<script src="js/feature-flight.js?v=2" defer></script>
+<script src="js/pilotring.js?v=6"></script>
 <script>
   /* The symbol ring: mount the real carousel when the section nears the screen; the front bead's
      symbol, meaning and proverb follow it. Same words as main.js's BEADS. */

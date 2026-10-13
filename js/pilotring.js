@@ -116,7 +116,7 @@
     if (canGL && !reduce) {
       strap.classList.add("bx-upgrading");
       var saved = { N: ring.N, focusTarget: ring.focusTarget, off: ring.off, target: ring.target };
-      import("./beadring3d.js?v=2").then(function (m) {
+      import("./beadring3d.js?v=3").then(function (m) {
         return m.initBeadRing3D({ strap: strap, slots: slots, ring: ring, onFront: onFront, focus: userFocus,
           wasDrag: function () { return ring.moved > 6; }, models: SYMS, fillers: FILL, isOff: function (i) { return i >= live; } });
       }).then(function () { ring3d = true; strap.classList.remove("bx-upgrading"); ringTo(stationOf(0)); window.dispatchEvent(new Event("resize")); })

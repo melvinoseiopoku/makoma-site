@@ -141,8 +141,11 @@ export async function initBeadRing3D(ctx) {
     // NOT pushed into `beads`: fillers are scenery — no slot DOM, no front detection, no glow swap
   }
 
+  let lastW = 0, lastH = 0;
   const resize = () => {
     const w = strap.clientWidth || 1, h = strap.clientHeight || 1;
+    if (w === lastW && h === lastH) return;   // a phone's address bar fires resize mid-scroll; setSize would wipe the canvas
+    lastW = w; lastH = h;
     renderer.setSize(w, h, false);
     camera.aspect = w / h;
     camera.updateProjectionMatrix();
@@ -155,9 +158,12 @@ export async function initBeadRing3D(ctx) {
   let lastFront = -1;
   const _v = new THREE.Vector3();
 
-  let raf = 0, running = false;
+  let raf = 0, running = false, scrolling = false, scrollT = 0, drawnOff = NaN;
+  addEventListener("scroll", () => { scrolling = true; clearTimeout(scrollT); scrollT = setTimeout(() => { scrolling = false; }, 160); }, { passive: true });
   function frame() {
     raf = requestAnimationFrame(frame);
+    if (scrolling && ring.off === drawnOff) return;   // solid scroll: a still ring holds its frame while the page moves
+    drawnOff = ring.off;
     // main.js's ring.off IS the angle, in bead-steps; the ring spins about its local Z
     ringNode.rotation.z = ring.off * APP_STEP;
     // project every bead to the strap's pixel space and park its DOM slot there, so the
