@@ -35,8 +35,9 @@
   var ICON_W = 3.4, TRAIL_W = 4.6;            // px (non-scaling): a heavy icon, a broad soft tail
   var NS = "http://www.w3.org/2000/svg", uid = 0;
   var still = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  // solid scroll: while a scroll is in flight the icon holds its last frame (the scroll gets the frame budget)
-  var scrolling = false, scrollT = 0;
+  // solid scroll, still moving (2026-10-13): during a scroll the icon keeps flying but draws every other
+  // frame (30 fps), on its own compositor layer (.fm-ic svg in style.css), so the page never repaints for it
+  var scrolling = false, scrollT = 0, skip = false;
   window.addEventListener("scroll", function () { scrolling = true; clearTimeout(scrollT); scrollT = setTimeout(function () { scrolling = false; }, 160); }, { passive: true });
 
   function el(tag, attrs, parent) { var e = document.createElementNS(NS, tag); for (var k in attrs) e.setAttribute(k, attrs[k]); if (parent) parent.appendChild(e); return e; }
@@ -192,7 +193,7 @@
     }
     function frame(now) {
       if (!running) return;
-      if (scrolling) { last = now; raf = requestAnimationFrame(frame); return; }
+      if (scrolling) { skip = !skip; if (skip) { raf = requestAnimationFrame(frame); return; } }   // the clock still runs on real time (dt spans both frames)
       var dt = last ? Math.min(0.05, (now - last) / 1000) : 0; last = now; clock += dt * 1000;
       if (mStart >= 0) { if (!swapped && clock - mStart >= MORPH * 0.5) { label(next); swapped = true; } if (clock - mStart >= MORPH) finish(); }
       else if (clock - holdStart >= HOLD) begin((cur + 1) % F.length);

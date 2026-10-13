@@ -2722,7 +2722,8 @@ select.q-input{ appearance:none; -webkit-appearance:none; padding-right:36px;
 .fm{ display:flex; flex-direction:column; align-items:center; margin:0 auto; }
 .fm-ic{ display:block; width:100%; max-width:420px; margin:0 auto; padding:0; border:0; background:none; color:var(--gold); cursor:pointer;
   -webkit-tap-highlight-color:transparent; }
-.fm-ic svg{ display:block; width:100%; height:auto; overflow:visible; }
+.fm-ic svg{ display:block; width:100%; height:auto; overflow:visible; will-change:transform; transform:translateZ(0); }   /* its own layer: redrawing the flight never repaints the page */
+.fm-ic{ contain:layout style; }   /* nothing it does can move anything around it */
 .fm-ic:focus-visible{ outline:2px solid color-mix(in srgb, var(--gold) 60%, transparent); outline-offset:2px; border-radius:14px; }
 .fm{ width:100%; }
 .fm-name{ margin:2px 0 0; min-height:1.3em; font-family:var(--mono); font-size:.68rem; letter-spacing:.22em; text-transform:uppercase; color:var(--gold);
