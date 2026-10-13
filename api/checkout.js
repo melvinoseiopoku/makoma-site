@@ -58,7 +58,7 @@ const OFFER = "founder-pilot";
 const TERMS_VERSION = "2026-10-12";          // the refunds, shipping and terms pages as published
 const HOLD_MINUTES = 30;                     // Stripe's minimum Checkout Session lifetime
 const HOLD_MARGIN_MS = 90 * 1000;            // the store hold outlives the Stripe session slightly
-const SIZES = { small: "Small", medium: "Medium", large: "Large" };
+const SIZES = { small: "Small", medium: "Medium", large: "Large", unsure: "Not sure (message them to measure)" };   // "unsure" added 2026-10-13
 const ACKNOWLEDGED = "terms-linked-at-pay";   // no checkboxes since 2026-10-12: the price step says "By paying you agree to the Terms, Refunds and Privacy pages" with links
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 

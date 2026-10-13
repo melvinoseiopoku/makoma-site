@@ -35,7 +35,7 @@
 <script type="importmap">
 { "imports": { "three": "./assets/vendor/three/three.module.js", "three/addons/": "./assets/vendor/three/addons/" } }
 </script>
-<link rel="stylesheet" href="css/style.css?v=47" />
+<link rel="stylesheet" href="css/style.css?v=48" />
 <script>
   /* Founder Pilot settings. mode "apply" = free application (this phase). mode "checkout" =
      the Preorder button and embedded Stripe Checkout (payment-invitation week; needs the
@@ -325,7 +325,6 @@
 
       <fieldset class="q" data-q="size">
         <legend class="q-title" id="qSizeTitle">Wrist size.</legend>
-        <p class="q-hint">Measure around the wrist bone. A tape measure works, or a piece of string held against a ruler. The cord adjusts within each range.</p>
         <div class="q-sizes" id="qSizes"></div>
         <input type="hidden" name="metadata__sizes" id="mSizes" value="" />
       </fieldset>
@@ -421,8 +420,7 @@
       var each = function (sel, fn) { Array.prototype.forEach.call(document.querySelectorAll(sel), fn); };
       var getJ = function (u) { return fetch(u).then(function (r) { return r.ok ? r.json() : Promise.reject(); }); };
       getJ("/api/checkout?seats=1").then(function (j) {
-        var t = j.left === 0 ? "Batch 2 is fully reserved."
-          : (j.left > 0 && j.left <= 40 ? "Only " + j.left + " left. Ships by 8 November." : "");
+        var t = j.left === 0 ? "Batch 2 is fully reserved." : "";   // no live count on the page (Melvin 2026-10-13); only a sell-out changes the line
         if (t) each(".js-pb-left", function (e) { e.textContent = t; });
       }).catch(function () {});
     })();
@@ -450,7 +448,8 @@
     var SIZES = [
       { id: "small",  name: "Small",  range: "up to 15 cm" },
       { id: "medium", name: "Medium", range: "15 to 17.5 cm" },
-      { id: "large",  name: "Large",  range: "over 17.5 cm" } ];
+      { id: "large",  name: "Large",  range: "over 17.5 cm" },
+      { id: "unsure", name: "Not sure", range: "I\u2019ll message you" } ];   // 2026-10-13: most people don't know their wrist size; Melvin follows up by email before building
     function buildSizes() {
       var box = $("#qSizes"), n = A.way === "circle" ? A.count : 1, keep = sizes();
       box.innerHTML = "";
@@ -459,7 +458,7 @@
         var grp = document.createElement("div"); grp.className = "q-sizegroup"; grp.setAttribute("role", "radiogroup");
         var who = n > 1 ? (i === 0 ? "You" : "Person " + (i + 1)) : "";
         grp.setAttribute("aria-label", "Wrist size" + (who ? " for " + who.toLowerCase() : ""));
-        grp.innerHTML = (who ? '<p class="q-sizewho">' + who + "</p>" : "") + '<div class="q-seg">' +
+        grp.innerHTML = (who ? '<p class="q-sizewho">' + who + "</p>" : "") + '<div class="q-seg q-seg--4">' +
           SIZES.map(function (z) { return '<label class="q-seg-opt"><input type="radio" name="size' + i + '" value="' + z.id + '"' + (keep[i] === z.id ? " checked" : "") + "><span>" + z.name + "</span></label>"; }).join("") + "</div>";
         box.appendChild(grp);
       }
