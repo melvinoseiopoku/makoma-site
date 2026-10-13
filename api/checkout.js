@@ -55,7 +55,7 @@ const ALLOWED_ORIGINS = [
   "http://127.0.0.1:8765",
 ];
 const OFFER = "founder-pilot";
-const TERMS_VERSION = "2026-10-12";          // the refunds, shipping and terms pages as published
+const TERMS_VERSION = "2026-10-13";          // the refunds, shipping and terms pages as published
 const HOLD_MINUTES = 30;                     // Stripe's minimum Checkout Session lifetime
 const HOLD_MARGIN_MS = 90 * 1000;            // the store hold outlives the Stripe session slightly
 const SIZES = { small: "Small", medium: "Medium", large: "Large", unsure: "Not sure (message them to measure)" };   // "unsure" added 2026-10-13
@@ -267,7 +267,7 @@ export default async function handler(req, res) {
     }
 
     const origin = ALLOWED_ORIGINS.includes(req.headers.origin || "") ? req.headers.origin : "https://makoma.io";
-    const submitMsg = (a.count > 1 ? a.count + " bracelets, one order, one address. " : "") + "Batch 2 ships " + window + ". Hand-built. Splash- and dust-resistant, not waterproof. Fully refundable until it ships. iPhone required.";
+    const submitMsg = (a.count > 1 ? a.count + " bracelets, one order, one address. " : "") + "Batch 2 ships " + window + ". Hand-built. IP54, splash- and dust-resistant: take it off to shower or swim. Fully refundable until it ships. iPhone required.";
     const meta = {
       offer: OFFER, attempt: a.attempt, ip, way: a.way, bracelets: String(a.count),
       sizes: clip(a.sizes.map((v, i) => (a.count > 1 ? (i === 0 ? "You" : "P" + (i + 1)) + ": " : "") + SIZES[v]).join("; "), 500),

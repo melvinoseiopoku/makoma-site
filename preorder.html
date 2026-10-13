@@ -35,7 +35,7 @@
 <script type="importmap">
 { "imports": { "three": "./assets/vendor/three/three.module.js", "three/addons/": "./assets/vendor/three/addons/" } }
 </script>
-<link rel="stylesheet" href="css/style.css?v=48" />
+<link rel="stylesheet" href="css/style.css?v=49" />
 <script>
   /* Founder Pilot settings. mode "apply" = free application (this phase). mode "checkout" =
      the Preorder button and embedded Stripe Checkout (payment-invitation week; needs the
@@ -107,6 +107,9 @@
   <section class="ap-hero ap-hero--product">
     <!-- Product first (2026-10-12, Melvin): the piece, then what it is, then what it does,
          then availability, then the questions. No price until the last step. -->
+    <!-- Order (Melvin 2026-10-13): the headline first, the bracelet film in the middle, then the badges. -->
+    <p class="ap-eyebrow">Preorder</p>
+    <h1 class="ap-h1">Six beads.<br/>Six people.</h1>
     <!-- The real bracelet on a wrist, its beads lighting up (moved here from the home landing,
          2026-10-12): the film that headed / since 23 Sep. 4:5 window onto the 9:16 film, centred on
          the bracelet (51.4% across, 58.8% down the frame) and zoomed 1.3x so the beads read. -->
@@ -122,27 +125,33 @@
         if (v && window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) { v.removeAttribute("autoplay"); v.pause(); }
       })();
     </script>
-    <p class="ap-eyebrow">Preorder</p>
-    <h1 class="ap-h1">Six beads.<br/>Six people.</h1>
     <ul class="ap-chips">
       <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3s5.5 5.9 5.5 9.9a5.5 5.5 0 0 1-11 0C6.5 8.9 12 3 12 3z"/><path d="M9.6 13.6a2.6 2.6 0 0 0 2.4 2.1"/></svg>Splash- &amp; dust-resistant</li>
       <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 6.5h11v9h-11zM13.5 9.5h4l3 3v3h-7"/><circle cx="6.5" cy="17" r="1.7"/><circle cx="17" cy="17" r="1.7"/></svg>Ships in the US</li>
     </ul>
 
-    <div class="fx-row" role="group" aria-label="What it does">
-      <button type="button" class="fx is-on" data-cap="Hold a bead, speak, then tap to send your voice." aria-pressed="true"><span class="fx-ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3z"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/></svg></span><span class="fx-l">Voice</span></button>
-      <button type="button" class="fx" data-cap="Touch a bead. Their bracelet lights up." aria-pressed="false"><span class="fx-ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l2.2-5.5 4.4 11 2.2-5.5H21"/></svg></span><span class="fx-l">Pulse</span></button>
-      <button type="button" class="fx" data-cap="Double-tap the hub to alert your trusted circle." aria-pressed="false"><span class="fx-ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 16v-5a6 6 0 1 1 12 0v5l1.6 2H4.4z"/><path d="M10 20.5a2 2 0 0 0 4 0"/></svg></span><span class="fx-l">Alert</span></button>
-      <button type="button" class="fx" data-cap="Your color, glowing on their wrist." aria-pressed="false"><span class="fx-ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3s6.2 6.6 6.2 11.1a6.2 6.2 0 0 1-12.4 0C5.8 9.6 12 3 12 3z"/></svg></span><span class="fx-l">Color</span></button>
-      <button type="button" class="fx" data-cap="Set up phone shortcuts in the M&rsquo;AKOMA app." aria-pressed="false"><span class="fx-ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="2.5" width="10" height="19" rx="2.6"/><path d="M11 18.6h2"/></svg></span><span class="fx-l">Shortcuts</span></button>
-      <button type="button" class="fx" data-cap="Save personal voice notes." aria-pressed="false"><span class="fx-ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.5h16v10.5H9.5L4 20z"/><path d="M8.5 9.5h7M8.5 12.5h4.5"/></svg></span><span class="fx-l">Notes</span></button>
+    <!-- The feature flight (Melvin 2026-10-13): one icon racing through the air, no frame; drag bends it
+         from voice to pulse to alert to color to shortcuts to notes. Tap it for the next, a dot to jump. -->
+    <div class="fm" role="group" aria-label="What it does">
+      <button type="button" class="fm-ic" aria-label="Show the next feature">
+        <svg viewBox="0 0 240 90" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"></svg>
+      </button>
+      <p class="fm-name" aria-live="polite">Voice</p>
     </div>
     <p class="fx-cap" aria-live="polite">Hold a bead, speak, then tap to send your voice.</p>
+    <div class="fm-dots" role="group" aria-label="Choose a feature">
+      <button type="button" class="fm-dot is-on" data-i="0" aria-label="Voice" aria-current="true"></button>
+      <button type="button" class="fm-dot" data-i="1" aria-label="Pulse"></button>
+      <button type="button" class="fm-dot" data-i="2" aria-label="Alert"></button>
+      <button type="button" class="fm-dot" data-i="3" aria-label="Color"></button>
+      <button type="button" class="fm-dot" data-i="4" aria-label="Shortcuts"></button>
+      <button type="button" class="fm-dot" data-i="5" aria-label="Notes"></button>
+    </div>
 
-    <div class="bx" aria-label="Availability">
-      <div class="bx-c bx-c--done"><span class="bx-t">Batch 1</span><span class="bx-stamp">Fully reserved</span></div>
-      <div class="bx-c bx-c--open"><span class="bx-t">Batch 2</span><span class="bx-live"><i aria-hidden="true"></i>Open now</span></div>
-      <p class="bx-note js-pb-left">Ships by 8 November. Get yours before it runs out.</p>
+    <div class="bt" aria-label="Availability">
+      <div class="bt-c bt-c--done"><span class="bt-t">Batch 1</span><span class="bt-stamp">Fully reserved</span></div>
+      <div class="bt-c bt-c--open"><span class="bt-t">Batch 2</span><span class="bt-live"><i aria-hidden="true"></i>Open now</span></div>
+      <p class="bt-note js-pb-left">Ships by 8 November. Get yours before it runs out.</p>
     </div>
     <p class="ap-lede" hidden></p>
     <a href="/" class="btn btn-gold ap-cta" hidden>Back to M&rsquo;AKOMA</a>
@@ -370,7 +379,7 @@
     <dl>
       <div><dt>What do I get?</dt><dd>One hand-built bracelet with six person beads, the iPhone app, setup help, and a direct line to the founder.</dd></div>
       <div><dt>When does it ship?</dt><dd>Batch 2 ships by 8 November 2026. Batch 1 is fully reserved and ships by 25 October. Hand-built, so they leave in waves. If I am going to miss that date you hear from me on or before it, and you can cancel for a full refund. See <a href="shipping.html">shipping</a>.</dd></div>
-      <div><dt>Is it waterproof?</dt><dd>It is splash- and dust-resistant: rain, spills and everyday dust are fine. It is not waterproof, so take it off to shower, swim or wash dishes.</dd></div>
+      <div><dt>Is it waterproof?</dt><dd>It is IP54, splash- and dust-resistant, so take it off to shower or swim.</dd></div>
       <div><dt>Does the other person need one?</dt><dd>Not for a single. They can reach you from the M&rsquo;AKOMA app on their phone. In a circle, everyone wears one.</dd></div>
     </dl>
   </section>
@@ -391,8 +400,9 @@
 
 <script src="js/glyphs.js"></script>
 <script src="js/main.js?v=13"></script>
-<script src="js/pilotring.js?v=4"></script>
+<script src="js/pilotring.js?v=5"></script>
 <script src="js/pilot-analytics.js?v=1"></script>
+<script src="js/feature-flight.js?v=1" defer></script>
 <script>
   (function () {
     var P = window.MAKOMA_PILOT || {};
@@ -402,20 +412,6 @@
     var $ = function (s) { return document.querySelector(s); };
     /* Batch cards (2026-10-12): the batch-2 price is read from Stripe so it always matches the
        amount charged; the seats line comes from the live counter. Both fail quietly. */
-    /* Feature row: one short caption, changed by tapping an icon. It cycles slowly on its own
-       until someone taps, so the row reads as alive without a wall of text. */
-    (function featureRow() {
-      var btns = Array.prototype.slice.call(document.querySelectorAll(".fx")), cap = document.querySelector(".fx-cap");
-      if (!btns.length || !cap) return;
-      var i = 0, timer = null;
-      var pick = function (n) {
-        i = n; btns.forEach(function (b, k) { b.classList.toggle("is-on", k === n); b.setAttribute("aria-pressed", k === n ? "true" : "false"); });
-        cap.classList.remove("is-in"); void cap.offsetWidth; cap.innerHTML = btns[n].getAttribute("data-cap"); cap.classList.add("is-in");
-      };
-      btns.forEach(function (b, k) { b.addEventListener("click", function () { if (timer) { clearInterval(timer); timer = null; } pick(k); }); });
-      var still = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-      if (!still) timer = setInterval(function () { pick((i + 1) % btns.length); }, 2600);
-    })();
     (function batchCards() {
       var each = function (sel, fn) { Array.prototype.forEach.call(document.querySelectorAll(sel), fn); };
       var getJ = function (u) { return fetch(u).then(function (r) { return r.ok ? r.json() : Promise.reject(); }); };
@@ -750,7 +746,7 @@
       if (cta) { cta.textContent = "Back to M\u2019AKOMA"; cta.setAttribute("href", "/"); cta.hidden = false; }
       var lede = document.querySelector(".ap-lede");
       if (lede) { lede.textContent = "No bracelets are being sold or shipped. Five are being built and tested privately."; lede.hidden = false; }
-      var grid = document.querySelector(".fx-row"), batches = document.querySelector(".bx"), cap = document.querySelector(".fx-cap"), chips = document.querySelector(".ap-chips"); [grid, batches, cap, chips].forEach(function (e) { if (e) e.hidden = true; });
+      var grid = document.querySelector(".fm"), batches = document.querySelector(".bt"), cap = document.querySelector(".fx-cap"), chips = document.querySelector(".ap-chips"), fdots = document.querySelector(".fm-dots"); [grid, batches, cap, chips, fdots].forEach(function (e) { if (e) e.hidden = true; });
       var lede2 = document.querySelector(".ap-lede--2"); if (lede2) lede2.hidden = true;
       document.querySelectorAll('.nav-cta, .nav-link-cta, a[href="#apply"]').forEach(function (a) {
         a.setAttribute("href", "/");

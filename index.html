@@ -57,7 +57,7 @@
     document.documentElement.setAttribute('data-theme', t);
   }catch(e){ document.documentElement.setAttribute('data-theme','dark'); } })();
 </script>
-<link rel="stylesheet" href="css/style.css?v=48" />
+<link rel="stylesheet" href="css/style.css?v=49" />
 <script type="importmap">
 {
   "imports": {
@@ -125,9 +125,9 @@
     <span class="brand-mark">M'AKOMA<span class="tm">™</span></span>
   </a>
   <nav class="nav-links" id="navLinks">
-    <a href="#hero">The piece</a>
-    <a href="/customize" data-open-box>Customize</a>
-    <a href="#more">What else</a>
+    <a href="the-piece.html#hero">The piece</a>
+    <a href="/customize">Customize</a>
+    <a href="#what-it-does">What it does</a>
     <a href="#symbols">The symbols</a>
     <a href="how-it-begins.html">How it begins</a>
     <a href="#launch">Building in public</a>
@@ -152,7 +152,7 @@
      the next section. Appears once they scroll away, hides inside the designer and over the
      waitlist form (where the real form already owns the screen). -->
 <div class="cta-dock" id="ctaDock" aria-hidden="true">
-  <a href="/customize" data-open-box class="btn btn-line">Customize bracelet</a>
+  <a href="/customize" class="btn btn-line">Customize bracelet</a>
 </div>
 
 <main id="top">
@@ -185,9 +185,12 @@
     <i class="pre-gap pre-gap--a" aria-hidden="true"></i>
     <i class="pre-gap pre-gap--b" aria-hidden="true"></i>
     <div class="pre-bottom">
-      <div class="pre-acts">
+      <div class="pre-acts pre-acts--three">
         <a class="btn btn-gold pre-cta" href="/preorder">Preorder</a>
-        <a class="btn pre-alt" href="https://buy.stripe.com/00w28q75a1n6fU31Sm83C00" rel="noopener">Support</a>
+        <div class="pre-pair">   <!-- Melvin 2026-10-13: the second door split in half -->
+          <a class="btn pre-alt" href="#join">Join the waitlist</a>
+          <a class="btn pre-alt" href="https://buy.stripe.com/00w28q75a1n6fU31Sm83C00" rel="noopener">Support</a>
+        </div>
       </div>
       <span class="pre-cue" aria-hidden="true"></span>
     </div>
@@ -237,456 +240,88 @@
 
 
 
-<!-- ============ HERO — the live 3D CAD bracelet: the "why" and the "look inside" ============ -->
-<section class="hero3d hero3d--behind-landing" id="hero">
-  <div class="hero3d-sticky">
-    <canvas id="heroCanvas" aria-hidden="true"></canvas>
-    <!-- On this page the still never shows: the 3D loads while the landing screen is up
-         (hero3d--behind-landing). It stays only as the no-WebGL / reduced-motion fallback, lazy
-         and display:none otherwise, so it is not even downloaded. On /the-piece it is the first paint.
-         The REAL CAD render (makoma_hero_notext.png) — replaced an AI-generated image that was
-         standing in for the product. WebP 19 KB / 12 KB mobile, JPEG fallback. -->
-    <picture>
-      <source type="image/webp"
-              srcset="assets/img/makoma-hero-760.webp 760w, assets/img/makoma-hero.webp 1100w"
-              sizes="100vw" />
-      <img src="assets/img/makoma-hero.jpg" class="hero3d-poster" id="heroPoster"
-           width="1100" height="2390" loading="lazy" decoding="async"
-           alt="The M'AKOMA bracelet rendered in 3D: beads and core hub on a braided cord." />
-    </picture>
-    <div class="hero3d-veil" aria-hidden="true"></div>
-    <!-- the cut: dipped to black across the object → threading boundary (hero3d.js sets opacity) -->
-    <div class="hero-cut" id="heroCut" aria-hidden="true"></div>
-    <p class="sr-only">A 3D anatomy of the bracelet: each matte-black bead carries an engraved gold Adinkra symbol, a small circuit board and a haptic motor; the gold core hub holds the battery, microphone and speaker.</p>
-
-    <div class="hero3d-overlay">
-      <!-- the cinematic opening (hero3d.js intro): the centred line INSIDE the top-down ring,
-           and the typewriter line that writes during the zoom-out. Both live only while
-           .intro-live is on the section; the headline below stays hidden until it lands. -->
-      <p class="intro-center" id="introCenter" aria-hidden="true">First beaded technology</p>
-      <p class="intro-type" id="introType" aria-hidden="true"></p>
-      <div class="hero-intro" id="heroIntro">
-        <p class="eyebrow">Fine jewelry</p>
-        <h1 class="hero-title">The people<br/><span class="gold-ink">you carry.</span></h1>
-        <p class="hero-sub" id="heroSub">Worn on the wrist. Felt across the distance.</p>
-      </div>
-
-      <!-- The two things a visitor can do, pinned to the BOTTOM of the opening frame so the
-           bracelet keeps the middle. hero3d.js fades these with the intro copy (introOp), and
-           .hero3d-overlay a{pointer-events:auto} makes them tappable through the overlay. -->
-      <div class="hero-cta" id="heroCta">
-        <div class="hero-actions">
-          <a href="/customize" data-open-box class="btn btn-line">Customize bracelet</a>
-        </div>
-      </div>
-
-      <!-- CUSTOMIZE — the box-mode panel. Lives in the hero because the bracelet being designed
-           is the hero's own 3-D model, dropped into the manufacturing vitrine (hero3d.js box mode).
-           Same .cfg classes as before the move, so the panel styling carries over wholesale;
-           configurator.js drives it and hero3d.js renders the consequences. -->
-      <!-- CUSTOMIZE — the designer lives ON the stage with the piece: floating clusters over
-           the vitrine, no sheet. Top-left carries who is being named; the bottom strip carries
-           the roster, the mark chooser and the actions. hero3d.js shifts the scene upward so the
-           vitrine owns the upper frame. Same .cfg classes; configurator.js drives it. -->
-      <div class="cfg box-custom" id="customize" aria-hidden="true">
-        <button type="button" class="box-close" id="boxClose" aria-label="Close the designer">&times;</button>
-
-        <div class="box-dock">
-        <div class="box-who">
-          <p class="eyebrow box-eyebrow">Make it yours</p>
-          <h2 class="box-title"></h2>
-          <input class="cfg-name" id="cfgName" type="text" maxlength="24"
-                 autocomplete="off" autocorrect="off" spellcheck="false"
-                 aria-label="Their name" />
-          <p class="cfg-namehelp">First name, or whatever you actually call them.</p>
-        </div>
-
-        <div class="box-controls">
-          <div class="cfg-editor" role="tabpanel">
-            <div class="cfg-cuttabs" role="tablist" aria-label="Mark type">
-              <button type="button" class="cfg-cuttab is-on" data-tab="adinkra" role="tab">Symbols</button>
-              <button type="button" class="cfg-cuttab" data-tab="initials" role="tab">Initials</button>
-              <button type="button" class="cfg-cuttab" data-tab="upload" role="tab">Your own</button>
-            </div>
-            <div class="cfg-cutpane" data-pane="adinkra">
-              <div class="cfg-symrail" role="radiogroup" aria-label="Adinkra symbol"></div>
-              <p class="cfg-symmeta" aria-live="polite"></p>
-            </div>
-            <div class="cfg-cutpane" data-pane="initials" hidden>
-              <div class="cfg-inirow" role="radiogroup" aria-label="Initials"></div>
-            </div>
-            <div class="cfg-cutpane" data-pane="upload" hidden>
-              <label class="btn btn-line cfg-upbtn">Choose an image
-                <input type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" hidden></label>
-              <p class="cfg-upstatus" aria-live="polite"></p>
-            </div>
-          </div>
-
-          <div class="cfg-finish">
-            <div class="cfg-shells" role="radiogroup" aria-label="Bead colour"></div>
-            <span class="cfg-shellname"></span>
-          </div>
-          <div class="cfg-finish">
-            <div class="cfg-cordsw" role="radiogroup" aria-label="Cord colour"></div>
-            <span class="cfg-cordname"></span>
-          </div>
-
-          <div class="cfg-actions">
-            <button type="button" class="btn btn-gold cfg-next">Next</button>
-            <button type="button" class="cfg-reset">Start over</button>
-          </div>
-
-          <!-- the last step: their OWN name + email — saves the design against the waitlist.
-               (Their own details, freely given here; the six people's names still never leave.) -->
-          <div class="cfg-save">
-            <input class="cfg-name cfg-savename" type="text" maxlength="40" autocomplete="name"
-                   placeholder="Your name" aria-label="Your name" />
-            <input class="cfg-name cfg-saveemail" type="email" maxlength="80" autocomplete="email"
-                   placeholder="you@example.com" aria-label="Your email" />
-            <div class="cfg-actions">
-              <button type="button" class="btn btn-gold cfg-savebtn">Save my design</button>
-            </div>
-            <p class="cfg-savestatus" aria-live="polite"></p>
-          </div>
-        </div>
-        </div>
-
-        <p class="cfg-toast" role="status"></p>
-        <p class="sr-only cfg-sr" aria-live="polite"></p>
-      </div>
-
-      <div class="hero-caption" id="heroCaption" aria-live="polite">
-        <span class="hc-kicker"></span>
-        <h2 class="hc-title"></h2>
-        <p class="hc-line"></p>
-      </div>
-
-      <!-- exploded-diagram callouts; one tag per hub component, positioned in JS as the hub splits open -->
-      <div class="hub-labels" id="hubLabels" aria-hidden="true"></div>
-      <!-- exploded-bead callouts: touch → electrode, answers → light (PCB LED) + a pulse (motor) -->
-      <div class="hub-labels" id="beadLabels" aria-hidden="true"></div>
-      <!-- words of "Everyone gets their own" pinned to the beads that spin past after the explosion -->
-      <div class="bead-words" id="beadWords" aria-hidden="true"></div>
-      <!-- cluster names are now ENGRAVED into each bracelet's hub underside (hero3d.js), not a screen overlay -->
-
-      <div class="hero-outro" id="heroOutro">
-        <h2>Six beads.<br/><span class="gold-ink">One quiet channel.</span></h2>
-        <div class="hero-actions">
-          <a href="#join" class="btn btn-gold">Join the waitlist</a>
-        </div>
-      </div>
-
-      <!-- guidance for the interactive cluster; opacity driven by hero3d.js as the bracelets settle -->
-      <div class="gather-guide" id="gatherGuide" aria-hidden="true">
-        <div class="gg-head">
-          <p class="eyebrow">How it works</p>
-          <h2 class="gg-title">Touch a bead.<br/><span class="gold-ink">They feel it.</span></h2>
-        </div>
-      </div>
-
+<!-- ============ WHAT IT DOES — the feature flight (Melvin 2026-10-13) ============
+     The icon from /preorder, between the landing's doors and the 3D bracelet: it races through the
+     air and the drag bends it from one feature into the next. js/feature-flight.js drives both pages. -->
+<section class="feat-fly" id="what-it-does" aria-labelledby="ffTitle">
+  <div class="feat-fly-wrap">
+    <p class="ap-eyebrow" id="ffTitle">What it does</p>
+    <div class="fm" role="group" aria-label="What it does">
+      <button type="button" class="fm-ic" aria-label="Show the next feature">
+        <svg viewBox="0 0 240 90" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"></svg>
+      </button>
+      <p class="fm-name" aria-live="polite">Voice</p>
     </div>
-
-    <div class="scroll-cue" id="heroCue" aria-hidden="true"><span></span></div>
-    <div class="hero-loader" id="heroLoader" aria-hidden="true"><i></i><span>Rendering the bracelet…</span></div>
-
-    <!-- first-run coach marks: freeze-frame the cluster and walk a newcomer through the gestures (js/coach.js).
-         Shows once, dims the scene, points at the beads; a Skip lets anyone who already gets it out immediately. -->
-    <div class="coach" id="coach" hidden>
-      <div class="coach-scrim"></div>
-      <!-- a halo that lands on the ACTUAL bead in the scene (positioned each frame by hero3d.js) -->
-      <div class="coach-halo" id="coachHalo" aria-hidden="true"><i></i><i></i><b></b></div>
-      <div class="coach-card" role="dialog" aria-modal="false" aria-labelledby="coachTitle">
-        <span class="coach-check" id="coachCheck" aria-hidden="true"></span>
-        <h3 class="coach-title" id="coachTitle">Tap a bead</h3>
-        <p class="coach-hint" id="coachHint">sends a pulse</p>
-        <div class="coach-nav">
-          <button class="coach-skip" id="coachSkip" type="button">Skip</button>
-          <div class="coach-dots" id="coachDots" aria-hidden="true"></div>
-        </div>
-      </div>
+    <p class="fx-cap" aria-live="polite">Hold a bead, speak, then tap to send your voice.</p>
+    <div class="fm-dots" role="group" aria-label="Choose a feature">
+      <button type="button" class="fm-dot is-on" data-i="0" aria-label="Voice" aria-current="true"></button>
+      <button type="button" class="fm-dot" data-i="1" aria-label="Pulse"></button>
+      <button type="button" class="fm-dot" data-i="2" aria-label="Alert"></button>
+      <button type="button" class="fm-dot" data-i="3" aria-label="Color"></button>
+      <button type="button" class="fm-dot" data-i="4" aria-label="Shortcuts"></button>
+      <button type="button" class="fm-dot" data-i="5" aria-label="Notes"></button>
     </div>
   </div>
 </section>
 
-<!-- (the old "Make it yours" invitation section is gone. The designer is no longer scroll
-     territory either: it opens ONLY by explicit intent — a [data-open-box] tap (intercepted by
-     hero3d.js for an in-place open) or the /customize URL, which vercel.json rewrites onto this
-     same file. Scrolling the landing page never opens it.) -->
+<!-- 2026-10-13 (Melvin): the 3D "people you carry" section and the designer moved off the landing
+     (too heavy on phones); they live on /the-piece and /customize, reached from the menu. "Beyond the
+     circle" (bead carousel + phone demo) and the symbol grid became ONE section: the symbol ring. -->
 
-
-<!-- ============ SECTION 5 - WHAT ELSE IT CAN DO ============
-     The platform angle, deliberately placed HERE and not in the hero: leading with it would make
-     the page argue two cases at once (jewellery and gadget) and a visitor decides which kind of
-     page they are on in about two seconds. Arriving after the object, the reason, the engineering
-     and their own design, it reads as depth rather than as a spec sheet.
-     Built on the existing .hib-grid / .hib-panel / .hib-cap pattern from "How it begins" so it
-     inherits that styling wholesale - no new layout CSS. -->
-<section class="circle" id="more">
-  <div class="wrap" style="text-align:center;">
-    <p class="eyebrow reveal" style="display:block; margin-bottom:18px;">Beyond the circle</p>
-    <h2 class="reveal" style="font-family:var(--serif); font-weight:500; font-size:clamp(2rem,4.6vw,3.4rem); line-height:1.04; margin:0 0 18px;">
-      It does more <span class="gold-ink">than you&rsquo;d think.</span>
-    </h2>
-    <!-- ONE line does the framing now, in the position that used to hold a lede AND a legend
-         below the strap. It states the mechanism (a physical button, off the phone) and the
-         range (anything the phone can do) without listing what #bxMenu already names. -->
-    <p class="tech-lede reveal" style="margin:0 auto 38px;">Every bead is a button. Press one, your phone runs a shortcut.</p>
-
-    <!-- THE DEMO: every bead is a button. Assign one, press it, watch the phone obey. -->
-    <div class="bx reveal" id="beadBtns">
-
-      <!-- Turnable like the app's bracelet carousel: drag, swipe, or arrow-key the ring; the
-           bead at the front is the one you can press, and its job badge rides above it. -->
-      <div class="bx-strap" id="bxStrap" role="group" tabindex="0"
-           aria-label="Your beads. Drag to turn the bracelet, then pick one to assign">
-        <svg class="bx-cord" id="bxCord" viewBox="0 0 400 200" preserveAspectRatio="none" aria-hidden="true">
-          <path id="bxCordPath" fill="none" stroke="rgba(201,160,78,.20)" stroke-width="2" stroke-linecap="round" />
-        </svg>
-        <span class="bx-pulse" aria-hidden="true"></span>
-        <span class="bx-slot">
-          <button class="bx-tagbtn" type="button" data-i="0" aria-label="Change what bead 1 does"><span class="bx-tg"></span></button>
-          <button class="bx-bead" type="button" data-i="0" aria-label="Camera, press to try it">
-            <span class="bx-orb">
-              <img class="bx-base" src="assets/beads/sankofa.webp" alt="" width="256" height="256" loading="lazy">
-              <img class="bx-lit" src="assets/beads/sankofa_glow.webp" alt="" width="256" height="256" loading="lazy">
-            </span>
-          </button>
-        </span>
-        <span class="bx-slot">
-          <button class="bx-tagbtn" type="button" data-i="1" aria-label="Change what bead 2 does"><span class="bx-tg"></span></button>
-          <button class="bx-bead" type="button" data-i="1" aria-label="Music, press to try it">
-            <span class="bx-orb">
-              <img class="bx-base" src="assets/beads/aya.webp" alt="" width="256" height="256" loading="lazy">
-              <img class="bx-lit" src="assets/beads/aya_glow.webp" alt="" width="256" height="256" loading="lazy">
-            </span>
-          </button>
-        </span>
-        <span class="bx-slot">
-          <button class="bx-tagbtn" type="button" data-i="2" aria-label="Change what bead 3 does"><span class="bx-tg"></span></button>
-          <button class="bx-bead" type="button" data-i="2" aria-label="Do not disturb, press to try it">
-            <span class="bx-orb">
-              <img class="bx-base" src="assets/beads/nsoroma.webp" alt="" width="256" height="256" loading="lazy">
-              <img class="bx-lit" src="assets/beads/nsoroma_glow.webp" alt="" width="256" height="256" loading="lazy">
-            </span>
-          </button>
-        </span>
-        <span class="bx-slot">
-          <button class="bx-tagbtn" type="button" data-i="3" aria-label="Change what bead 4 does"><span class="bx-tg"></span></button>
-          <button class="bx-bead" type="button" data-i="3" aria-label="Alert my circle, press to try it">
-            <span class="bx-orb">
-              <img class="bx-base" src="assets/beads/gye_nyame.webp" alt="" width="256" height="256" loading="lazy">
-              <img class="bx-lit" src="assets/beads/gye_nyame_glow.webp" alt="" width="256" height="256" loading="lazy">
-            </span>
-          </button>
-        </span>
-        <span class="bx-slot">
-          <button class="bx-tagbtn" type="button" data-i="4" aria-label="Change what bead 5 does"><span class="bx-tg"></span></button>
-          <button class="bx-bead" type="button" data-i="4" aria-label="Voice note, press to try it">
-            <span class="bx-orb">
-              <img class="bx-base" src="assets/beads/nkyinkyim.webp" alt="" width="256" height="256" loading="lazy">
-              <img class="bx-lit" src="assets/beads/nkyinkyim_glow.webp" alt="" width="256" height="256" loading="lazy">
-            </span>
-          </button>
-        </span>
-      </div>
-
-      <svg class="bx-link" viewBox="0 0 200 90" aria-hidden="true" preserveAspectRatio="none">
-        <!-- stroke=none: the path exists ONLY as the spark's motion rail (mpath below). The
-             dashed arc it used to draw under the carousel is gone by Melvin's call. -->
-        <path id="bxPath" d="M14 12 Q100 78 186 34" fill="none" stroke="none"/>
-        <circle class="bx-spark" r="3.4" fill="#f1e6cb"><animateMotion dur="0.26s" begin="indefinite" fill="freeze"><mpath href="#bxPath"/></animateMotion></circle>
-      </svg>
-
-      <div class="bx-menu" id="bxMenu" role="menu" aria-label="What this bead does" hidden>
-        <button class="bx-mi" type="button" role="menuitem" data-act="camera"><span class="bx-glyph">◉</span>Camera</button>
-        <button class="bx-mi" type="button" role="menuitem" data-act="music"><span class="bx-glyph">♪</span>Music</button>
-        <button class="bx-mi" type="button" role="menuitem" data-act="dnd"><span class="bx-glyph">☾</span>Do not disturb</button>
-        <button class="bx-mi" type="button" role="menuitem" data-act="find"><span class="bx-glyph">◎</span>Find my phone</button>
-        <button class="bx-mi" type="button" role="menuitem" data-act="voice"><span class="bx-glyph">▮</span>Voice note</button>
-        <button class="bx-mi" type="button" role="menuitem" data-act="home"><span class="bx-glyph">⌂</span>Lights</button>
-        <button class="bx-mi bx-mi--sos" type="button" role="menuitem" data-act="sos"><span class="bx-glyph">△</span>Alert my circle</button>
-      </div>
-
-      <div class="bx-iphone" aria-hidden="true">
-        <span class="bx-side bx-side--act"></span>
-        <span class="bx-side bx-side--vup"></span>
-        <span class="bx-side bx-side--vdn"></span>
-        <span class="bx-side bx-side--pwr"></span>
-        <div class="bx-screen" id="bxScreen">
-          <div class="bx-status"><span>9:41</span><span class="bx-sig"><i></i><i></i><i></i><i></i></span></div>
-          <div class="bx-island"></div>
-
-          <!-- RESTING: the home screen -->
-          <div class="ph ph-home">
-            <div class="ph-clock"><b>9:41</b><span>Monday, August 4</span></div>
-            <div class="ph-grid">
-              <i style="--c:#2c6fd6"></i><i style="--c:#1db954"></i><i style="--c:#e8453c"></i><i style="--c:#f7c948"></i>
-              <i style="--c:#5b5bd6"></i><i style="--c:#26a69a"></i><i style="--c:#c9a04e"></i><i style="--c:#8e8e93"></i>
-              <i style="--c:#d8544f"></i><i style="--c:#3f8cff"></i><i style="--c:#9b59b6"></i><i style="--c:#4a4a4f"></i>
-            </div>
-            <div class="ph-dock"><i style="--c:#2c6fd6"></i><i style="--c:#1db954"></i><i style="--c:#3ec46d"></i><i style="--c:#5a5a5f"></i></div>
-          </div>
-
-          <!-- CAMERA: the viewfinder, looking at open country -->
-          <div class="ph ph-cam">
-            <svg class="cam-view" viewBox="0 0 170 370" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
-              <defs>
-                <linearGradient id="skyG" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0" stop-color="#2f6fa8"/><stop offset=".42" stop-color="#8ec3dd"/>
-                  <stop offset=".68" stop-color="#f0d6a8"/><stop offset="1" stop-color="#f6e3bd"/>
-                </linearGradient>
-                <linearGradient id="farG" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0" stop-color="#7d9bb4"/><stop offset="1" stop-color="#9db6c6"/></linearGradient>
-                <linearGradient id="midG" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0" stop-color="#4d7a5c"/><stop offset="1" stop-color="#335a45"/></linearGradient>
-                <linearGradient id="lakeG" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0" stop-color="#cfe0e6"/><stop offset="1" stop-color="#7fa2ad"/></linearGradient>
-                <radialGradient id="sunG"><stop offset="0" stop-color="#fff8e2"/><stop offset="1" stop-color="#ffe9b0" stop-opacity="0"/></radialGradient>
-              </defs>
-              <rect width="170" height="370" fill="url(#skyG)"/>
-              <circle cx="112" cy="150" r="34" fill="url(#sunG)"/>
-              <circle cx="112" cy="150" r="9" fill="#fff6dc"/>
-              <path d="M0 196 L34 158 L58 182 L86 148 L118 186 L146 164 L170 190 L170 214 L0 214Z" fill="url(#farG)" opacity=".85"/>
-              <path d="M0 214 L28 192 L62 216 L96 190 L132 218 L170 198 L170 240 L0 240Z" fill="#6d8c9c" opacity=".9"/>
-              <rect y="236" width="170" height="46" fill="url(#lakeG)"/>
-              <path d="M0 238 h170 M0 250 h170 M0 262 h170" stroke="#ffffff" stroke-opacity=".28" stroke-width="1.4"/>
-              <path d="M0 268 L36 250 L74 272 L112 248 L150 270 L170 258 L170 370 L0 370Z" fill="url(#midG)"/>
-              <g fill="#20402f">
-                <path d="M18 300 l7 -22 l7 22z"/><path d="M30 306 l9 -28 l9 28z"/>
-                <path d="M126 302 l8 -24 l8 24z"/><path d="M140 310 l7 -21 l7 21z"/>
-              </g>
-              <path d="M0 322 L170 306 L170 370 L0 370Z" fill="#1b3527"/>
-            </svg>
-            <div class="cam-ui">
-              <div class="cam-grid"></div>
-              <div class="cam-top"><span>1×</span><span class="cam-hdr">HDR</span></div>
-              <div class="cam-bottom">
-                <div class="cam-modes"><span>VIDEO</span><b>PHOTO</b><span>PORTRAIT</span></div>
-                <div class="cam-row"><span class="cam-roll"></span><button class="cam-shutter" tabindex="-1"></button><span class="cam-flip"></span></div>
-              </div>
-            </div>
-          </div>
-
-          <!-- MUSIC -->
-          <div class="ph ph-music">
-            <div class="mu-head">Playing from your library</div>
-            <div class="mu-art"><span></span></div>
-            <div class="mu-title">Ye Ba Ye</div>
-            <div class="mu-artist">Kwesi &amp; the Circle</div>
-            <div class="mu-bar"><i></i></div>
-            <div class="mu-times"><span>1:12</span><span>3:48</span></div>
-            <div class="mu-ctrls"><s class="mu-prev"></s><s class="mu-play"></s><s class="mu-next"></s></div>
-          </div>
-
-          <!-- FOCUS / DO NOT DISTURB -->
-          <div class="ph ph-dnd">
-            <div class="dnd-moon">☾</div>
-            <div class="dnd-t">Do Not Disturb</div>
-            <div class="dnd-s">Notifications silenced</div>
-            <div class="dnd-card">Focus on &middot; Until you turn it off</div>
-          </div>
-
-          <!-- NOTES with live transcription -->
-          <div class="ph ph-note">
-            <div class="nt-bar"><span>&lsaquo; Notes</span><span class="nt-done">Done</span></div>
-            <div class="nt-title">New Note</div>
-            <div class="nt-body">
-              <p class="nt-l1">Ideas for the weekend&hellip;</p>
-              <p class="nt-l2">walk by the river, then</p>
-              <p class="nt-l3">coffee at the corner place.</p>
-            </div>
-            <div class="nt-rec"><span class="nt-wave"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>Transcribing…</div>
-          </div>
-
-          <!-- FIND MY -->
-          <div class="ph ph-find">
-            <div class="fm-t">Find My</div>
-            <div class="fm-radar"><span></span><span></span><span></span><b></b></div>
-            <div class="fm-s">Your iPhone is ringing</div>
-          </div>
-
-          <!-- LIGHTS -->
-          <div class="ph ph-lights">
-            <div class="li-t">Home</div>
-            <div class="li-grid"><i></i><i></i><i></i><i></i></div>
-            <div class="li-s">Living room &middot; On</div>
-          </div>
-
-          <div class="bx-fx"></div>
-          <div class="bx-ring" role="presentation"><span></span><span></span><span></span><span></span><span></span></div>
-          <div class="bx-label"></div>
-          <div class="bx-home"></div>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- The hero→circle gather now lives INSIDE #hero (hero3d.js); the old separate touch-demo section is retired. -->
-
-
-<!-- ============ WHERE WE LIVE — interactive 2D→3D positioning ============ -->
-<!-- "Where we live" (#position) removed 2026-07-28: competitive-positioning analysis,
-     not desire. It belongs in the pitch deck, not on a jewellery landing page. -->
-
-
-
-
-<!-- ============ THE ROAD — road-to-launch meter (replaces Proof) ============ -->
-<!-- ============ THE SYMBOLS ============ -->
-<section class="symbols" id="symbols" aria-labelledby="symbolsTitle">
+<!-- ============ THE SYMBOLS — the ring: turn it, read the front bead's symbol ============ -->
+<section class="symring-sec" id="symbols" aria-labelledby="symbolsTitle">
   <div class="wrap">
-    <p class="eyebrow reveal" style="display:block; margin-bottom:18px;">The symbols</p>
-    <h2 class="symbols-title reveal" id="symbolsTitle">Eight symbols.<br/><span class="gold-ink">Each one says something.</span></h2>
-    <p class="symbols-lede reveal">Every bead carries an Adinkra symbol from Ghana, and each symbol has a meaning. When you give a bead to someone, you choose the one that says what they are to you.</p>
-    <div class="symbol-grid" id="symbolGrid" role="list"></div>
-  </div>
-</section>
-
-<section class="tech bip" id="launch">
-  <div class="wrap" style="text-align:center;">
-    <p class="eyebrow reveal" style="display:block; margin-bottom:18px;">Building in public</p>
-    <h2 class="tech-title reveal">Not a render.<br/><span class="gold-ink">Watch it become real.</span></h2>
-  </div>
-
-  <!-- the evidence strip: swipeable, dated receipts. Cards are height-uniform; the factory
-       panel rides wider (a receipt-shaped card among portraits, on purpose). -->
-  <div class="bip-strip reveal" id="bipStrip" aria-label="Evidence of the build. Swipe through">
-    <figure class="bip-card bip-card--video">
-      <video playsinline muted loop preload="none" poster="assets/img/bip/use-wrist-poster.webp"
-             aria-label="Worn on the wrist: the beads light up one after another as the circle reaches in">
-        <source src="assets/video/use-wrist.mp4" type="video/mp4" />
-      </video>
-      <figcaption><span class="bip-when">September</span>In use. The circle lights up.</figcaption>
-    </figure>
-    <figure class="bip-card bip-card--video">
-      <video playsinline muted loop preload="none" poster="assets/img/bip/use-echo-poster.webp"
-             aria-label="Wrist held to the ear, one bead glowing: listening to an Echo">
-        <source src="assets/video/use-echo.mp4" type="video/mp4" />
-      </video>
-      <figcaption><span class="bip-when">September</span>Hearing an Echo.</figcaption>
-    </figure>
-    <figure class="bip-card">
-      <img src="assets/img/bip/two-prototypes.webp" alt="Both hand-wired prototypes worn together outdoors: the black first bracelet and the pale-blue second one" loading="lazy" decoding="async" width="880" height="1100" />
-      <figcaption><span class="bip-when">August</span>Two prototypes. Both alive.</figcaption>
-    </figure>
-    <figure class="bip-card">
-      <img src="assets/img/bip/flex-bracelet.webp" alt="The first bracelet built on the flex spine, worn outdoors: pale grey beads engraved with Adinkra symbols on a black braided cord" loading="lazy" decoding="async" width="880" height="1100" />
-      <figcaption><span class="bip-when">September</span>The flex spine, worn. Five to build.</figcaption>
-    </figure>
-  </div>
-
-  <div class="bip-road reveal" role="img" aria-label="Progress: the idea and two prototypes are done; Batch 1 is being built; Batch 2 is open">
-    <div class="bip-track"><i class="bip-fill"></i></div>
-    <div class="bip-ticks">
-      <span class="is-done">Idea</span><span class="is-done">2 prototypes</span><span class="is-now">Batch 1 build</span><span>Batch 2</span>
+    <p class="eyebrow" style="display:block; margin-bottom:18px;">The symbols</p>
+    <h2 class="symbols-title" id="symbolsTitle">Eight symbols.<br/><span class="gold-ink">Each one says something.</span></h2>
+    <!-- The REAL bead carousel (js/beadring3d.js via js/pilotring.js): the app's cord and the eight CAD
+         beads in 3D, drag to turn. Melvin's call, more than once: this one, never a flat ring. Whatever
+         bead is at the front, its symbol is read out below. Mounted only when the section nears the
+         screen, so the landing pays nothing for it up front. -->
+    <div class="bx sym-bx">
+      <div class="bx-strap" id="symStrap" role="group" tabindex="0" aria-label="The eight symbols. Drag to turn the bracelet">
+        <svg class="bx-cord" viewBox="0 0 400 200" preserveAspectRatio="none" aria-hidden="true"><path fill="none" stroke="rgba(201,160,78,.20)" stroke-width="2" stroke-linecap="round" /></svg>
+      </div>
+    </div>
+    <div class="symring-info is-in" aria-live="polite">
+      <p class="symring-lit">Return &amp; retrieve</p>
+      <h3 class="symring-name">Sankofa</h3>
+      <p class="symring-meaning">It is not wrong to go back for what you have forgotten.</p>
+      <p class="symring-proverb">&ldquo;Se wo were fi na wosankofa a yenkyi.&rdquo;</p>
+    </div>
+    <div class="symring-nav">
+      <button type="button" class="symring-prev" aria-label="Previous symbol">&lsaquo;</button>
+      <button type="button" class="symring-next" aria-label="Next symbol">&rsaquo;</button>
     </div>
   </div>
+</section>
 
-  <div class="bip-follow reveal">
-    <a class="btn btn-line" href="https://www.instagram.com/makoma.io/" target="_blank" rel="me noopener">Follow the build</a>
+<!-- ============ BUILDING IN PUBLIC — the bench, as the backdrop ============
+     Melvin's own footage (Metal Insert + Flex ASMR, Oct/Sep 2026): soldering the insert, the flex
+     board, the bead dome and the battery, 7.9 s seamless loop. Loaded only when the section nears
+     the screen, so it costs the landing nothing up front. -->
+<section class="build-bg" id="launch" aria-labelledby="buildTitle">
+  <video class="build-bg-film" muted loop playsinline preload="none" poster="assets/img/bip/build-solder-poster.webp"
+         data-src="assets/video/build-solder.mp4?v=1" aria-hidden="true" tabindex="-1" disablepictureinpicture disableremoteplayback></video>
+  <div class="build-bg-shade" aria-hidden="true"></div>
+  <div class="build-bg-inner">
+    <p class="build-bg-eyebrow">Building in public</p>
+    <h2 class="build-bg-title" id="buildTitle">I&rsquo;m assembling and manufacturing <span>the pilot bracelets.</span></h2>
+    <a class="btn btn-ig" href="https://www.instagram.com/makoma.io/" target="_blank" rel="me noopener"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" width="18" height="18"><path d="M7.0301.084c-1.2768.0602-2.1487.264-2.911.5634-.7888.3075-1.4575.72-2.1228 1.3877-.6652.6677-1.075 1.3368-1.3802 2.127-.2954.7638-.4956 1.6365-.552 2.914-.0564 1.2775-.0689 1.6882-.0626 4.947.0062 3.2586.0206 3.6671.0825 4.9473.061 1.2765.264 2.1482.5635 2.9107.308.7889.72 1.4573 1.388 2.1228.6679.6655 1.3365 1.0743 2.1285 1.38.7632.295 1.6361.4961 2.9134.552 1.2773.056 1.6884.069 4.9462.0627 3.2578-.0062 3.668-.0207 4.9478-.0814 1.28-.0607 2.147-.2652 2.9098-.5633.7889-.3086 1.4578-.72 2.1228-1.3881.665-.6682 1.0745-1.3378 1.3795-2.1284.2957-.7632.4966-1.636.552-2.9124.056-1.2809.0692-1.6898.063-4.948-.0063-3.2583-.021-3.6668-.0817-4.9465-.0607-1.2797-.264-2.1487-.5633-2.9117-.3084-.7889-.72-1.4568-1.3876-2.1228C21.2982 1.33 20.628.9208 19.8378.6165 19.074.321 18.2017.1197 16.9244.0645 15.6471.0093 15.236-.005 11.977.0014 8.718.0076 8.31.0215 7.0301.0839m.1402 21.6932c-1.17-.0509-1.8053-.2453-2.2287-.408-.5606-.216-.96-.4771-1.3819-.895-.422-.4178-.6811-.8186-.9-1.378-.1644-.4234-.3624-1.058-.4171-2.228-.0595-1.2645-.072-1.6442-.079-4.848-.007-3.2037.0053-3.583.0607-4.848.05-1.169.2456-1.805.408-2.2282.216-.5613.4762-.96.895-1.3816.4188-.4217.8184-.6814 1.3783-.9003.423-.1651 1.0575-.3614 2.227-.4171 1.2655-.06 1.6447-.072 4.848-.079 3.2033-.007 3.5835.005 4.8495.0608 1.169.0508 1.8053.2445 2.228.408.5608.216.96.4754 1.3816.895.4217.4194.6816.8176.9005 1.3787.1653.4217.3617 1.056.4169 2.2263.0602 1.2655.0739 1.645.0796 4.848.0058 3.203-.0055 3.5834-.061 4.848-.051 1.17-.245 1.8055-.408 2.2294-.216.5604-.4763.96-.8954 1.3814-.419.4215-.8181.6811-1.3783.9-.4224.1649-1.0577.3617-2.2262.4174-1.2656.0595-1.6448.072-4.8493.079-3.2045.007-3.5825-.006-4.848-.0608M16.953 5.5864A1.44 1.44 0 1 0 18.39 4.144a1.44 1.44 0 0 0-1.437 1.4424M5.8385 12.012c.0067 3.4032 2.7706 6.1557 6.173 6.1493 3.4026-.0065 6.157-2.7701 6.1506-6.1733-.0065-3.4032-2.771-6.1565-6.174-6.1498-3.403.0067-6.156 2.771-6.1496 6.1738M8 12.0077a4 4 0 1 1 4.008 3.9921A3.9996 3.9996 0 0 1 8 12.0077"/></svg><span>Follow the build</span></a>
   </div>
 </section>
+<script>
+  (function () {   // the bench film: fetched near the screen, plays only while seen, never under reduced motion
+    var v = document.querySelector(".build-bg-film"); if (!v) return;
+    if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    var loaded = false;
+    if (!("IntersectionObserver" in window)) { v.src = v.dataset.src; v.play().catch(function () {}); return; }
+    new IntersectionObserver(function (es) {
+      var e = es[0];
+      if (e.isIntersecting) { if (!loaded) { loaded = true; v.src = v.dataset.src; } v.play().catch(function () {}); }
+      else if (loaded) v.pause();
+    }, { rootMargin: "300px 0px" }).observe(v);
+  })();
+</script>
 
 <!-- ============ VISION / CTA ============ -->
 <section class="vision" id="join">
@@ -787,10 +422,51 @@
 <!-- design.js must precede main.js: it owns the shared design state that main.js
      reads when submitting the waitlist form. Classic scripts, not modules, because
      main.js is a classic IIFE and cannot import. -->
-<script src="js/design.js"></script>
 <script src="js/main.js?v=15"></script>
-<script src="js/configurator.js?v=4"></script>
-<script type="module" src="js/hero3d.js?v=17"></script>
+<script src="js/feature-flight.js?v=1" defer></script>
+<script src="js/pilotring.js?v=5"></script>
+<script>
+  /* The symbol ring: mount the real carousel when the section nears the screen; the front bead's
+     symbol, meaning and proverb follow it. Same words as main.js's BEADS. */
+  (function () {
+    var strap = document.getElementById("symStrap"); if (!strap || !window.PilotRing) return;
+    var SYMS = ["sankofa", "nkonsonkonson", "akoma_ntoaso", "akoma", "gye_nyame", "aya", "nsoroma", "nkyinkyim"];
+    var TXT = {
+      sankofa:       ["Return & retrieve", "Sankofa", "It is not wrong to go back for what you have forgotten.", "\u201cSe wo were fi na wosankofa a yenkyi.\u201d"],
+      nkonsonkonson: ["Linked together", "Nkonsonkonson", "Unity and human bonds: we are chained together in life and in death.", "One link is weak; together, unbreakable."],
+      akoma_ntoaso:  ["Linked hearts", "Akoma Ntoaso", "Two hearts joined: agreement, partnership, an enduring bond.", "Hearts bound together beat as one."],
+      akoma:         ["The heart", "Akoma", "Patience, love and the readiness to forgive: the seat of feeling.", "\u201cNya akoma\u201d: take heart."],
+      gye_nyame:     ["Except God", "Gye Nyame", "Awe at what is greater than us: the supremacy of the divine.", "None has seen its beginning; none will see its end."],
+      aya:           ["The fern", "Aya", "Endurance and resourcefulness: I have grown through hard ground.", "The fern thrives where others cannot."],
+      nsoroma:       ["Child of the heavens", "Nsoroma", "A star: hope, and a light to steer by in the dark.", "I shine, guided by a light above."],
+      nkyinkyim:     ["The winding path", "Nkyinkyim", "Life twists and turns: adaptability, devotion, resilience.", "The road bends, and so do the wise."]
+    };
+    var sec = document.getElementById("symbols"), info = sec.querySelector(".symring-info"),
+        el = ["lit", "name", "meaning", "proverb"].map(function (k) { return sec.querySelector(".symring-" + k); });
+    var api = null, shown = "sankofa", want = 0, btnUntil = 0;
+    function describe(i) {
+      if (Date.now() > btnUntil) want = i;   // a drag moved it: the arrows continue from here
+      var k = SYMS[i]; if (!k || k === shown) return; shown = k;
+      info.classList.remove("is-in"); void info.offsetWidth;
+      TXT[k].forEach(function (t, j) { el[j].textContent = t; });
+      info.classList.add("is-in");
+    }
+    function mount() {
+      if (api) return;
+      api = window.PilotRing.mount(strap, SYMS.length, { symbols: SYMS, fillers: [], onFront: describe });
+      api.focus(0);
+    }
+    function step(d) {   // each tap is one more bead, even while the ring is still turning
+      if (!api) return;
+      want = Math.max(0, Math.min(SYMS.length - 1, want + d)); btnUntil = Date.now() + 1200; api.focus(want);
+    }
+    sec.querySelector(".symring-prev").addEventListener("click", function () { step(-1); });
+    sec.querySelector(".symring-next").addEventListener("click", function () { step(1); });
+    if (!("IntersectionObserver" in window)) { mount(); return; }
+    var io = new IntersectionObserver(function (es) { if (es[0].isIntersecting) { io.disconnect(); mount(); } }, { rootMargin: "400px 0px" });
+    io.observe(sec);
+  })();
+</script>
 <!-- Neither js/positioning.js (its "Where we live" section is cut) nor js/coach.js is loaded:
      the bracelet no longer explains itself. Touching a bead summons the other person
      unannounced, and being surprised by it IS the moment. Every window.__coach call in

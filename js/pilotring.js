@@ -6,13 +6,15 @@
    the home page's, so the two never drift apart.
    ============================================================ */
 (function () {
-  var SYMS = ["sankofa", "aya", "nsoroma", "gye_nyame", "nkyinkyim", "akoma"];
-  var EXT  = { sankofa: "webp", aya: "webp", nsoroma: "webp", gye_nyame: "webp", nkyinkyim: "webp", akoma: "png" };
-  var FILL = ["akoma_ntoaso", "nkonsonkonson"];
+  var DEF_SYMS = ["sankofa", "aya", "nsoroma", "gye_nyame", "nkyinkyim", "akoma"];
+  var EXT  = { sankofa: "webp", aya: "webp", nsoroma: "webp", gye_nyame: "webp", nkyinkyim: "webp", akoma: "webp", akoma_ntoaso: "webp", nkonsonkonson: "webp" };
+  var DEF_FILL = ["akoma_ntoaso", "nkonsonkonson"];
   var reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
   function mount(strap, live, opts) {
     opts = opts || {};
+    // optional (the landing's symbol ring, 2026-10-13): its own bead list and fillers
+    var SYMS = opts.symbols || DEF_SYMS, FILL = opts.fillers || DEF_FILL;
     var slots = [];
     for (var i = 0; i < SYMS.length; i++) {
       var s = document.createElement("span"); s.className = "bx-slot"; s.dataset.i = String(i);
