@@ -151,14 +151,16 @@ h1,h2,h3{ font-family:var(--serif); font-weight:500; line-height:1.04; letter-sp
   background:rgba(7,7,8,.72); backdrop-filter:blur(18px) saturate(140%);
   border-bottom-color:var(--line-soft);
 }
-.brand{ display:inline-flex; align-items:center; gap:11px; }
-.brand-ico{ width:25px; height:auto; display:block; flex:0 0 auto; }
-.brand-mark{
-  font-family:var(--sans); font-weight:600; letter-spacing:.42em; font-size:.95rem;
-  color:var(--gold-pale); padding-left:.42em;
-}
-.brand-mark.small{ font-size:.8rem; }
-.brand-mark .tm{ font-size:.46em; letter-spacing:0; vertical-align:.62em; margin-left:-.2em; font-weight:500; opacity:.9; }
+/* The logo (2026-10-15): the brass heart-M + ivory AKOMA wordmark from
+   brand/large-heart-brand-kit-2026-10-15, as outlined SVG. Ivory on the dark theme,
+   black on the light theme; the footer carries the version with the slogan. */
+.brand{ display:inline-flex; align-items:center; flex-shrink:0; }
+.brand-lockup{ display:block; }
+.brand-logo{ width:clamp(132px, 34vw, 172px); height:auto; display:block; }
+.brand-logo--light{ display:none; }
+.brand--footer .brand-logo{ width:210px; }
+:root[data-theme="light"] .brand-logo--dark{ display:none; }
+:root[data-theme="light"] .brand-logo--light{ display:block; }
 .nav-links{ display:flex; gap:30px; }
 .nav-links a{ font-size:.82rem; color:var(--ink-soft); letter-spacing:.04em; position:relative; transition:color .3s; }
 .nav-links a::after{ content:""; position:absolute; left:0; bottom:-6px; width:0; height:1px; background:var(--gold); transition:width .35s var(--ease); }
@@ -749,7 +751,6 @@ section{ position:relative; z-index:2; }
 
 .footer{ margin-top:clamp(80px,12vw,140px); border-top:1px solid var(--line-soft); padding:40px 0; }
 .footer-row{ display:flex; flex-wrap:wrap; gap:14px 30px; align-items:center; justify-content:center; text-align:center; }
-.footer-tag{ font-family:var(--serif); font-style:italic; color:var(--gold-pale); }
 .footer-meta{ color:var(--ink-mute); font-size:.82rem; flex-basis:100%; }
 .footer-ig{ display:inline-flex; align-items:center; gap:7px; color:var(--gold); font-size:.9rem; transition:color .25s; }
 .footer-ig:hover{ color:var(--gold-bright); }
@@ -2565,10 +2566,9 @@ select.q-input{ appearance:none; -webkit-appearance:none; padding-right:36px;
 /* the page's own chrome is clutter on this screen */
 .nav--pre .nav-links, .nav--pre .theme-toggle, .nav--pre .nav-burger, .nav--pre .nav-cta{ display:none !important; }
 .nav--pre{ background:transparent !important; border-bottom:0 !important; }
-/* The wordmark and its mark are token-coloured and go dark in the light theme,
-   which is unreadable over this film. Literal, like everything else here. */
-.nav--pre .brand-mark, .nav--pre .brand-mark .tm{ color:#ece6d8 !important; }
-.nav--pre .brand-ico{ filter:none; opacity:.9; }
+/* Over the film the ivory logo stays in BOTH themes: the black one is unreadable here. */
+:root[data-theme="light"] .nav--pre .brand-logo--dark{ display:block; }
+:root[data-theme="light"] .nav--pre .brand-logo--light{ display:none; }
 .nav--pre::after{ content:none; margin-left:auto; font-family:var(--mono);
                   font-size:.66rem; letter-spacing:.2em; text-transform:uppercase; color:rgba(236,230,216,.72); }
 
