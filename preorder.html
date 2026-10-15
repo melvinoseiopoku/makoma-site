@@ -248,7 +248,6 @@
       <input type="hidden" name="metadata__intent" value="founder-pilot-application" />
       <input type="hidden" name="metadata__group" id="mGroup" value="" />
       <input type="hidden" name="metadata__bracelets" id="mCount" value="1" />
-      <input type="hidden" name="metadata__iphone_all" id="mIphone" value="" />
       <input type="hidden" name="metadata__circle_countries" id="mWhere" value="" />
       <input type="hidden" name="metadata__price_each" id="mEach" value="" />
       <input type="hidden" name="metadata__total" id="mTotal" value="" />
@@ -275,23 +274,8 @@
         <div class="q-choices q-choices--row" id="qCountChoices"></div>
       </fieldset>
 
-      <fieldset class="q" data-q="iphone">
-        <legend class="q-title" id="qIphoneTitle">Do you have an iPhone?</legend>
-        <div class="q-choices q-choices--row">
-          <label class="q-choice"><input type="radio" name="iphone" value="yes" /><span><b>Yes</b></span></label>
-          <label class="q-choice"><input type="radio" name="iphone" value="no" /><span><b>No</b></span></label>
-        </div>
-      </fieldset>
-
-      <fieldset class="q" data-q="stop">
-        <legend class="q-title">The pilot needs an iPhone.</legend>
-        <p class="q-hint" id="qStopText"></p>
-        <div class="q-actions">
-          <button type="button" class="btn btn-line" id="qStopBack">Change my answer</button>
-          <a href="/#join" class="btn btn-gold">Join the waitlist</a>
-        </div>
-      </fieldset>
-
+      <!-- The "Do you have an iPhone?" step and its stop page were removed 2026-10-14 (Melvin):
+           the M'AKOMA app is coming to Android, so no phone is turned away. -->
       <fieldset class="q" data-q="country">
         <legend class="q-title">Ship to.</legend>
         <select name="metadata__country" id="qCountry" class="q-input">
@@ -378,7 +362,7 @@
   <section class="ap-qa">
     <p class="ap-eyebrow">Questions</p>
     <dl>
-      <div><dt>What do I get?</dt><dd>One hand-built bracelet with six person beads, the iPhone app, setup help, and a direct line to the founder.</dd></div>
+      <div><dt>What do I get?</dt><dd>One hand-built bracelet with six person beads, the M&rsquo;AKOMA app for iPhone or Android, setup help, and a direct line to the founder.</dd></div>
       <div><dt>When does it ship?</dt><dd>Batch 2 ships by 8 November 2026. Batch 1 is fully reserved and ships by 25 October. Hand-built, so they leave in waves. If I am going to miss that date you hear from me on or before it, and you can cancel for a full refund. See <a href="shipping.html">shipping</a>.</dd></div>
       <div><dt>Is it waterproof?</dt><dd>It is IP54, splash- and dust-resistant, so take it off to shower or swim.</dd></div>
       <div><dt>Does the other person need one?</dt><dd>Not for a single. They can reach you from the M&rsquo;AKOMA app on their phone. In a circle, everyone wears one.</dd></div>
@@ -402,7 +386,7 @@
 <script src="js/glyphs.js"></script>
 <script src="js/main.js?v=16"></script>
 <script src="js/pilotring.js?v=6"></script>
-<script src="js/pilot-analytics.js?v=1"></script>
+<script src="js/pilot-analytics.js?v=2"></script>
 <script src="js/feature-flight.js?v=3" defer></script>
 <script>
   (function () {
@@ -426,13 +410,13 @@
        publish a date that has already passed. */
     if (P.closes) { set("#apCloses", P.closes); var closesLine = $("#apClosesLine"); if (closesLine) closesLine.hidden = false; }
 
-    // Application-side validation on top of main.js's email check: iPhone and country are required.
+    // Application-side validation on top of main.js's email check: country is required (any phone works since 2026-10-14).
     // ---------- one question at a time ----------
     var form = $("#joinForm"), status = $("#joinStatus"), progress = $("#apProgress"),
         back = $("#qBack"), next = $("#qNext"), nav = $("#qNav");
     var panels = {}; document.querySelectorAll(".q").forEach(function (f) { panels[f.getAttribute("data-q")] = f; });
     var minC = Math.max(2, P.circleMin || 2), maxC = Math.max(minC, P.circleMax || 6);
-    var A = { way: "", count: 1, iphone: "" };
+    var A = { way: "", count: 1 };
     var history = [];
     /* CHECKOUT: the same questions lead to payment instead of an application. Stripe then
        asks only for card, address and phone; everything answered here rides along as
@@ -491,7 +475,7 @@
     // One order ships to one address and the app works wherever the circle lives, so a
     // circle answers ship-to once, like a single. (The per-person bead map stays in the
     // markup for the application flow's history but is never shown here.)
-    function order() { return A.way === "circle" ? ["way", "count", "iphone", "country", "size", "email", "price"] : ["way", "iphone", "country", "size", "email", "price"]; }
+    function order() { return A.way === "circle" ? ["way", "count", "country", "size", "email", "price"] : ["way", "country", "size", "email", "price"]; }
     function agreed() { return true; }   // the three acknowledgement checkboxes were removed 2026-10-12 (Melvin); batch terms are shown on the price step
 
     // ---- the circle as the real bead carousel (js/pilotring.js) ----
@@ -530,7 +514,6 @@
       if (id === "way") return !!document.querySelector('input[name="way"]:checked');
       if (id === "email") return /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(($("#joinEmail").value || "").trim());
       if (id === "count") return !!document.querySelector('input[name="count"]:checked');
-      if (id === "iphone") return !!document.querySelector('input[name="iphone"]:checked');
       if (id === "country") return !!$("#qCountry").value;
       if (id === "where") return where.length > 0 && where.indexOf("") < 0;
       if (id === "agree") return agreed();
@@ -549,16 +532,12 @@
       var seq = order(), i = seq.indexOf(id);
       progress.textContent = i >= 0 ? (i + 1) + " of " + seq.length : "";
       back.hidden = history.length === 0;
-      nav.hidden = id === "stop" || id === "stopcountry";
+      nav.hidden = id === "stopcountry";
       next.hidden = id === "price";
       status.textContent = ""; status.classList.remove("is-error");
-      if (id === "iphone") $("#qIphoneTitle").textContent = A.way === "circle" ? "Does everyone in your circle have an iPhone?" : "Do you have an iPhone?";
       if (id === "where") { if (where.length !== A.count) buildBeads(A.count); setTimeout(function () { window.dispatchEvent(new Event("resize")); }, 50); }
       if (id === "size") buildSizes();
       refreshNext();
-      if (id === "stop") $("#qStopText").textContent = A.way === "circle"
-        ? "Every wrist in a circle needs an iPhone for the pilot app. Change the number to the people who have one, or apply as a single."
-        : "Android is not supported yet. Join the waitlist and you will hear the moment that changes.";
       if (id === "price") {
         var c = A.way === "circle" ? A.count : 1, each = priceEach(c);
         if (each === null && CHECKOUT && !priceAsked) {   // Stripe holds the amount: ask the server once
@@ -597,7 +576,6 @@
       if (id === "way") { var w = document.querySelector('input[name="way"]:checked'); if (!w) return fail("Pick one to continue."); A.way = w.value; $("#mGroup").value = w.value; if (w.value === "single") { A.count = 1; $("#mCount").value = "1"; } return true; }
       if (id === "email") { var v = ($("#joinEmail").value || "").trim(); if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v)) return fail("A real email, please.", $("#joinEmail")); return true; }
       if (id === "count") { var c = document.querySelector('input[name="count"]:checked'); if (!c) return fail("How many, including you?"); A.count = parseInt(c.value, 10); $("#mCount").value = c.value; return true; }
-      if (id === "iphone") { var ip = document.querySelector('input[name="iphone"]:checked'); if (!ip) return fail("Yes or no?"); A.iphone = ip.value; $("#mIphone").value = ip.value; return true; }
       if (id === "country") { if (!$("#qCountry").value) return fail("Which country?", $("#qCountry")); return true; }
       if (id === "agree") return true;
       if (id === "size") {
@@ -618,7 +596,6 @@
     function go(id) { history.push(current); current = id; show(id); }
     next.addEventListener("click", function () {
       if (!validate(current)) return;
-      if (current === "iphone" && A.iphone === "no") return go("stop");
       // Checkout ships to one country in this batch. Interest from elsewhere is still
       // welcome in the application flow, so the gate only exists when money is involved.
       if (CHECKOUT && current === "country" && $("#qCountry").value !== "United States") return go("stopcountry");
@@ -626,12 +603,6 @@
       go(seq[Math.min(i + 1, seq.length - 1)]);
     });
     back.addEventListener("click", function () { if (!history.length) return; current = history.pop(); show(current); });
-    $("#qStopBack").addEventListener("click", function () {
-      var target = A.way === "circle" ? "count" : "iphone";
-      while (history.length && current !== target) current = history.pop();
-      document.querySelectorAll('input[name="iphone"]').forEach(function (r) { r.checked = false; }); A.iphone = "";
-      show(current);
-    });
     $("#qStopCountryBack").addEventListener("click", function () {
       while (history.length && current !== "country") current = history.pop();
       $("#qCountry").value = "";
@@ -641,7 +612,7 @@
       var t = e.target, field = t && /^(INPUT|SELECT)$/.test(t.tagName) && t.type !== "checkbox" && t.type !== "radio";
       if (e.key === "Enter" && field && current !== "price") { e.preventDefault(); next.click(); }
     });
-    document.querySelectorAll('input[name="way"], input[name="count"], input[name="iphone"]').forEach(function (r) {
+    document.querySelectorAll('input[name="way"], input[name="count"]').forEach(function (r) {
       r.addEventListener("change", function () { paintChoices(); setTimeout(function () { next.click(); }, 220); });
     });
     // THE PAGE OWNS SUBMISSION. Capture phase, and always prevented: main.js's own
@@ -667,7 +638,6 @@
         email: ($("#joinEmail").value || "").trim(),
         group: $("#mGroup").value,
         bracelets: Number($("#mCount").value || 1),
-        iphone_all: $("#mIphone").value,
         country: (document.getElementById("qCountry") || {}).value || "",
         circle_countries: $("#mWhere").value,
         price_each: Number($("#mEach").value || 0),
@@ -763,7 +733,7 @@
       var h1 = document.querySelector(".ap-h1"), c = document.querySelector(".ap-cta");
       var applySec = $("#apply");
       /* Preorder leads into the questions, not straight to a card form: circle or single,
-         how many, iPhone, ship-to, wrist sizes, colours, email, the acknowledgements, the
+         how many, ship-to, wrist sizes, colours, email, the acknowledgements, the
          price. Only the last step opens Stripe, which then asks for card, address and phone. */
       var target = CHECKOUT ? "#apply" : "#checkout-section";
       if (c) { c.textContent = "Preorder"; c.setAttribute("href", target); }
@@ -964,7 +934,7 @@
        request and come back as order metadata in the Stripe dashboard. */
     function startCheckout() {
       var answers = {
-        way: A.way, count: A.way === "circle" ? A.count : 1, iphone: A.iphone,
+        way: A.way, count: A.way === "circle" ? A.count : 1,
         country: $("#qCountry").value,
         sizes: sizes(),
         email: ($("#joinEmail").value || "").trim(), agree: agreed(),

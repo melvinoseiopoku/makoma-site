@@ -55,7 +55,7 @@ const ALLOWED_ORIGINS = [
   "http://127.0.0.1:8765",
 ];
 const OFFER = "founder-pilot";
-const TERMS_VERSION = "2026-10-13";          // the refunds, shipping and terms pages as published
+const TERMS_VERSION = "2026-10-14";          // the refunds, shipping and terms pages as published
 const HOLD_MINUTES = 30;                     // Stripe's minimum Checkout Session lifetime
 const HOLD_MARGIN_MS = 90 * 1000;            // the store hold outlives the Stripe session slightly
 const SIZES = { small: "Small", medium: "Medium", large: "Large", unsure: "Not sure (message them to measure)" };   // "unsure" added 2026-10-13
@@ -134,7 +134,6 @@ function readAnswers(body) {
   if (!way) return { ok: false, detail: "circle or single" };
   const count = way === "circle" ? parseInt(b.count, 10) : 1;
   if (!(count >= 1 && count <= 7)) return { ok: false, detail: "how many bracelets" };   // six beads plus the wearer
-  if (b.iphone !== "yes") return { ok: false, detail: "an iPhone is required" };
   if (clip(b.country, 40) !== "United States") return { ok: false, detail: "this batch ships to US addresses only" };
   const sizes = Array.isArray(b.sizes) ? b.sizes.map((v) => clip(v, 10)) : [];
   if (sizes.length !== count || sizes.some((v) => !SIZES[v])) return { ok: false, detail: "a wrist size for every bracelet" };
@@ -267,7 +266,7 @@ export default async function handler(req, res) {
     }
 
     const origin = ALLOWED_ORIGINS.includes(req.headers.origin || "") ? req.headers.origin : "https://makoma.io";
-    const submitMsg = (a.count > 1 ? a.count + " bracelets, one order, one address. " : "") + "Batch 2 ships " + window + ". Hand-built. IP54, splash- and dust-resistant: take it off to shower or swim. Fully refundable until it ships. iPhone required.";
+    const submitMsg = (a.count > 1 ? a.count + " bracelets, one order, one address. " : "") + "Batch 2 ships " + window + ". Hand-built. IP54, splash- and dust-resistant: take it off to shower or swim. Fully refundable until it ships. Works with iPhone or Android.";
     const meta = {
       offer: OFFER, attempt: a.attempt, ip, way: a.way, bracelets: String(a.count),
       sizes: clip(a.sizes.map((v, i) => (a.count > 1 ? (i === 0 ? "You" : "P" + (i + 1)) + ": " : "") + SIZES[v]).join("; "), 500),

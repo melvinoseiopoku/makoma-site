@@ -4,7 +4,7 @@
 (function () {
   "use strict";
   var seen = Object.create(null);
-  var steps = ["way", "count", "iphone", "country", "size", "email", "agree", "price", "stop", "stopcountry"];
+  var steps = ["way", "count", "country", "size", "email", "agree", "price", "stopcountry"];
   var outcomes = ["confirmed", "processing", "not_completed", "unmatched", "unconfirmed"];
   var errors = ["sold_out", "not_open", "bad_request", "slow_down", "too_many_holds", "attempt_stale", "closed", "unavailable"];
 

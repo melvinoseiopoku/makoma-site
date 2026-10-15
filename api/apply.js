@@ -95,8 +95,10 @@ function validate(b) {
   const group = clean(b.group, 16);
   if (group !== "circle" && group !== "single") return { error: "group must be circle or single" };
 
-  const iphone = clean(b.iphone_all, 8);
-  if (iphone !== "yes" && iphone !== "no") return { error: "iphone_all must be yes or no" };
+  // No longer asked since 2026-10-14 (the app is coming to Android). A cached old page may
+  // still send yes/no; anything else is stored empty instead of rejecting the application.
+  const iphoneRaw = clean(b.iphone_all, 8);
+  const iphone = iphoneRaw === "yes" || iphoneRaw === "no" ? iphoneRaw : "";
 
   const bracelets = Number(b.bracelets);
   if (!Number.isInteger(bracelets) || bracelets < 1 || bracelets > 12) {
