@@ -31,7 +31,7 @@
      lives inside a closed IIFE and is in a NON-alphabetical order, so it is
      not safe to index by position. Always look up by key. */
   var SYM = {
-    akoma:         { name: "Akoma",         lit: "The heart", meaning: "Patience, love and the readiness to forgive: the seat of feeling.",             light: "#FFC928", note: 392.00 },
+    akoma:         { name: "Akoma",         lit: "The heart", meaning: "Patience, love and the readiness to forgive: the seat of feeling.",             light: "#F2B544", note: 392.00 },
     akoma_ntoaso:  { name: "Akoma Ntoaso",  lit: "Linked hearts", meaning: "Two hearts joined: agreement, partnership, an enduring bond.",         light: "#ecb07a", note: 440.00 },
     aya:           { name: "Aya",           lit: "The fern", meaning: "Endurance and resourcefulness: I have grown through hard ground.",              light: "#6fcf97", note: 783.99 },
     gye_nyame:     { name: "Gye Nyame",     lit: "Except God", meaning: "Awe at what is greater than us: the supremacy of the divine.",            light: "#f1e9d2", note: 880.00 },

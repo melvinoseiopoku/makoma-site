@@ -21,7 +21,7 @@
       proverb:"Hearts bound together beat as one.", color:"#ecb07a", note:440.00 },
     { key:"akoma",         person:"Mum",        name:"Akoma",         lit:"The heart",
       meaning:"Patience, love and the readiness to forgive: the seat of feeling.",
-      proverb:"“Nya akoma”: take heart.", color:"#FFC928", note:392.00 },
+      proverb:"“Nya akoma”: take heart.", color:"#F2B544", note:392.00 },
     { key:"gye_nyame",     person:"Nana",       name:"Gye Nyame",     lit:"Except God",
       meaning:"Awe at what is greater than us: the supremacy of the divine.",
       proverb:"None has seen its beginning; none will see its end.", color:"#f1e9d2", note:880.00 },
@@ -36,7 +36,7 @@
       proverb:"The road bends, and so do the wise.", color:"#6aa6ff", note:1046.50 },
   ];
 
-  const PRESENCE = ["#FFC928","#f59e0b","#2dd4bf","#3b82f6","#34d399","#a78bfa","#ef4444"];
+  const PRESENCE = ["#F2B544","#f59e0b","#2dd4bf","#3b82f6","#34d399","#a78bfa","#ef4444"];
 
   /* build an inline <svg> for a glyph key, colored with --g */
   function glyphSVG(key) {

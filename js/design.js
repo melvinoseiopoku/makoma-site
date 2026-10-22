@@ -111,7 +111,7 @@
       /* cut: null = "not chosen yet" — the box presents that bead BLANK; the hero outside
          still shows the finished display piece (the baked symbol). */
       people: [
-        { name: "", ghost: "Mum",         cut: null, glow: "#FFC928" },
+        { name: "", ghost: "Mum",         cut: null, glow: "#F2B544" },
         { name: "", ghost: "Dad",         cut: null, glow: "#f1e9d2" },
         { name: "", ghost: "Sis",         cut: null, glow: "#ecb07a" },
         { name: "", ghost: "Best friend", cut: null, glow: "#5fd3e0" },
