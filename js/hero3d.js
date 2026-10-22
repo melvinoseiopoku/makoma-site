@@ -1733,7 +1733,7 @@ async function init() {
 
   // matte Akoma_4E look: deep matte-black resin + warm gold (no glossy clearcoat)
   const matBlack = new THREE.MeshPhysicalMaterial({ color: 0x0c0c0d, roughness: 0.82, metalness: 0.0, clearcoat: 0.0, envMapIntensity: 0.2 });
-  const matGold = new THREE.MeshStandardMaterial({ color: 0xc6a24c, roughness: 0.36, metalness: 1.0, envMapIntensity: 0.6 });
+  const matGold = new THREE.MeshStandardMaterial({ color: 0xFFC928, roughness: 0.36, metalness: 1.0, envMapIntensity: 0.6 });
   // the platform behind each lit bead's symbol: a bright warm-gold EMISSIVE so the internal LED reads as light
   // through the symbol cut-throughs — a genuinely BACKLIT symbol. The bloom pass turns the lit symbol into a soft
   // halo. Low metalness so it reads as a glowing light source, not shiny metal. Breathed gently in update().
@@ -2857,7 +2857,7 @@ async function init() {
       let m = boxPlatMat[node];
       if (!m) { m = boxPlatMat[node] = matGlow.clone(); }
       if (lit[node]) { m.color.set(lit[node]); m.emissive.set(lit[node]); m.userData.base = 2.2; }
-      else { m.color.set(0xc6a24c); m.emissive.set(0xc6a24c); m.userData.base = 0.0; m.roughness = 0.36; m.metalness = 1.0; }
+      else { m.color.set(0xFFC928); m.emissive.set(0xFFC928); m.userData.base = 0.0; m.roughness = 0.36; m.metalness = 1.0; }
       m.emissiveIntensity = m.userData.base;
       plat.material = m;
     }

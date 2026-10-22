@@ -83,7 +83,7 @@ export async function initBeadRing3D(ctx) {
   // gold-ish name or metalness > 0.5 → warm gold; everything else → deep matte black.
   const matBlack = new THREE.MeshStandardMaterial({ color: 0x111009, roughness: 0.62, metalness: 0.0 });
   const matCord  = new THREE.MeshStandardMaterial({ color: 0x070706, roughness: 0.92, metalness: 0.0 });
-  const matGold  = new THREE.MeshStandardMaterial({ color: 0xd9a54a, roughness: 0.33, metalness: 1.0, emissive: 0x4d3a13, emissiveIntensity: 1 });
+  const matGold  = new THREE.MeshStandardMaterial({ color: 0xFFC928, roughness: 0.33, metalness: 1.0, emissive: 0x4d3a13, emissiveIntensity: 1 });
 
   const cordG = await load("assets/models/carousel/cord.glb");
   cordG.scene.traverse((o) => { if (o.isMesh) o.material = matCord; });
