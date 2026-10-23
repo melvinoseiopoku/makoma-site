@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Privacy · M'AKOMA</title>
-<meta name="description" content="What M'AKOMA collects when you preorder, join the waitlist or use the bracelet, who handles it, how long it is kept, and how to have it deleted." />
+<meta name="description" content="What M'AKOMA collects when you use the app, preorder or join the waitlist, who handles it, how long it is kept, and how to delete your account." />
 <link rel="canonical" href="https://makoma.io/privacy" />
 <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1" />
 <meta name="theme-color" content="#060607" />
@@ -12,7 +12,7 @@
 <meta property="og:type" content="website" />
 <meta property="og:site_name" content="M'AKOMA" />
 <meta property="og:title" content="Privacy · M'AKOMA" />
-<meta property="og:description" content="What M'AKOMA collects when you preorder, join the waitlist or use the bracelet, who handles it, how long it is kept, and how to have it deleted." />
+<meta property="og:description" content="What M'AKOMA collects when you use the app, preorder or join the waitlist, who handles it, how long it is kept, and how to delete your account." />
 <meta property="og:url" content="https://makoma.io/privacy" />
 <meta property="og:image" content="https://makoma.io/assets/img/og-image.jpg?v=warm-gold-20261022" />
 <link rel="icon" type="image/svg+xml" href="assets/logo/favicon.svg?v=warm-gold-20261022" />
@@ -25,7 +25,7 @@
     document.documentElement.setAttribute('data-theme', t);
   }catch(e){ document.documentElement.setAttribute('data-theme','dark'); } })();
 </script>
-<link rel="stylesheet" href="css/style.css?v=warm-gold-20261022" />
+<link rel="stylesheet" href="css/style.css?v=legal-20261023" />
 </head>
 <body>
 
@@ -62,48 +62,131 @@
 <main id="top" class="policy">
   <div class="wrap policy-wrap">
 <h1>Privacy</h1>
-<p><em>Last updated 12 October 2026.</em></p>
+<p><em>Last updated 23 October 2026.</em></p>
 
-<p>M&rsquo;AKOMA is a bracelet for the people you love, so it touches personal things: who they are, and sometimes your voice. This page says exactly what I collect, why, who else handles it, how long it stays, and how you get it deleted. I do not sell your data and I do not use it for advertising.</p>
+<p>M&rsquo;AKOMA is a bracelet and an app for the people you love, so it touches personal things: who they are, and sometimes your voice. This page says exactly what I collect, why, who else handles it, how long it stays, and how you get it deleted. I do not sell your data and I do not use it for advertising. The app has no ads and no tracking.</p>
 
 <h2>Who is responsible</h2>
 <p>M&rsquo;AKOMA is a limited liability company registered in the United States, run by me, Melvin Osei Opoku. Questions or requests go to <a href="mailto:oseimelvin@gmail.com">oseimelvin@gmail.com</a>, and I read every one.</p>
+
+<h2>The M&rsquo;AKOMA app</h2>
+<p>There is no password. The first time you open the app, it makes an account for you on M&rsquo;AKOMA&rsquo;s server. That account holds:</p>
+<ul>
+  <li><strong>A random device ID and a secret,</strong> so the server knows it is your phone and nobody else can send as you.</li>
+  <li><strong>The name you type,</strong> so the people you connect with know who a Pulse or an Echo is from.</li>
+  <li><strong>Your mobile number or email address, only if you choose to add one.</strong> It is never sent as it is. Your phone turns it into a one-way code (a SHA-256 hash) and sends only that, so people who already have your number or email can find you.</li>
+  <li><strong>Your profile code,</strong> a short code you can share so people can connect with you. You can make a new one at any time, and the old one stops working.</li>
+</ul>
+
+<h3>Finding people you know</h3>
+<p>Only if you allow it, the app looks at the phone numbers and email addresses in your Contacts, turns each one into the same kind of one-way code, and sends those codes to the server to see who already uses M&rsquo;AKOMA. Names, photos and every other detail stay on your phone. The codes are compared and then dropped; they are not stored. Contacts access is never required: you can share your code instead.</p>
+
+<h3>Messages</h3>
+<p>Pulses (a tap that lights someone&rsquo;s bead), Echoes (a voice note to one person) and group chats (text, voice Ripples, photos, videos, reactions and replies) all travel through M&rsquo;AKOMA&rsquo;s server. It keeps them only as long as it needs to:</p>
+<ul>
+  <li><strong>Pulses and Echoes</strong> are deleted 24 hours after they are delivered, or after 7 days if they could never be delivered.</li>
+  <li><strong>Group chat messages, photos and videos</strong> are kept for 30 days, so the group can scroll back, then deleted.</li>
+  <li><strong>Group names and who is in a group</strong> are kept until the group ends or you leave it.</li>
+</ul>
+
+<h3>Notifications</h3>
+<p>So you know about a Pulse or an Echo when the app is closed, the server keeps your phone&rsquo;s push token, and Apple delivers the notification through the Apple Push Notification service.</p>
+
+<h3>M&rsquo;AKOMA AI</h3>
+<p>Nothing goes to an AI unless you ask it something. If you use M&rsquo;AKOMA AI (&ldquo;Hey Makoma&rdquo;), Apple&rsquo;s speech recognition turns your question into text. That text, the name you use in the app and your local time are sent through M&rsquo;AKOMA&rsquo;s server to Anthropic, the company that makes the Claude model, to get your answer. M&rsquo;AKOMA&rsquo;s server does not keep your questions or the answers.</p>
+
+<h3>What stays on your phone</h3>
+<ul>
+  <li>The names you give your people, and your settings.</li>
+  <li><strong>Location</strong> for Move: a run or walk is tracked on your phone and stays there.</li>
+  <li><strong>Steps</strong> from your phone&rsquo;s motion sensor stay on your phone. The bracelet&rsquo;s own step count stays on the bracelet and your phone.</li>
+  <li><strong>The microphone</strong> is used only when you record something to send, like an Echo or a Ripple, or when you ask M&rsquo;AKOMA AI a question.</li>
+  <li><strong>Bluetooth</strong> is used only to talk to your own bracelet.</li>
+  <li><strong>Diagnostic logs</strong> stay on your phone. They leave it only if you tap Send diagnostics, which opens the share sheet so you choose where they go.</li>
+</ul>
+
+<h3>No ads, no tracking</h3>
+<p>The app shows no ads, does not track you across other apps or websites, and has no analytics tools inside it. I do not sell your data or share it for advertising.</p>
+
+<h3>Reports and blocks</h3>
+<p>If you report a message, a person or a group, I receive the report and what it is about, so I can review it. If you block someone, the server remembers it so they can no longer reach you. Reports are kept only as long as I need them to deal with the problem and keep people safe.</p>
+
+<h2>What the server keeps, and for how long</h2>
+<table class="policy-table">
+  <thead>
+    <tr><th scope="col">What</th><th scope="col">Why</th><th scope="col">How long</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Device ID and secret</td><td data-label="Why">To recognise your phone and keep your account yours</td><td data-label="How long">Until you delete your account</td></tr>
+    <tr><td>Your name</td><td data-label="Why">So people know who a message is from</td><td data-label="How long">Until you delete your account</td></tr>
+    <tr><td>One-way code of your number or email (optional)</td><td data-label="Why">So people who have your number or email can find you</td><td data-label="How long">Until you delete your account</td></tr>
+    <tr><td>Profile code</td><td data-label="Why">So people can connect with you</td><td data-label="How long">Until you make a new one or delete your account</td></tr>
+    <tr><td>Your connections</td><td data-label="Why">To deliver Pulses and Echoes to the right people</td><td data-label="How long">Until the connection ends or you delete your account</td></tr>
+    <tr><td>One-way codes of your contacts&rsquo; numbers (optional)</td><td data-label="Why">To show which of your contacts use M&rsquo;AKOMA</td><td data-label="How long">Not stored: compared, then dropped</td></tr>
+    <tr><td>Pulses and Echoes</td><td data-label="Why">To deliver them</td><td data-label="How long">24 hours after delivery, or 7 days if never delivered</td></tr>
+    <tr><td>Group messages, Ripples, photos, videos, reactions and replies</td><td data-label="Why">So the group can read and scroll back</td><td data-label="How long">30 days</td></tr>
+    <tr><td>Group names and members</td><td data-label="Why">To run the group</td><td data-label="How long">Until the group ends or you leave</td></tr>
+    <tr><td>Push token</td><td data-label="Why">So Apple can deliver your notifications</td><td data-label="How long">Until you delete your account</td></tr>
+    <tr><td>M&rsquo;AKOMA AI questions and answers</td><td data-label="Why">To get you an answer</td><td data-label="How long">Not kept by M&rsquo;AKOMA</td></tr>
+    <tr><td>Reports and blocks</td><td data-label="Why">To review reports and keep blocked people away</td><td data-label="How long">As long as needed to deal with them</td></tr>
+  </tbody>
+</table>
+
+<h2>Deleting your account</h2>
+<p>In the app, go to <strong>Profile &rarr; Account &rarr; Delete account</strong>. That deletes:</p>
+<ul>
+  <li>your account, your name and the one-way code of your number or email</li>
+  <li>your profile code</li>
+  <li>your connections (each person you were connected with is told the connection has ended)</li>
+  <li>your place in every group</li>
+  <li>messages, voice notes, photos and videos still waiting on the server</li>
+</ul>
+<p>It also clears the app&rsquo;s data on that phone. It cannot reach into other people&rsquo;s phones, so anything they have already received stays with them. If you no longer have the phone, email me with the name you used and I will help.</p>
 
 <h2>When you preorder</h2>
 <ul>
   <li><strong>Your answers in the preorder steps:</strong> circle or single, how many bracelets, wrist sizes, your email, and how you heard about M&rsquo;AKOMA. They are attached to your order so I can build and ship the right bracelets.</li>
   <li><strong>Payment, name, shipping address and phone number</strong> are entered on Stripe&rsquo;s checkout form. Stripe processes the card; I never see or store your full card number. I see the address and phone so I can ship to you and reach you about delivery.</li>
-  <li><strong>A short one-way code made from your IP address</strong>, used only to stop abuse of the seat holds. It cannot be turned back into your address.</li>
+  <li><strong>A short one-way code made from your IP address</strong>, used only to stop abuse of the seat holds. Your IP address itself is not stored with your order.</li>
 </ul>
 
 <h2>When you join the waitlist</h2>
 <p>Your email address (and anything else you choose to type into the form) goes to Buttondown, the service that sends M&rsquo;AKOMA emails. If you trace your own design onto a bead, the file is stored privately and only linked to your signup. Every email has an unsubscribe link.</p>
 
 <h2>The bracelet designer</h2>
-<p>The names you type when you design a bracelet stay in your browser. They are not sent to me.</p>
+<p>The names you type when you design a bracelet on this website stay in your browser. They are not sent to me.</p>
 
-<h2>Site analytics</h2>
-<p>The site uses Vercel Web Analytics and Speed Insights: counts of page views and load times, without cookies. On the preorder page it also counts which step people reach, never what they typed.</p>
-
-<h2>The bracelet and the app</h2>
-<ul>
-  <li>The names you give your people and your settings stay on your phone.</li>
-  <li>To carry a Pulse or a voice Echo between two bracelets, the M&rsquo;AKOMA relay stores a device identifier, the display name you choose, and the message itself until it is delivered.</li>
-  <li>Delivered messages are deleted within 24 hours. A message that cannot be delivered is deleted after 7 days.</li>
-  <li>Diagnostic logs stay on your phone unless you choose to send them to me.</li>
-</ul>
+<h2>Website analytics</h2>
+<p>This website uses Vercel Web Analytics and Speed Insights: counts of page views and load times, without cookies. On the preorder page it also counts which step people reach, never what they typed. This is the website only; the app has no analytics.</p>
 
 <h2>Who else handles your data</h2>
-<p>Only the services that run M&rsquo;AKOMA, each for its own job: Stripe (payments and order records), Vercel (website hosting, analytics and private file storage), Upstash (holding a seat while you pay), Buttondown (email), Google (a private spreadsheet some site forms write to) and Railway (hosting the relay).</p>
+<p>Only the services that run M&rsquo;AKOMA, each for its own job:</p>
+<ul>
+  <li><strong>Railway</strong> hosts M&rsquo;AKOMA&rsquo;s app server in the United States.</li>
+  <li><strong>Apple</strong> delivers push notifications, and its speech recognition turns M&rsquo;AKOMA AI questions into text.</li>
+  <li><strong>Anthropic</strong> answers M&rsquo;AKOMA AI questions, only when you ask one.</li>
+  <li><strong>Stripe</strong> handles payments and order records.</li>
+  <li><strong>Vercel</strong> hosts the website and its analytics, and stores private files.</li>
+  <li><strong>Upstash</strong> holds a seat while you pay.</li>
+  <li><strong>Buttondown</strong> sends M&rsquo;AKOMA emails.</li>
+  <li><strong>Google</strong> holds a private spreadsheet some website forms write to.</li>
+</ul>
+<p>Your data is stored and processed in the United States. If you use M&rsquo;AKOMA from somewhere else, it travels there.</p>
 
 <h2>How long it is kept</h2>
-<p>Order records are kept as long as they are needed to fulfil, refund or support your order and to meet tax and accounting rules. Waitlist details are kept until you unsubscribe or ask me to delete them. Relay messages follow the 24-hour and 7-day limits above.</p>
+<p>App data follows the table above. Order records are kept as long as they are needed to fulfil, refund or support your order and to meet tax and accounting rules. Waitlist details are kept until you unsubscribe or ask me to delete them.</p>
+
+<h2>Children</h2>
+<p>M&rsquo;AKOMA is not directed to children under 13. You must be 13 or older to set up and use the app on your own. A younger child may wear a bracelet only through a parent&rsquo;s or guardian&rsquo;s phone and account, with that adult in charge. I do not knowingly collect personal information from children under 13; if you think I have, email me and I will delete it.</p>
 
 <h2>Your choices</h2>
-<p>Email me to see what I hold about you, to correct it, or to delete it. I will reply within 30 days. Records I have to keep by law, such as a completed sale for tax, I keep only for that purpose. Deleting your data does not cancel an order; cancelling an order works as the <a href="terms.html">terms</a> describe.</p>
+<p>You can delete your app account yourself at any time, as described above. For anything else, email me to see what I hold about you, to correct it, or to delete it. I will reply within 30 days. Records I have to keep by law, such as a completed sale for tax, I keep only for that purpose. Deleting your data does not cancel an order; cancelling an order works as the <a href="terms.html">terms of sale</a> describe.</p>
 
 <h2>Changes to this page</h2>
 <p>If this page changes, the date at the top changes with it. I will not start using data you already gave me in a new way without asking you first.</p>
+
+<h2>Contact</h2>
+<p>Email <a href="mailto:oseimelvin@gmail.com">oseimelvin@gmail.com</a>. The rules for using the app are in the <a href="terms-of-use.html">terms of use</a>, and quick answers are on the <a href="help.html">help page</a>.</p>
   </div>
 </main>
 
@@ -117,7 +200,7 @@
         <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" width="17" height="17"><path d="M7.0301.084c-1.2768.0602-2.1487.264-2.911.5634-.7888.3075-1.4575.72-2.1228 1.3877-.6652.6677-1.075 1.3368-1.3802 2.127-.2954.7638-.4956 1.6365-.552 2.914-.0564 1.2775-.0689 1.6882-.0626 4.947.0062 3.2586.0206 3.6671.0825 4.9473.061 1.2765.264 2.1482.5635 2.9107.308.7889.72 1.4573 1.388 2.1228.6679.6655 1.3365 1.0743 2.1285 1.38.7632.295 1.6361.4961 2.9134.552 1.2773.056 1.6884.069 4.9462.0627 3.2578-.0062 3.668-.0207 4.9478-.0814 1.28-.0607 2.147-.2652 2.9098-.5633.7889-.3086 1.4578-.72 2.1228-1.3881.665-.6682 1.0745-1.3378 1.3795-2.1284.2957-.7632.4966-1.636.552-2.9124.056-1.2809.0692-1.6898.063-4.948-.0063-3.2583-.021-3.6668-.0817-4.9465-.0607-1.2797-.264-2.1487-.5633-2.9117-.3084-.7889-.72-1.4568-1.3876-2.1228C21.2982 1.33 20.628.9208 19.8378.6165 19.074.321 18.2017.1197 16.9244.0645 15.6471.0093 15.236-.005 11.977.0014 8.718.0076 8.31.0215 7.0301.0839m.1402 21.6932c-1.17-.0509-1.8053-.2453-2.2287-.408-.5606-.216-.96-.4771-1.3819-.895-.422-.4178-.6811-.8186-.9-1.378-.1644-.4234-.3624-1.058-.4171-2.228-.0595-1.2645-.072-1.6442-.079-4.848-.007-3.2037.0053-3.583.0607-4.848.05-1.169.2456-1.805.408-2.2282.216-.5613.4762-.96.895-1.3816.4188-.4217.8184-.6814 1.3783-.9003.423-.1651 1.0575-.3614 2.227-.4171 1.2655-.06 1.6447-.072 4.848-.079 3.2033-.007 3.5835.005 4.8495.0608 1.169.0508 1.8053.2445 2.228.408.5608.216.96.4754 1.3816.895.4217.4194.6816.8176.9005 1.3787.1653.4217.3617 1.056.4169 2.2263.0602 1.2655.0739 1.645.0796 4.848.0058 3.203-.0055 3.5834-.061 4.848-.051 1.17-.245 1.8055-.408 2.2294-.216.5604-.4763.96-.8954 1.3814-.419.4215-.8181.6811-1.3783.9-.4224.1649-1.0577.3617-2.2262.4174-1.2656.0595-1.6448.072-4.8493.079-3.2045.007-3.5825-.006-4.848-.0608M16.953 5.5864A1.44 1.44 0 1 0 18.39 4.144a1.44 1.44 0 0 0-1.437 1.4424M5.8385 12.012c.0067 3.4032 2.7706 6.1557 6.173 6.1493 3.4026-.0065 6.157-2.7701 6.1506-6.1733-.0065-3.4032-2.771-6.1565-6.174-6.1498-3.403.0067-6.156 2.771-6.1496 6.1738M8 12.0077a4 4 0 1 1 4.008 3.9921A3.9996 3.9996 0 0 1 8 12.0077"/></svg>
         <span>@makoma.io</span>
       </a>
-      <span class="footer-meta">An early-stage beaded-technology company · hand-built in small batches · built by Melvin Osei Opoku · <a href="refunds.html">Refunds</a> · <a href="shipping.html">Shipping</a> · <a href="terms.html">Terms</a> · <a href="privacy.html">Privacy</a> · <a href="NOTICES.txt">Notices</a></span>
+      <span class="footer-meta">An early-stage beaded-technology company · hand-built in small batches · built by Melvin Osei Opoku · <a href="refunds.html">Refunds</a> · <a href="shipping.html">Shipping</a> · <a href="terms.html">Terms of sale</a> · <a href="terms-of-use.html">Terms of use</a> · <a href="privacy.html">Privacy</a> · <a href="help.html">Help</a> · <a href="NOTICES.txt">Notices</a></span>
     </div>
   </footer>
 

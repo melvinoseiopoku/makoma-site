@@ -2799,6 +2799,31 @@ select.q-input{ appearance:none; -webkit-appearance:none; padding-right:36px;
 .policy a{ color:var(--gold); text-underline-offset:3px; }
 .policy-updated{ margin-top:52px; padding-top:22px; border-top:1px solid var(--line-soft);
                  font-size:.84rem; color:var(--ink-mute); }
+/* privacy, terms of use and help (2026-10-22): sub-headings for the FAQ and the app
+   sections, numbered steps, and the what / why / how-long table. */
+.policy h3{ font-weight:600; font-size:1.04rem; line-height:1.35; margin:30px 0 8px; color:var(--ink); }
+.policy h2 + h3{ margin-top:18px; }
+.policy ol{ margin:0 0 18px; padding-left:1.35em; color:var(--ink-soft); line-height:1.72; }
+.policy-table{ width:100%; border-collapse:collapse; margin:8px 0 24px; font-size:.92rem; line-height:1.55;
+               color:var(--ink-soft); }
+.policy-table th{ text-align:left; vertical-align:bottom; font-family:var(--mono); font-weight:500; font-size:.66rem;
+                  letter-spacing:.14em; text-transform:uppercase; color:var(--ink-mute);
+                  padding:0 14px 10px 0; border-bottom:1px solid var(--line); }
+.policy-table td{ vertical-align:top; padding:12px 14px 12px 0; border-bottom:1px solid var(--line-soft); }
+.policy-table th:last-child, .policy-table td:last-child{ padding-right:0; }
+.policy-table td:first-child{ color:var(--ink); font-weight:600; width:34%; }
+/* three columns are too narrow to read on a phone: each row becomes a small block */
+@media (max-width:600px){
+  .policy-table thead{ position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; }
+  .policy-table, .policy-table tbody, .policy-table tr, .policy-table td{ display:block; width:auto; }
+  .policy-table tr{ padding:14px 0; border-bottom:1px solid var(--line-soft); }
+  .policy-table tbody tr:first-child{ border-top:1px solid var(--line); }
+  .policy-table td{ padding:0; border:0; }
+  .policy-table td:first-child{ width:auto; }
+  .policy-table td + td{ margin-top:6px; }
+  .policy-table td[data-label]::before{ content:attr(data-label); display:block; margin-bottom:1px; font-family:var(--mono);
+    font-size:.62rem; letter-spacing:.14em; text-transform:uppercase; color:var(--ink-mute); }
+}
 
 /* ---- Founder Pilot details ---------------------------------------------------
    The first version was a wall of paragraphs. This is the same information as
