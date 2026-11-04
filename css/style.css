@@ -752,9 +752,9 @@ section{ position:relative; z-index:2; }
 .footer{ margin-top:clamp(80px,12vw,140px); border-top:1px solid var(--line-soft); padding:40px 0; }
 .footer-row{ display:flex; flex-wrap:wrap; gap:14px 30px; align-items:center; justify-content:center; text-align:center; }
 .footer-meta{ color:var(--ink-mute); font-size:.82rem; flex-basis:100%; }
-.footer-ig{ display:inline-flex; align-items:center; gap:7px; color:var(--gold); font-size:.9rem; transition:color .25s; }
-.footer-ig:hover{ color:var(--gold-bright); }
-.footer-ig svg{ display:block; }
+.footer-ig, .footer-mail{ display:inline-flex; align-items:center; gap:7px; color:var(--gold); font-size:.9rem; transition:color .25s; }
+.footer-ig:hover, .footer-mail:hover{ color:var(--gold-bright); }
+.footer-ig svg, .footer-mail svg{ display:block; }
 
 /* ============ responsive nav + mobile menu ============ */
 .nav-right{ display:flex; align-items:center; gap:12px; }
@@ -2711,10 +2711,10 @@ select.q-input{ appearance:none; -webkit-appearance:none; padding-right:36px;
             mask-composite:intersect; }
 }
 /* 130% box offset so the bracelet (51.4% across; --fy puts it mid-box) lands dead centre, 1.3x zoom */
-.ap-film video{ position:absolute; left:-16.8%; top:-15%; width:130%; height:130%; object-fit:cover; object-position:51% var(--fy);
+.ap-film video, .ap-film .film-still{ position:absolute; left:-16.8%; top:-15%; width:130%; height:130%; object-fit:cover; object-position:51% var(--fy);
   pointer-events:none; }
 
-@media (min-width:600px){ .ap-film video{ left:0; top:0; width:100%; height:100%; } }   /* wide band: no zoom, the whole bracelet shows */
+@media (min-width:600px){ .ap-film video, .ap-film .film-still{ left:0; top:0; width:100%; height:100%; } }   /* wide band: no zoom, the whole bracelet shows */
 .ap-film video::-webkit-media-controls, .ap-film video::-webkit-media-controls-start-playback-button,
 .ap-film video::-webkit-media-controls-overlay-play-button{ display:none !important; -webkit-appearance:none; }
 .ap-hero .ap-h1{ margin-bottom:0; }   /* 2026-10-13: the hero breathes — eyebrow, headline, badges, icons spaced apart */
@@ -2781,6 +2781,11 @@ select.q-input{ appearance:none; -webkit-appearance:none; padding-right:36px;
 .q-price-agree a{ color:inherit; text-decoration:underline; text-underline-offset:2px; }
 .pre-bg::-webkit-media-controls, .pre-bg::-webkit-media-controls-start-playback-button,
 .pre-bg::-webkit-media-controls-overlay-play-button{ display:none !important; -webkit-appearance:none; }
+/* Current iOS ignores the rules above and draws the button anyway (seen 2026-11-03), so a film the phone
+   refuses steps aside (playFilm in the page head): its still sits in the same box, sharing the film's
+   classes, and the film turns invisible, button and all, until it really plays. */
+video.film-off{ opacity:0; }
+.film-still + video{ transition:opacity .5s var(--ease); }
 
 /* ---- policy pages (refunds, shipping, terms) --------------------------------
    Long-form reading, not marketing. One narrow column, generous leading, and the
@@ -2946,7 +2951,7 @@ select.q-input{ appearance:none; -webkit-appearance:none; padding-right:36px;
   min-height:100vh; min-height:100svh; padding:calc(86px + clamp(28px,5vh,52px)) 24px clamp(26px,4.5vh,44px); }
 .ap-stage .ap-film{ position:absolute; inset:0; z-index:-2; margin:0; width:auto; height:auto; max-width:none;
   -webkit-mask-image:none; mask-image:none; }
-.ap-stage .ap-film video{ left:0; top:0; width:100%; height:100%; object-fit:cover; object-position:51% 58%;
+.ap-stage .ap-film video, .ap-stage .ap-film .film-still{ left:0; top:0; width:100%; height:100%; object-fit:cover; object-position:51% 58%;
   transform:none; }   /* no extra zoom (Melvin 2026-10-13: "too zoomed in"): just enough to fill the screen */
 .ap-stage::before{ content:""; position:absolute; inset:0; z-index:-1; pointer-events:none;
   background:linear-gradient(180deg, var(--black) 0%, color-mix(in srgb, var(--black) 78%, transparent) 13%,
@@ -2961,7 +2966,7 @@ select.q-input{ appearance:none; -webkit-appearance:none; padding-right:36px;
   /* a premium hero: the bracelet right of centre, the words in the left third, nothing on top of the piece */
   .ap-stage{ align-items:flex-start; justify-content:center; text-align:left; min-height:min(94svh, 960px);
     padding:calc(86px + clamp(36px,6vh,72px)) 24px clamp(48px,8vh,88px) clamp(40px,6.5vw,120px); }
-  .ap-stage .ap-film video{ object-position:center 55%; transform:translateX(3%) scale(1.06); transform-origin:50% 40%; }   /* the least zoom that still shifts the bracelet clear of the words */
+  .ap-stage .ap-film video, .ap-stage .ap-film .film-still{ object-position:center 55%; transform:translateX(3%) scale(1.06); transform-origin:50% 40%; }   /* the least zoom that still shifts the bracelet clear of the words */
   .ap-stage::before{
     background:
       linear-gradient(90deg, var(--black) 0%, color-mix(in srgb, var(--black) 86%, transparent) 18%, color-mix(in srgb, var(--black) 45%, transparent) 36%, transparent 54%),
