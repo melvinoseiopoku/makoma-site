@@ -8,7 +8,7 @@
      and they cache it, so it has to match the page's CURRENT mode. It said "Apply for one"
      through the countdown. When MAKOMA_PILOT.mode flips to checkout, change these three
      lines in the same edit: the card should then say preorders are open, not a future date. -->
-<meta name="description" content="Batch 1 is fully reserved. Batch 2 of the hand-built M'AKOMA bracelet is open now, shipping by 8 November. Six beads, six people." />
+<meta name="description" content="Batch 1 is fully reserved. Batch 2 of the hand-built M'AKOMA bracelet is open now, shipping by 30 November. Six beads, six people." />
 <link rel="canonical" href="https://makoma.io/preorder" />
 <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1" />
 <meta name="theme-color" content="#060607" />
@@ -16,7 +16,7 @@
 <meta property="og:type" content="website" />
 <meta property="og:site_name" content="M'AKOMA" />
 <meta property="og:title" content="Batch 2 is open. Preorder yours. · M'AKOMA" />
-<meta property="og:description" content="Batch 1 is fully reserved. Batch 2 is open now and ships by 8 November 2026. Six beads, six people." />
+<meta property="og:description" content="Batch 1 is fully reserved. Batch 2 is open now and ships by 30 November 2026. Six beads, six people." />
 <meta property="og:url" content="https://makoma.io/preorder" />
 <meta property="og:image" content="https://makoma.io/assets/img/og-pilot.jpg" />
 <meta property="og:image:width" content="1200" />
@@ -60,7 +60,7 @@
        Vercel as PILOT_SHIP_WINDOW, and must match the shipping policy page.
        Under the FTC rule this is a promise, not an estimate: miss it and the
        delay notice has to reach every buyer ON OR BEFORE this date. */
-    shipWindow: "by 8 November 2026",
+    shipWindow: "by 30 November 2026",
 
     /* When preorders open. WRITE THE OFFSET, never a bare local time: on 20
        September New York is on DAYLIGHT time (UTC-4), so noon in New York is
@@ -191,7 +191,7 @@
     <div class="bt" aria-label="Availability">
       <div class="bt-c bt-c--done"><span class="bt-t">Batch 1</span><span class="bt-stamp">Fully reserved</span></div>
       <div class="bt-c bt-c--open"><span class="bt-t">Batch 2</span><span class="bt-live"><i aria-hidden="true"></i>Open now</span></div>
-      <p class="bt-note js-pb-left">Ships by 8 November. Get yours before it runs out.</p>
+      <p class="bt-note js-pb-left">Ships by 30 November. Get yours before it runs out.</p>
     </div>
     <p class="ap-lede" hidden></p>
     <a href="/" class="btn btn-gold ap-cta" hidden>Back to M&rsquo;AKOMA</a>
@@ -269,7 +269,7 @@
                page can never show a different number from the one charged. -->
           <div class="pre-batches" id="preBatches">
             <div class="pb pb--done"><span class="pb-n">Batch 1</span><span class="pb-s">Fully reserved</span></div>
-            <div class="pb pb--open"><span class="pb-n">Batch 2</span><span class="pb-s">Now available &middot; ships by 8&nbsp;Nov</span></div>
+            <div class="pb pb--open"><span class="pb-n">Batch 2</span><span class="pb-s">Now available &middot; ships by 30&nbsp;Nov</span></div>
             <p class="pb-note"><b class="js-pb-left">Get yours before Batch 2 runs out.</b></p>
           </div>
           <a class="btn btn-gold pre-cta" id="cdPreorder" href="/">Preorder Batch 2</a>
@@ -373,7 +373,7 @@
           <p class="q-price-save" id="qPriceSave" hidden></p>
           <p class="q-price-note" id="qPriceNote">US shipping included.</p>
         </div>
-        <p class="q-hint q-price-terms">Batch 2 ships by 8 November. Splash- and dust-resistant. Full refund any time before it ships.</p>
+        <p class="q-hint q-price-terms">Batch 2 ships by 30 November. Splash- and dust-resistant. Full refund any time before it ships.</p>
         <p class="q-price-agree">By paying you agree to the <a href="terms.html" target="_blank" rel="noopener">Terms</a>, <a href="refunds.html" target="_blank" rel="noopener">Refunds</a> and <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> pages.</p>
         <button type="submit" class="btn btn-gold q-submit" id="joinSubmit">Yes, apply</button>
       </fieldset>
@@ -402,7 +402,7 @@
     <p class="ap-eyebrow">Questions</p>
     <dl>
       <div><dt>What do I get?</dt><dd>One hand-built bracelet with six person beads, the M&rsquo;AKOMA app for iPhone or Android, setup help, and a direct line to the founder.</dd></div>
-      <div><dt>When does it ship?</dt><dd>Batch 2 ships by 8 November 2026. Batch 1 is fully reserved and ships by 25 October. Hand-built, so they leave in waves. If I am going to miss that date you hear from me on or before it, and you can cancel for a full refund. See <a href="shipping.html">shipping</a>.</dd></div>
+      <div><dt>When does it ship?</dt><dd>Batch 2 ships by 30 November 2026. Batch 1 is fully reserved and ships by 25 October. Hand-built, so they leave in waves. If I am going to miss that date you hear from me on or before it, and you can cancel for a full refund. See <a href="shipping.html">shipping</a>.</dd></div>
       <div><dt>Is it waterproof?</dt><dd>It is IP54, splash- and dust-resistant, so take it off to shower or swim.</dd></div>
       <div><dt>Does the other person need one?</dt><dd>Not for a single. They can reach you from the M&rsquo;AKOMA app on their phone. In a circle, everyone wears one.</dd></div>
     </dl>
@@ -791,7 +791,7 @@
       if (CHECKOUT) {
         if (applySec) applySec.hidden = false;
         $("#joinSubmit").textContent = "Checkout";
-        $(".q-price-terms").textContent = "Batch 2 ships by 8 November. Splash- and dust-resistant. Card, address and phone on the next step. Full refund any time before it ships.";
+        $(".q-price-terms").textContent = "Batch 2 ships by 30 November. Splash- and dust-resistant. Card, address and phone on the next step. Full refund any time before it ships.";
         show("way", true);              // Melvin 2026-10-12: Preorder lands on the top of the page, never mid-steps
       } else if (applySec) applySec.hidden = true;
       /* Checkout mode with no publishable key used to be a dead end: the application was

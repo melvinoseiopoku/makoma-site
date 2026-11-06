@@ -16,7 +16,7 @@
      STRIPE_SECRET_KEY     rk_live_... restricted: Checkout Sessions WRITE + Prices READ
      STRIPE_PRICE_ID       price_... one-time price; the amount lives only in Stripe
      PILOT_OPENS_AT        2026-09-20T12:00:00-04:00 (with the offset; fails closed if missing)
-     PILOT_SHIP_WINDOW     "by 8 November 2026" — shown on the pay button (batch 2, set 2026-10-12); must match the pages
+     PILOT_SHIP_WINDOW     "by 30 November 2026" — shown on the pay button (batch 2, updated 2026-11-06); must match the pages
      PILOT_SEATS           whole number, default 60; anything else fails closed
      UPSTASH_REDIS_REST_URL / UPSTASH_REDIS_REST_TOKEN   the reservation store (Vercel → Storage →
                            Upstash Redis, connected to the project; KV_REST_API_* also accepted).
@@ -55,7 +55,7 @@ const ALLOWED_ORIGINS = [
   "http://127.0.0.1:8765",
 ];
 const OFFER = "founder-pilot";
-const TERMS_VERSION = "2026-10-14";          // the refunds, shipping and terms pages as published
+const TERMS_VERSION = "2026-11-06";          // the refunds, shipping and terms pages as published
 const HOLD_MINUTES = 30;                     // Stripe's minimum Checkout Session lifetime
 const HOLD_MARGIN_MS = 90 * 1000;            // the store hold outlives the Stripe session slightly
 const SIZES = { small: "Small", medium: "Medium", large: "Large", unsure: "Not sure (message them to measure)" };   // "unsure" added 2026-10-13
