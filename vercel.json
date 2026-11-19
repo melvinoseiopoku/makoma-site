@@ -16,6 +16,21 @@
       "source": "/how-it-begins",
       "destination": "/",
       "permanent": false
+    },
+    {
+      "source": "/download",
+      "destination": "/app",
+      "permanent": false
+    },
+    {
+      "source": "/testflight",
+      "destination": "/app",
+      "permanent": false
+    },
+    {
+      "source": "/get-the-app",
+      "destination": "/app",
+      "permanent": false
     }
   ],
   "rewrites": [

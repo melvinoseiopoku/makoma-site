@@ -752,9 +752,9 @@ section{ position:relative; z-index:2; }
 .footer{ margin-top:clamp(80px,12vw,140px); border-top:1px solid var(--line-soft); padding:40px 0; }
 .footer-row{ display:flex; flex-wrap:wrap; gap:14px 30px; align-items:center; justify-content:center; text-align:center; }
 .footer-meta{ color:var(--ink-mute); font-size:.82rem; flex-basis:100%; }
-.footer-ig, .footer-mail{ display:inline-flex; align-items:center; gap:7px; color:var(--gold); font-size:.9rem; transition:color .25s; }
-.footer-ig:hover, .footer-mail:hover{ color:var(--gold-bright); }
-.footer-ig svg, .footer-mail svg{ display:block; }
+.footer-app, .footer-ig, .footer-mail{ display:inline-flex; align-items:center; gap:7px; color:var(--gold); font-size:.9rem; transition:color .25s; }
+.footer-app:hover, .footer-ig:hover, .footer-mail:hover{ color:var(--gold-bright); }
+.footer-app svg, .footer-ig svg, .footer-mail svg{ display:block; }
 
 /* ============ responsive nav + mobile menu ============ */
 .nav-right{ display:flex; align-items:center; gap:12px; }
@@ -2983,3 +2983,47 @@ video.film-off{ opacity:0; }
    (feature-flight.js, beadring3d.js). */
 .grain{ display:none !important; }
 .reveal, .reveal.in{ opacity:1 !important; transform:none !important; transition:none !important; }
+
+/* ============================================================
+   GET THE APP (2026-11-19): the header link on every page (also over the
+   landing film, where the rest of the header steps aside) and /app.
+   ============================================================ */
+.nav-app{ display:inline-flex; align-items:center; gap:6px; flex:0 0 auto; white-space:nowrap;
+  min-height:38px; padding:0 .95em; border-radius:100px; border:1px solid var(--line);
+  color:var(--gold-bright); font-size:.78rem; font-weight:500; letter-spacing:.02em;
+  transition:border-color .3s, color .3s, background-color .3s; }
+@media (hover:hover){ .nav-app:hover{ border-color:var(--gold); color:var(--gold); } }
+.nav-app svg{ display:block; flex:0 0 auto; }
+.nav-app-short{ display:none; }
+/* a phone's full header (logo, this, theme, menu) only fits the short word */
+@media (max-width:430px){ .nav-app{ padding:0 .8em; } .nav-app-long{ display:none; } .nav-app-short{ display:inline; } }
+/* over the landing film the theme and menu buttons step aside: room for the whole line */
+.nav--pre .nav-app-long{ display:inline; }
+.nav--pre .nav-app-short{ display:none; }
+/* over the film the scrim is dark in both themes: literal ivory, like the logo there */
+.nav--pre .nav-app{ color:rgba(236,230,216,.94); border-color:rgba(236,230,216,.38);
+  background:rgba(6,6,7,.32); -webkit-backdrop-filter:blur(8px); backdrop-filter:blur(8px); }
+@media (hover:hover){ .nav--pre .nav-app:hover{ color:#fff; border-color:rgba(236,230,216,.7); } }
+
+.app-page .app-lede{ font-size:1.05rem; margin-bottom:34px; }
+.policy .app-steps{ list-style:none; margin:0 0 34px; padding:0; display:grid; gap:14px; }
+.policy .app-step{ margin:0; display:flex; gap:16px; align-items:flex-start; padding:20px 20px 22px;
+  border:1px solid var(--line-soft); border-radius:18px; background:var(--panel); }
+.app-step-n{ flex:0 0 auto; width:30px; height:30px; border-radius:50%; display:inline-flex;
+  align-items:center; justify-content:center; border:1px solid var(--line);
+  color:var(--gold-bright); font-size:.85rem; font-weight:600; margin-top:2px; }
+.app-step-body{ flex:1 1 auto; min-width:0; }
+.policy .app-step h2{ margin:0 0 4px; font-size:1.25rem; }
+.policy .app-step p{ margin:0; }
+.policy a.app-btn{ margin-top:14px; text-decoration:none; }
+/* .policy a would paint the buttons' words gold: keep each button's own ink */
+.policy a.btn-gold.app-btn{ color:#1a1407; }
+:root[data-theme="light"] .policy a.btn-gold.app-btn{ color:#fff; }
+.policy a.btn-line.app-btn{ color:var(--ink); }
+@media (max-width:520px){ .policy a.app-btn{ display:flex; width:100%; } }
+.app-qr{ display:flex; align-items:center; gap:18px; margin:0 0 30px; }
+.app-qr img{ display:block; background:#fff; border-radius:16px; padding:8px; width:148px; height:148px; }
+.app-qr p{ margin:0; max-width:24ch; }
+/* phones can't scan their own screen */
+@media (hover:none), (max-width:820px){ .app-qr{ display:none; } }
+.app-help{ font-size:.95rem; }
