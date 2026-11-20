@@ -3027,3 +3027,13 @@ video.film-off{ opacity:0; }
 /* phones can't scan their own screen */
 @media (hover:none), (max-width:820px){ .app-qr{ display:none; } }
 .app-help{ font-size:.95rem; }
+
+/* ---- 2026-11-20 legal + accessibility pass --------------------------------------------------- */
+/* consent line under every email form: what you get, how to stop it, where the policy is */
+.join-note{ margin:14px auto 0; max-width:34ch; font-size:.78rem; line-height:1.5; color:var(--ink-mute); text-align:center; }
+.cfg-savenote{ margin:10px 0 0; font-size:.74rem; line-height:1.5; color:var(--ink-mute); }
+.join-note a, .cfg-savenote a{ color:inherit; text-decoration:underline; text-decoration-thickness:1px; text-underline-offset:2px; }
+/* links inside policy text must not rely on colour alone (gold on light ink is 1.2:1 in dark mode) */
+.policy :is(p, li, td, dd) a:not(.btn){ text-decoration:underline; text-decoration-thickness:1px; }
+/* light mode: the fact labels on the cream panel were 4.3:1 at 7 pt; 5.0:1 now */
+:root[data-theme="light"] .fact span{ color:#635c4a; }

@@ -25,7 +25,7 @@
     document.documentElement.setAttribute('data-theme', t);
   }catch(e){ document.documentElement.setAttribute('data-theme','dark'); } })();
 </script>
-<link rel="stylesheet" href="css/style.css?v=app-20261119" />
+<link rel="stylesheet" href="css/style.css?v=legal-20261120" />
 </head>
 <body>
 
@@ -63,54 +63,61 @@
 <main id="top" class="policy">
   <div class="wrap policy-wrap">
 <h1>Privacy</h1>
-<p><em>Last updated 23 October 2026.</em></p>
+<p><em>Last updated 20 November 2026.</em></p>
 
 <p>M&rsquo;AKOMA is a bracelet and an app for the people you love, so it touches personal things: who they are, and sometimes your voice. This page says exactly what I collect, why, who else handles it, how long it stays, and how you get it deleted. I do not sell your data and I do not use it for advertising. The app has no ads and no tracking.</p>
 
 <h2>Who is responsible</h2>
-<p>M&rsquo;AKOMA is a limited liability company registered in the United States, run by me, Melvin Osei Opoku. Questions or requests go to <a href="mailto:hello@makoma.io">hello@makoma.io</a>, and I read every one.</p>
+<p>M&rsquo;AKOMA is M&rsquo;AKOMA Technologies LLC, a limited liability company registered in Florida, in the United States, run by me, Melvin Osei Opoku. Questions or requests go to <a href="mailto:hello@makoma.io">hello@makoma.io</a>, and I read every one.</p>
 
 <h2>The M&rsquo;AKOMA app</h2>
 <p>There is no password. The first time you open the app, it makes an account for you on M&rsquo;AKOMA&rsquo;s server. That account holds:</p>
 <ul>
   <li><strong>A random device ID and a secret,</strong> so the server knows it is your phone and nobody else can send as you.</li>
   <li><strong>The name you type,</strong> so the people you connect with know who a Pulse or an Echo is from.</li>
-  <li><strong>Your mobile number or email address, only if you choose to add one.</strong> It is never sent as it is. Your phone turns it into a one-way code (a SHA-256 hash) and sends only that, so people who already have your number or email can find you.</li>
+  <li><strong>Your mobile number or email address, only if you choose to add one.</strong> It is never sent as it is. Your phone turns it into a code (a SHA-256 hash) and sends only that, so people who already have your number or email can find you. The code is not your number written out, though someone who tried every phone number could match it.</li>
+  <li><strong>Your phone&rsquo;s public encryption key,</strong> in newer versions of the app, so what people send you can be sealed for your phone only.</li>
   <li><strong>Your profile code,</strong> a short code you can share so people can connect with you. You can make a new one at any time, and the old one stops working.</li>
 </ul>
 
 <h3>Finding people you know</h3>
-<p>Only if you allow it, the app looks at the phone numbers and email addresses in your Contacts, turns each one into the same kind of one-way code, and sends those codes to the server to see who already uses M&rsquo;AKOMA. Names, photos and every other detail stay on your phone. The codes are compared and then dropped; they are not stored. Contacts access is never required: you can share your code instead.</p>
+<p>Only if you allow it, the app looks at the phone numbers and email addresses in your Contacts, turns each one into the same kind of code, and sends those codes to the server to see who already uses M&rsquo;AKOMA. Names, photos and every other detail stay on your phone. The codes are compared and then dropped; they are not stored. Contacts access is never required: you can share your code instead.</p>
 
 <h3>Messages</h3>
 <p>Pulses (a tap that lights someone&rsquo;s bead), Echoes (a voice note to one person) and group chats (text, voice Ripples, photos, videos, reactions and replies) all travel through M&rsquo;AKOMA&rsquo;s server. It keeps them only as long as it needs to:</p>
 <ul>
-  <li><strong>Pulses and Echoes</strong> are deleted 24 hours after they are delivered, or after 7 days if they could never be delivered.</li>
-  <li><strong>Group chat messages, photos and videos</strong> are kept for 30 days, so the group can scroll back, then deleted.</li>
+  <li><strong>Pulses and Echoes</strong> are deleted 24 hours after they are sent. One that has not reached the other person by then waits up to 7 days, then is deleted.</li>
+  <li><strong>Group chat messages, photos and videos</strong> are kept for 30 days, so the group can scroll back, then deleted. A reply keeps a short quote of the message it answers for as long as the reply is kept.</li>
+  <li><strong>A group&rsquo;s own picture</strong> stays until someone changes it or the group ends.</li>
   <li><strong>Group names and who is in a group</strong> are kept until the group ends or you leave it.</li>
 </ul>
 
 <h3>Notifications</h3>
-<p>So you know about a Pulse or an Echo when the app is closed, the server keeps your phone&rsquo;s push token, and Apple delivers the notification through the Apple Push Notification service.</p>
+<p>So you know about a Pulse or an Echo when the app is closed, the server keeps your phone&rsquo;s push token, and Apple delivers the notification through the Apple Push Notification service. A notification can show who it is from and, for a group chat, the first words of the message, so Apple carries those to your phone too.</p>
 
 <h3>M&rsquo;AKOMA AI</h3>
-<p>Nothing goes to an AI unless you ask it something. If you use M&rsquo;AKOMA AI (&ldquo;Hey Makoma&rdquo;), Apple&rsquo;s speech recognition turns your question into text. That text, the name you use in the app and your local time are sent through M&rsquo;AKOMA&rsquo;s server to Anthropic, the company that makes the Claude model, to get your answer. M&rsquo;AKOMA&rsquo;s server does not keep your questions or the answers.</p>
+<p>M&rsquo;AKOMA AI is off until you turn it on, and nothing goes to an AI unless you ask it something. (With Always listening on, the bracelet can now and then mistake other speech for &ldquo;Hey Makoma&rdquo;; what it hears then is treated as a question.) When you ask M&rsquo;AKOMA AI, Apple&rsquo;s speech recognition turns your question into text, on your phone where it can, otherwise through Apple&rsquo;s own speech service. If Apple&rsquo;s model on your phone can answer, nothing goes to Anthropic. If not, the text goes through M&rsquo;AKOMA&rsquo;s server to Anthropic, the company that makes the Claude model, with what it needs to answer you: the conversation so far, the name you use in the app, your local time and time zone, and your beads (the names you gave your people, and any Shortcut or link a bead runs). If answering needs them, it can also read your calendar and reminders (once you give it access) and the words of your voice notes (unless you turn that off in its settings), and what it reads goes to Anthropic with your question. Either way, the answer is spoken in the M&rsquo;AKOMA voice, which M&rsquo;AKOMA&rsquo;s own server makes from the answer&rsquo;s words. M&rsquo;AKOMA&rsquo;s server does not keep your questions or the answers.</p>
+<p>The same voice can read a chat aloud on your bracelet when you put that chat on a bead. When your phone&rsquo;s own copy of the voice is not ready, the words go to M&rsquo;AKOMA&rsquo;s server to be spoken and are not kept. The voice files your phone needs are downloaded once from Hugging Face, over Wi-Fi.</p>
 
 <h3>What stays on your phone</h3>
 <ul>
-  <li>The names you give your people, and your settings.</li>
+  <li>The names you give your people, and your settings. (M&rsquo;AKOMA AI sees your beads&rsquo; names when you ask it something, as above.)</li>
+  <li><strong>Voice notes</strong> you keep stay on your phone. When you open a voice note, Apple writes out its words, translates them and sums them up: on your phone where it can, otherwise the words go through Apple&rsquo;s own speech service. None of it goes to M&rsquo;AKOMA.</li>
   <li><strong>Location</strong> for Move: a run or walk is tracked on your phone and stays there.</li>
   <li><strong>Steps</strong> from your phone&rsquo;s motion sensor stay on your phone. The bracelet&rsquo;s own step count stays on the bracelet and your phone.</li>
-  <li><strong>The microphone</strong> is used only when you record something to send, like an Echo or a Ripple, or when you ask M&rsquo;AKOMA AI a question.</li>
+  <li><strong>The microphone</strong> is used only when you record something to send, like an Echo or a Ripple, or to hear your bracelet&rsquo;s test sound when you check it. That sound is not recorded or sent.</li>
   <li><strong>Bluetooth</strong> is used only to talk to your own bracelet.</li>
-  <li><strong>Diagnostic logs</strong> stay on your phone. They leave it only if you tap Send diagnostics, which opens the share sheet so you choose where they go.</li>
+  <li><strong>Diagnostic logs</strong> stay on your phone unless you choose to send them: Send diagnostics opens the share sheet so you pick where they go, and a bracelet check you send comes to me (below).</li>
 </ul>
+
+<h3>Bracelet checks</h3>
+<p><strong>Profile &rarr; Your bracelet &rarr; Check your bracelet</strong> tests your bracelet on your phone. Nothing leaves your phone unless you tap <strong>Send to M&rsquo;AKOMA</strong>. Then I receive the check so I can help you: your bracelet&rsquo;s name and ID, its firmware and the app&rsquo;s version, each test and its result (such as the battery level, but not your step count), the bracelet&rsquo;s log, any note you add, your first name, and your phone&rsquo;s model and iOS version. I may use AI tools, including Anthropic&rsquo;s Claude, to help me read it. A check is deleted 90 days after you send it, on the server and on my computer, or sooner if you delete your account.</p>
 
 <h3>No ads, no tracking</h3>
 <p>The app shows no ads, does not track you across other apps or websites, and has no analytics tools inside it. I do not sell your data or share it for advertising.</p>
 
 <h3>Reports and blocks</h3>
-<p>If you report a message, a person or a group, I receive the report and what it is about, so I can review it. If you block someone, the server remembers it so they can no longer reach you. Reports are kept only as long as I need them to deal with the problem and keep people safe.</p>
+<p>If you report a message, a person or a group, I receive the report and what it is about, so I can review it: the words or caption reported and the names involved. A report is deleted a year after it is made. If you block someone, the server remembers it so they can no longer reach you, until you unblock them or one of you deletes your account.</p>
 
 <h2>What the server keeps, and for how long</h2>
 <table class="policy-table">
@@ -120,35 +127,40 @@
   <tbody>
     <tr><td>Device ID and secret</td><td data-label="Why">To recognise your phone and keep your account yours</td><td data-label="How long">Until you delete your account</td></tr>
     <tr><td>Your name</td><td data-label="Why">So people know who a message is from</td><td data-label="How long">Until you delete your account</td></tr>
-    <tr><td>One-way code of your number or email (optional)</td><td data-label="Why">So people who have your number or email can find you</td><td data-label="How long">Until you delete your account</td></tr>
+    <tr><td>Your phone&rsquo;s public encryption key</td><td data-label="Why">So messages to you can be sealed for your phone only</td><td data-label="How long">Until you delete your account</td></tr>
+    <tr><td>Hashed code of your number or email (optional)</td><td data-label="Why">So people who have your number or email can find you</td><td data-label="How long">Until you delete your account</td></tr>
     <tr><td>Profile code</td><td data-label="Why">So people can connect with you</td><td data-label="How long">Until you make a new one or delete your account</td></tr>
     <tr><td>Your connections</td><td data-label="Why">To deliver Pulses and Echoes to the right people</td><td data-label="How long">Until the connection ends or you delete your account</td></tr>
-    <tr><td>One-way codes of your contacts&rsquo; numbers (optional)</td><td data-label="Why">To show which of your contacts use M&rsquo;AKOMA</td><td data-label="How long">Not stored: compared, then dropped</td></tr>
-    <tr><td>Pulses and Echoes</td><td data-label="Why">To deliver them</td><td data-label="How long">24 hours after delivery, or 7 days if never delivered</td></tr>
-    <tr><td>Group messages, Ripples, photos, videos, reactions and replies</td><td data-label="Why">So the group can read and scroll back</td><td data-label="How long">30 days</td></tr>
+    <tr><td>Hashed codes of your contacts&rsquo; numbers (optional)</td><td data-label="Why">To show which of your contacts use M&rsquo;AKOMA</td><td data-label="How long">Not stored: compared, then dropped</td></tr>
+    <tr><td>Pulses and Echoes</td><td data-label="Why">To deliver them</td><td data-label="How long">24 hours after sending, or up to 7 days if not yet delivered</td></tr>
+    <tr><td>Group messages, Ripples, photos, videos, reactions and replies</td><td data-label="Why">So the group can read and scroll back</td><td data-label="How long">30 days (a reply&rsquo;s short quote lasts as long as the reply)</td></tr>
+    <tr><td>Group picture</td><td data-label="Why">So the group looks like itself</td><td data-label="How long">Until someone changes it or the group ends</td></tr>
     <tr><td>Group names and members</td><td data-label="Why">To run the group</td><td data-label="How long">Until the group ends or you leave</td></tr>
     <tr><td>Push token</td><td data-label="Why">So Apple can deliver your notifications</td><td data-label="How long">Until you delete your account</td></tr>
     <tr><td>M&rsquo;AKOMA AI questions and answers</td><td data-label="Why">To get you an answer</td><td data-label="How long">Not kept by M&rsquo;AKOMA</td></tr>
-    <tr><td>Reports and blocks</td><td data-label="Why">To review reports and keep blocked people away</td><td data-label="How long">As long as needed to deal with them</td></tr>
+    <tr><td>Bracelet checks you send</td><td data-label="Why">To help with your bracelet</td><td data-label="How long">90 days</td></tr>
+    <tr><td>Reports and blocks</td><td data-label="Why">To review reports and keep blocked people away</td><td data-label="How long">Reports: one year. Blocks: until unblocked, or until either account is deleted</td></tr>
   </tbody>
 </table>
 
-<h2>Deleting your account</h2>
+<h2 id="delete">Deleting your account and data</h2>
 <p>In the app, go to <strong>Profile &rarr; Account &rarr; Delete account</strong>. That deletes:</p>
 <ul>
-  <li>your account, your name and the one-way code of your number or email</li>
+  <li>your account, your name and the hashed code of your number or email</li>
   <li>your profile code</li>
   <li>your connections (each person you were connected with is told the connection has ended)</li>
   <li>your place in every group</li>
   <li>messages, voice notes, photos and videos still waiting on the server</li>
+  <li>bracelet checks you sent</li>
 </ul>
-<p>It also clears the app&rsquo;s data on that phone. It cannot reach into other people&rsquo;s phones, so anything they have already received stays with them. If you no longer have the phone, email me with the name you used and I will help.</p>
+<p>It also clears the app&rsquo;s data on that phone. It cannot reach into other people&rsquo;s phones, so anything they have already received stays with them. Names you taught your bracelet to recognise live only on the bracelet, so deleting your account does not reach them: reset each one under Voice names, or email me and I will tell you how to wipe the bracelet. Two things stay for a while on the server because they are part of other people&rsquo;s conversations: the line in a group saying you left, which goes after 30 days like the rest of the chat, and reports other people made about you, which go a year after they were made.</p>
+<p><strong>No app, or no phone any more?</strong> Email <a href="mailto:hello@makoma.io?subject=Delete%20my%20data">hello@makoma.io</a> with &ldquo;Delete my data&rdquo; and the name you used in the app, or the email you used to preorder or join the waitlist. I will delete what I hold about you within 30 days and tell you when it is done. The only things I keep are records the law makes me keep, such as a completed sale for tax.</p>
 
 <h2>When you preorder</h2>
 <ul>
   <li><strong>Your answers in the preorder steps:</strong> circle or single, how many bracelets, wrist sizes, your email, and how you heard about M&rsquo;AKOMA. They are attached to your order so I can build and ship the right bracelets.</li>
   <li><strong>Payment, name, shipping address and phone number</strong> are entered on Stripe&rsquo;s checkout form. Stripe processes the card; I never see or store your full card number. I see the address and phone so I can ship to you and reach you about delivery.</li>
-  <li><strong>A short one-way code made from your IP address</strong>, used only to stop abuse of the seat holds. Your IP address itself is not stored with your order.</li>
+  <li><strong>A short code made from your IP address</strong>, kept only while a seat is held for you (about 30 minutes), to stop abuse of the seat holds. Your IP address itself is not stored with your order.</li>
 </ul>
 
 <h2>When you join the waitlist</h2>
@@ -160,12 +172,22 @@
 <h2>Website analytics</h2>
 <p>This website uses Vercel Web Analytics and Speed Insights: counts of page views and load times, without cookies. On the preorder page it also counts which step people reach, never what they typed. This is the website only; the app has no analytics.</p>
 
+<h2 id="cookies">Cookies, and what your browser keeps</h2>
+<p>This website sets no advertising or tracking cookies, and nothing on it follows you to other sites. That is why there is no cookie banner: there is nothing to say yes or no to. If that ever changes, the site will ask you first.</p>
+<ul>
+  <li><strong>Checkout.</strong> When you open the checkout, Stripe&rsquo;s payment form sets two small cookies, <code>__stripe_mid</code> and <code>__stripe_sid</code>, that help it spot card fraud. They are part of paying safely, not tracking.</li>
+  <li><strong>Your browser&rsquo;s own storage.</strong> The site remembers a few things on your device, and none of it is sent to me: light or dark mode, the bracelet you design (names included), whether you have seen the intro and hints, and a copy of what you typed into a form, in case sending it fails.</li>
+  <li><strong>Analytics.</strong> Page counts use no cookies, as above.</li>
+</ul>
+<p>You can clear all of it at any time in your browser&rsquo;s settings.</p>
+
 <h2>Who else handles your data</h2>
 <p>Only the services that run M&rsquo;AKOMA, each for its own job:</p>
 <ul>
   <li><strong>Railway</strong> hosts M&rsquo;AKOMA&rsquo;s app server in the United States.</li>
-  <li><strong>Apple</strong> delivers push notifications, and its speech recognition turns M&rsquo;AKOMA AI questions into text.</li>
-  <li><strong>Anthropic</strong> answers M&rsquo;AKOMA AI questions, only when you ask one.</li>
+  <li><strong>Apple</strong> delivers push notifications, and its speech recognition writes out M&rsquo;AKOMA AI questions and voice notes, as described above.</li>
+  <li><strong>Anthropic</strong> answers M&rsquo;AKOMA AI questions, only when you ask one, and its Claude tools help me read bracelet checks you send.</li>
+  <li><strong>Hugging Face</strong> hosts the voice files the app downloads once.</li>
   <li><strong>Stripe</strong> handles payments and order records.</li>
   <li><strong>Vercel</strong> hosts the website and its analytics, and stores private files.</li>
   <li><strong>Upstash</strong> holds a seat while you pay.</li>
@@ -206,12 +228,12 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" width="17" height="17"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>
         <span>hello@makoma.io</span>
       </a>
-      <span class="footer-meta">An early-stage beaded-technology company · hand-built in small batches · built by Melvin Osei Opoku · <a href="refunds.html">Refunds</a> · <a href="shipping.html">Shipping</a> · <a href="terms.html">Terms of sale</a> · <a href="terms-of-use.html">Terms of use</a> · <a href="privacy.html">Privacy</a> · <a href="help.html">Help</a> · <a href="NOTICES.txt">Notices</a></span>
+      <span class="footer-meta">M’AKOMA Technologies LLC · an early-stage beaded-technology company · hand-built in small batches · built by Melvin Osei Opoku · <a href="refunds.html">Refunds</a> · <a href="shipping.html">Shipping</a> · <a href="terms.html">Terms of sale</a> · <a href="terms-of-use.html">Terms of use</a> · <a href="privacy.html">Privacy</a> · <a href="privacy.html#cookies">Cookies</a> · <a href="help.html">Help</a> · <a href="NOTICES.txt">Notices</a></span>
     </div>
   </footer>
 
 <script src="js/glyphs.js"></script>
-<script src="js/main.js?v=warm-gold-20261022"></script>
+<script src="js/main.js?v=legal-20261120"></script>
 <script>
   /* Vercel Web Analytics — privacy-friendly, cookieless. Activates automatically once
      deployed to Vercel (enable Analytics in the project). Skipped on localhost. */

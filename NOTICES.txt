@@ -67,6 +67,25 @@ The .ttf is the Medium weight unwrapped from the bundled .woff2 with fontTools, 
 the 3D text in the hero can read its outlines. No glyphs were altered.
 
 -------------------------------------------------------------------------------
+Cormorant Garamond  —  assets/fonts/cormorant-garamond-*.woff2,
+                       assets/vendor/text/CormorantGaramond-Italic-latin.ttf
+-------------------------------------------------------------------------------
+Copyright 2015 The Cormorant Project Authors (https://github.com/CatharsisFonts/Cormorant)
+Licensed under the SIL Open Font License, Version 1.1.
+Full licence text: assets/vendor/text/OFL-CormorantGaramond.txt
+The .ttf is the italic unwrapped from the bundled .woff2 with fontTools, so the 3D
+words on the bracelet can read its outlines. No glyphs were altered.
+
+
+-------------------------------------------------------------------------------
+JetBrains Mono  —  assets/fonts/jetbrains-mono-*.woff2
+-------------------------------------------------------------------------------
+Copyright 2020 The JetBrains Mono Project Authors (https://github.com/JetBrains/JetBrainsMono)
+Licensed under the SIL Open Font License, Version 1.1.
+Full licence text: assets/vendor/text/OFL-JetBrainsMono.txt
+
+
+-------------------------------------------------------------------------------
 Allerta Stencil  —  assets/vendor/text/AllertaStencil-Regular.ttf
 -------------------------------------------------------------------------------
 Copyright (c) Matt McInerney

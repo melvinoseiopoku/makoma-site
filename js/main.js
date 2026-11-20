@@ -170,7 +170,7 @@
   function buildSymbols() {
     const grid = $("#symbolGrid"); if (!grid) return;
     grid.innerHTML = BEADS.map(b => `
-      <div class="sym-card reveal" style="--g:${b.color}">
+      <div class="sym-card reveal" role="listitem" style="--g:${b.color}">
         <div class="sym-ico">${glyphSVG(b.key)}</div>
         <div class="sym-name">${b.name}</div>
         <div class="sym-lit">${b.lit}</div>
@@ -340,6 +340,7 @@
       const on = heroAway && !joinHere && !inBox && !landingHere;
       dock.classList.toggle("on", on);
       dock.setAttribute("aria-hidden", on ? "false" : "true");
+      dock.inert = !on;   // hidden means out of the tab order too
     };
     // re-evaluate when the designer opens or closes (class changes fire no observer)
     for (const ev of ["makoma:boxopen", "makoma:boxclose"]) window.addEventListener(ev, () => setTimeout(apply, 0));
