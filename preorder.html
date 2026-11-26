@@ -3,20 +3,20 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>M'AKOMA · Batch 2 preorders open</title>
+<title>M'AKOMA · Pilot order status</title>
 <!-- THE SHARE CARD. This is what Instagram, WhatsApp and iMessage render for the link,
      and they cache it, so it has to match the page's CURRENT mode. It said "Apply for one"
      through the countdown. When MAKOMA_PILOT.mode flips to checkout, change these three
      lines in the same edit: the card should then say preorders are open, not a future date. -->
-<meta name="description" content="Batch 1 is fully reserved. Batch 2 of the hand-built M'AKOMA bracelet is open now, shipping by 30 November. Six beads, six people." />
+<meta name="description" content="The M’AKOMA pilot bracelets are sold out. Join the waitlist to hear when the next batch opens." />
 <link rel="canonical" href="https://makoma.io/preorder" />
 <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1" />
 <meta name="theme-color" content="#060607" />
 <meta name="author" content="Melvin Osei Opoku" />
 <meta property="og:type" content="website" />
 <meta property="og:site_name" content="M'AKOMA" />
-<meta property="og:title" content="Batch 2 is open. Preorder yours. · M'AKOMA" />
-<meta property="og:description" content="Batch 1 is fully reserved. Batch 2 is open now and ships by 30 November 2026. Six beads, six people." />
+<meta property="og:title" content="Pilot bracelets sold out · M'AKOMA" />
+<meta property="og:description" content="The M’AKOMA pilot bracelets are sold out. Join the waitlist to hear when the next batch opens." />
 <meta property="og:url" content="https://makoma.io/preorder" />
 <meta property="og:image" content="https://makoma.io/assets/img/og-pilot.jpg" />
 <meta property="og:image:width" content="1200" />
@@ -125,7 +125,6 @@
     <a href="/customize">Customize</a>
     <a href="/#launch">Building in public</a>
     <a href="/#join">Waitlist</a>
-    <a href="#apply" class="nav-link-cta">Apply</a>
   </nav>
   <div class="nav-right">
     <a href="/app" class="nav-app"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" width="15" height="15"><rect x="6.5" y="2.5" width="11" height="19" rx="2.6"/><path d="M10.8 18.4h2.4"/></svg><span class="nav-app-long">Get the app</span><span class="nav-app-short">App</span></a>
@@ -133,7 +132,7 @@
       <svg class="ic-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
       <svg class="ic-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
     </button>
-    <a href="#apply" class="btn btn-ghost nav-cta">Apply</a>
+    <a href="/#join" class="btn btn-ghost nav-cta">Join the waitlist</a>
     <button class="nav-burger" id="navBurger" aria-label="Open menu" aria-expanded="false" aria-controls="navLinks">
       <span></span><span></span><span></span>
     </button>
@@ -143,7 +142,7 @@
 <main id="top" class="ap">
 
   <!-- ============ HEADLINE ============ -->
-  <section class="ap-hero ap-hero--product">
+  <section class="ap-hero ap-hero--product" hidden>
     <!-- Product first (2026-10-12, Melvin): the piece, then what it is, then what it does,
          then availability, then the questions. No price until the last step. -->
     <!-- Order (Melvin 2026-10-13): the headline first, the bracelet film in the middle, then the badges. -->
@@ -281,7 +280,7 @@
     </div>
   </section>
 
-  <section class="ap-apply" id="apply">
+  <section class="ap-apply" id="apply" hidden>
     <form class="ap-flow" id="joinForm" method="post" action="/api/apply" novalidate>
       <input type="hidden" name="embed" value="1" />
       <input type="hidden" name="tag" value="founder-pilot" />
@@ -399,7 +398,7 @@
   </section>
 
   <!-- ============ QUESTIONS ============ -->
-  <section class="ap-qa">
+  <section class="ap-qa" hidden>
     <p class="ap-eyebrow">Questions</p>
     <dl>
       <div><dt>What do I get?</dt><dd>One hand-built bracelet with six person beads, the M&rsquo;AKOMA app for iPhone or Android, setup help, and a direct line to the founder.</dd></div>
@@ -437,6 +436,10 @@
 <script src="js/feature-flight.js?v=3" defer></script>
 <script>
   (function () {
+    if (!new URLSearchParams(location.search).get("session_id")) {
+      location.replace("/#join");
+      return;
+    }
     var P = window.MAKOMA_PILOT || {};
     function pilotEvent(type, value) {
       try { if (window.MakomaPilotAnalytics) window.MakomaPilotAnalytics.emit(type, value); } catch (e) {} // never block checkout
@@ -750,7 +753,7 @@
     var showPreorderLanding = CHECKOUT && !returningFromStripe && opensAtMs > 0 && Date.now() < opensAtMs;   // 2026-09-23: after opening, /preorder goes straight to the questionnaire (the two-button screen now lives on /)
     if (P.mode === "countdown") setupCountdown(false);
     else if (P.mode === "checkout" && showPreorderLanding) setupCountdown(true);
-    else if (P.mode === "checkout") setupCheckoutChrome();
+    else if (P.mode === "checkout") { if (!returningFromStripe) setupCheckoutChrome(); }
     else if (P.mode === "apply") show("way", true);
     else setupClosed();
 
@@ -912,23 +915,25 @@
     var sid = new URLSearchParams(location.search).get("session_id");
     if (sid) {
       /* Never confirm on the URL alone: ask the server what Stripe says about this session.
-         Four outcomes, and only one of them may invite another order:
+         Show the confirmed outcome from Stripe:
            paid            -> confirmed
            complete/unpaid -> a card payment still settling: DO NOT pay again
-           open/expired    -> nothing was charged: Preorder is offered again
+           open/expired    -> nothing was charged: link to the waitlist
            anything else   -> unknown: keep the reference in the URL, offer "Check again"
                               and a human, never a second payment */
       $(".ap-hero").hidden = true; apply.hidden = true; done.hidden = false;
       var doneText = $("#ppDoneText"), doneTitle = done.querySelector(".ap-h2"), doneEyebrow = done.querySelector(".ap-eyebrow");
       var again = document.createElement("button"); again.type = "button"; again.className = "btn btn-line"; again.textContent = "Check again"; again.hidden = true; again.style.marginTop = "18px";
       doneText.insertAdjacentElement("afterend", again);
+      var waitlist = document.createElement("a"); waitlist.className = "btn btn-gold"; waitlist.href = "/#join"; waitlist.textContent = "Join the waitlist"; waitlist.hidden = true; waitlist.style.marginTop = "18px";
+      again.insertAdjacentElement("afterend", waitlist);
       function paint(eyebrow, title, text, opts) {
         opts = opts || {};
         doneEyebrow.textContent = eyebrow; doneTitle.textContent = title; doneText.textContent = text;
         var result = { Confirmed: "confirmed", Processing: "processing", "Not completed": "not_completed", Unmatched: "unmatched", Unconfirmed: "unconfirmed" }[eyebrow];
         if (result) pilotEvent("payment", result);
-        $(".ap-hero").hidden = !opts.offerAgain; apply.hidden = !opts.offerAgain;
         again.hidden = !opts.recheck;
+        waitlist.hidden = !opts.waitlist;
         if (opts.forget) { try { window.history.replaceState(null, "", location.pathname); } catch (e) {} }   // the reference is no longer needed
       }
       var reference = sid.slice(0, 14) + "\u2026" + sid.slice(-6);
@@ -944,13 +949,13 @@
             } else if (j.status === "complete") {
               paint("Processing", "Your payment is still settling.", "Do not pay again. Your " + what + " " + (n > 1 ? "are" : "is") + " held while the bank finishes; you will get a receipt the moment it clears. If nothing arrives within a day, email hello@makoma.io with reference " + reference + ".", { recheck: true });
             } else {
-              paint("Not completed", "Payment not completed.", "Nothing was charged. Press Preorder to start again.", { offerAgain: true, forget: true });
+              paint("Not completed", "Payment not completed.", "Nothing was charged. The pilot bracelets are sold out.", { waitlist: true });
             }
           })
           .catch(function (err) {
             var m = String((err && err.message) || "");
             if (m === "not_ours" || m === "bad_session") {
-              paint("Unmatched", "This link does not match a pilot order.", "If you paid, email hello@makoma.io with reference " + reference + " and do not pay again. If you did not, press Preorder to start.", { offerAgain: true });
+              paint("Unmatched", "This link does not match a pilot order.", "If you paid, email hello@makoma.io with reference " + reference + " and do not pay again.", { waitlist: true });
             } else {
               paint("Unconfirmed", "We could not check your payment just now.", "Do not pay again. Press Check again in a moment, or email hello@makoma.io with reference " + reference + " and it will be checked by hand.", { recheck: true });
             }

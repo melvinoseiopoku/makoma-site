@@ -3,6 +3,12 @@
   "cleanUrls": true,
   "redirects": [
     {
+      "source": "/preorder",
+      "missing": [{ "type": "query", "key": "session_id" }],
+      "destination": "/#join",
+      "permanent": false
+    },
+    {
       "source": "/founder-pilot",
       "destination": "/preorder",
       "permanent": false
